@@ -1744,25 +1744,7 @@ public:
   static const constexpr real_t increase_komi_threshhold = 0.75;
   static const constexpr real_t decrease_komi_threshhold = 0.15;
   static const int start_increasing = 200;
-
-  Game() : worm(coord.getSize(), 0), nextDot(coord.getSize(), 0), descr(), threats{}, influence(coord.getSize()),
-	   connects{std::vector<OneConnection>(coord.getSize(), OneConnection()), std::vector<OneConnection>(coord.getSize(), OneConnection())}
-  {
-    lastWormNo[0]=1; lastWormNo[1]=2; nowMoves=1; initWorm();
-    history.push_back(0);
-    history.push_back(1);
-    komi = 0;
-    komi_ratchet = 10000;
-    pattern3_value[0] = std::vector<pattern3_val>(coord.getSize(), 0);
-    pattern3_value[1] = std::vector<pattern3_val>(coord.getSize(), 0);
-    pattern3_at = std::vector<pattern3_t>(coord.getSize(), 0);
-    assert(0);  // should also generate patterns etc., and pattern3_value[corners]
-    initWorm();
-    possible_moves.generate();
-    interesting_moves.generate();
-    calculateBorderInfluence();
-    assert(Pattern3extra::MASK_DOT == MASK_DOT);
-  };
+  Game() = delete;
   Game(SgfSequence seq, int max_moves);
   int whoNowMoves() { return nowMoves; };
   void replaySgfSequence(SgfSequence seq, int max_moves);
