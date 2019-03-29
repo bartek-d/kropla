@@ -9462,7 +9462,132 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
 }
 
 
+void
+play_engine(Game &game, std::string &s, int threads_count, int iter_count)
+{
+  for (;;) {
+    {
+      MonteCarlo mc;
+      start_time = std::chrono::high_resolution_clock::now();
+      auto best_move = threads_count > 1 ?
+	mc.findBestMoveMT(game, threads_count, iter_count, 0) :
+	mc.findBestMove(game, iter_count);
+      auto end_time = std::chrono::high_resolution_clock::now();
+      std::cerr << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() << " mikros" << std::endl;
+      std::cout << s.substr(0, s.rfind(")")) << best_move << ")" << std::endl;
+    }
+      
+    std::string n(""), buf;
+    do {
+      std::getline(std::cin, buf);
+      if (buf.length()>=3 && buf.substr(0,3) == std::string("END")) {
+	return;
+      }
+      n += buf;
+    } while (n.find(")") == std::string::npos);
+    if (s.substr(0, s.length()-1) == n.substr(0, s.length()-1)) {
+      // the same beginning, add new moves
+      game.show();
+      std::string added = std::string("(") + n.substr(s.length()-1);
+      std::cerr << "To sgf: " << s << std::endl;
+      std::cerr << "I add moves: " << added << std::endl;
+      SgfParser parser(added);
+      auto seq = parser.parseMainVar();
+      game.replaySgfSequence(seq, std::numeric_limits<int>::max());
+    } else {
+      std::cerr << "NEW GAME STARTED." << std::endl;
+      SgfParser parser(n);
+      auto seq = parser.parseMainVar();
+      game = Game(seq, std::numeric_limits<int>::max());
+    }
+    s = n;
+    //      while (s.back() == '\n') s.pop_back();
+  }
+}
 
+
+void
+findAndPrintBestMove(Game &game, int iter_count)
+{
+  MonteCarlo mc;
+  start_time = std::chrono::high_resolution_clock::now();
+  auto best_move = mc.findBestMove(game, iter_count);
+  //auto best_move = mc.findBestMoveMT(game, threads_count, iter_count, 0);
+  auto end_time = std::chrono::high_resolution_clock::now();
+  std::cerr << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count()
+	    << " mikros" << std::endl;
+  std::cerr << "debug: " << debug_nanos/1000 << " mikros" << std::endl;
+  std::cerr << "debug2: " << debug_nanos2/1000 << " mikros" << std::endl;
+  std::cerr << "debug3: " << debug_nanos3/1000 << " mikros" << std::endl;   
+  std::cerr << "All threats2m: " << debug_allt2m << ", skipped: " << debug_skippedt2m << ", small singular: " << debug_sing_smallt2m
+            << ", large singular: " << debug_sing_larget2m
+            << ", found before: " << debug_foundt2m << ". n= " << debug_n << ", N=" << debug_N <<  std::endl;
+}
+
+void
+playInteractively(Game &game, int threads_count, int iter_count)
+{
+  for (;;) {
+    // get input
+    std::string buf, error_info = "";
+    std::getline(std::cin, buf);
+    CommandParser comm_parser;
+    try {
+      auto commands = comm_parser.parse(buf);
+      if (commands[0] == "threads") {
+	threads_count = std::stoi(commands[1]);
+	if (threads_count <= 0) threads_count = 1;
+	std::cerr << "set threads to " << threads_count << std::endl;
+      } else if (commands[0] == "iters") {
+	iter_count = std::stoi(commands[1]);
+	if (iter_count <= 0) iter_count = 1;
+	std::cerr << "set iterations to " << iter_count << std::endl;
+      } else if (commands[0] == "first") {
+      } else if (commands[0] == "second") {
+      } else if (commands[0] == "help" or commands[0] == "?") {
+	std::cerr << "Type 'show', 'quit' or 'bye', coordinate(s) to play at given point (and enclose next points)" << std::endl
+		  << "'move' to make a move by AI, 'threads', 'iters' to change AI settings" << std::endl;
+      } else if (commands[0] == "new") {
+      } else if (commands[0] == "move") {
+	{
+	  MonteCarlo mc;
+	  start_time = std::chrono::high_resolution_clock::now();
+	  auto best_move = threads_count > 1 ?
+	    mc.findBestMoveMT(game, threads_count, iter_count, 0) :
+	    mc.findBestMove(game, iter_count);
+	  auto end_time = std::chrono::high_resolution_clock::now();
+	  std::cerr << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() << " mikros" << std::endl;
+						  auto l = best_move.find_first_of('[');
+						  auto r = best_move.find_last_of(']');
+						  if (l < r) {
+						    best_move = best_move.substr(l+1, r-l-1);
+						  }
+						  std::cerr << "best move: " << best_move << std::endl;
+						  game.makeSgfMove(best_move, game.whoNowMoves());
+						  }
+	
+	} else if (commands[0] == "quit" || commands[0] ==  "bye") {
+	  break;
+	} else if (commands[0] == "back") {
+	
+	} else if (commands[0] == "show") {
+	  game.show();	
+	} else if (commands[0] == "_play") {
+	  // get coordinates, in [1] point to play, in [2...] points to enclose (if any)
+	  std::string s = commands[1];
+	  for (int i=2; i<commands.size(); ++i) {
+	    s += "!" + commands[i];
+	  }
+	  game.makeSgfMove(s, game.whoNowMoves());
+
+	}
+      } catch (const std::runtime_error& e) {
+	std::cerr << e.what() << std::endl;
+      }
+
+    }
+}
+    
 /* sample sgf */
 
 std::string sgf185253("(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[30]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=15]EV[Wielki Turniej Pamięci Arosa 2013]RO[2 (faza grupowa)]PB[michals]PW[grzesiek2f]TM[180]OT[10]DT[2013-11-11]RE[W+11]BR[1505]WR[1334];B[oo];W[pm];B[nn];W[qp];B[pp];W[pn];B[pq];W[nl];B[qq];W[rp];B[rq];W[tp];B[sp];W[so];B[sq];W[rn];B[to];W[tn];B[uo];W[uq];B[un];W[tm];B[um];W[po];B[op];W[vq];B[ul];W[ts];B[rt];W[rs];B[qs];W[st];B[rr];W[ss];B[qt];W[sv];B[ru];W[tw];B[rv];W[rw];B[qw];W[rx];B[qx];W[wo];B[tk];W[xm];B[nm];W[ol];B[ml];W[nj];B[sj];W[mk];B[ll];W[kj];B[kk];W[lk];B[kl];W[jj];B[ri];W[ls];B[js];W[ku];B[kt];W[kp];B[ip];W[mu];B[lt];W[mt];B[lu];W[mv];B[lv];W[mw];B[ms];W[ns];B[mr];W[ot];B[nr];W[lx];B[os];W[nt];B[pt];W[jn];B[jo];W[il];B[kn];W[jm];B[km];W[ik];B[kw];W[kx];B[jw];W[iu];B[jx];W[kz];B[jy];W[lA];B[jz];W[jA];B[gu];W[hr];B[ht];W[is];B[it];W[hq];B[iq];W[ir];B[jr];W[fr];B[iA];W[ho];B[hp];W[gp];B[io];W[hn];B[ko];W[fo];B[ry];W[sy];B[sz];W[qy];B[rz];W[py];B[ty];W[sx];B[tx];W[sw];B[uz];W[ox];B[tr];W[vs];B[ur];W[vw];B[us];W[su];B[vr];W[wq];B[wr];W[xp];B[xr];W[qv];B[yq];W[zo];B[zp];W[yn];B[Ao];W[xk];B[qh];W[Ap];B[zn];W[yo];B[An];W[zq];B[yp];W[Bq];B[vt];W[At];B[ys];W[zu];B[zt];W[zs];B[yt];W[zr];B[yr];W[Bu];B[yu];W[zv];B[yv];W[yw];B[xw];W[yx];B[xx];W[xy];B[wy];W[pw.oxpyqyrxrwqvpwox];B[wv];W[ux];B[uy];W[wx];B[vy];W[vx];B[xi];W[yj];B[wj];W[wk];B[vk];W[Aj];B[Bm];W[Bk];B[Cl];W[Ck];B[yi];W[zi];B[xj];W[yl];B[pg];W[ne];B[of];W[nf];B[ng];W[ug];B[ue];W[wf];B[vf];W[wg];B[vg];W[wh];B[vh];W[wi];B[vi];W[mg];B[nh];W[li];B[oe];W[nd];B[od];W[nc];B[oc];W[yf];B[we];W[dc];B[dg];W[eg];B[eh];W[fh];B[ef];W[fg];B[di];W[ei];B[dh];W[ej];B[ff];W[gf];B[id];W[hc];B[jb];W[ic];B[jc];W[jd];B[kd];W[je];B[ke];W[jf];B[kf];W[kg];B[kc];W[lf];B[em];W[fm];B[el];W[fl];B[ek];W[fk];B[dj];W[gi];B[en];W[df];B[xe];W[zg];B[xf];W[xg];B[vj];W[zh];B[Al];W[zl];B[Bl];W[Ak];B[ey];W[fw];B[ev];W[fz];B[fy];W[gz];B[gy];W[hz];B[hy];W[iz];B[iB];W[jB];B[iC];W[jC];B[eB];W[eA];B[dA];W[gC];B[hC];W[gB];B[ez];W[fA];B[dC];W[fC];B[cv];W[cz];B[cA];W[by];B[cx];W[dz];B[du];W[et];B[fu];W[cs];B[bw];W[bx];B[cw];W[qB];B[xz];W[yy];B[tB];W[pC];B[qA];W[pA];B[rB];W[qz];B[rA];W[rC];B[sC];W[uC];B[uB];W[wB];B[vC];W[tC];B[xC];W[sD];B[wz];W[sB.rCsDtCsBrC];B[tz];W[vB];B[yz];W[wC];B[vD];W[xB];B[zz];W[Aw];B[Ay];W[Ax];B[By];W[Cw];B[Bp];W[Aq];B[Cp];W[Cq];B[ye];W[ze];B[zd];W[sc];B[sd];W[td];B[te];W[rd];B[se];W[qc];B[re];W[qe];B[qf];W[tb];B[ud];W[tc];B[uc];W[yc];B[yd];W[xc];B[wc];W[wb];B[vb];W[ub];B[xd];W[va];B[vc];W[Ae];B[Ad];W[Ce];B[xb];W[yb];B[wa.vbwcxbwavb];W[yC];B[xD];W[Cz];B[AB];W[BC];B[zC];W[yB];B[AC];W[AA];B[zA];W[BA];B[zB];W[zy];B[Az];W[cp];B[eo];W[ep];B[dt];W[ds];B[es];W[er];B[fs];W[gs];B[gt.dtduevfugtfsesdt];W[do];B[hs];W[gr];B[ck];W[cl];B[bk];W[de];B[bm];W[oi];B[pj];W[oh];B[og];W[qk];B[qj];W[rk];B[oj];W[nk];B[ni];W[mi];B[mh];W[lh];B[sl];W[rm];B[sm];W[sn];B[rl];W[ql];B[pd];W[qd];B[bh];W[tl];B[sk];W[vl];B[uk];W[vm];B[vn];W[wn];B[vp];W[wp];B[Dn];W[Do];B[Co];W[Dm];B[Cm];W[Dt];B[Ds];W[Cs];B[Dr];W[Cr];B[Du];W[Cu];B[Dv];W[Cv];B[vv];W[uw];B[uv];W[uu];B[vu];W[ut];B[pu];W[ou];B[pv];W[ov];B[mD];W[mC];B[lD];W[lC];B[ky];W[ly];B[nD];W[nC];B[oD];W[oC];B[kD];W[cn];B[cm];W[fn];B[fc];W[fd];B[ec];W[ed];B[gc];W[gd];B[hb];W[ib];B[ia];W[hd];B[gb];W[lb];B[ja];W[pb];B[nb];W[ob];B[mb];W[le];B[lc];W[lg];B[la];W[ka];B[kb.kblcmblakb];W[ld];B[mc];W[cg];B[ch];W[dm];B[dk];W[dn];B[dl];W[al];B[bl.blcmdlckbl];W[bg];B[be];W[ce];B[bd];W[cd];B[Dh];W[Ch];B[yh];W[yg];B[Di];W[Ci];B[Dj];W[Cj];B[Dg];W[Cg];B[Df];W[Cf];B[Bd];W[Be];B[zm];W[bt];B[bq];W[cq];B[br];W[bu];B[aw];W[cr];B[md];W[me];B[cy];W[bz];B[dy];W[iy];B[ix];W[aj];B[bj];W[ai];B[bi];W[ra];B[sa];W[sb];B[qa];W[qb];B[Bx];W[Bw];B[vA];W[sA];B[tA];W[eC];B[dB];W[on];B[pk];W[pl];B[kC];W[kB];B[tv];W[tu];B[qD];W[qC];B[in];W[im];B[bf];W[bc];B[cb];W[cc];B[pe];W[jq];B[kr];W[lq];B[lr];W[no];B[mp];W[mo];B[zb.ipiqjrkrlrmrnrosptqsrrqqppoonnnmmlllkmknjoip];W[ya];B[zc];W[Bb];B[Ab];W[Bc];B[Cd];W[ww];B[xv];W[hA];B[hB];W[fB];B[bo];W[co];B[lw];W[sr];B[tq];W[up];B[vo];W[rj];B[jk];W[ij];B[av];TB[.chbibjckdjdich.ducvcwcxdyeyfygyhyixjwkwlvluktjsithtgufuevdu.krjsktltmslrkr.ognhniojpjqjriqhpgog.peofpgqfpe.qfpgqhrisjtkukvjvivhvgvfuetesereqf.uztAuBvAuz.vcuduevfwexdwcvc.vrusvtvuwvxvyuytysxrwrvr.vyuzvAwzvy.AlzmAnBmAl.BmAnAoBpCoDnCmBm]TW[.dccddeeddc.docpcqcrdserfrgrhqgpfoepdo.eddedfegfgfheiejfkflfmfnfogphohnimilikijjjkjlilhkgjfjejdichdgdfded.gzfAgBhAgz.kzjAkBlAkz.likjlkmknjmili.lykzlAkBlCmCnCoCpCqBpAqzpyoxpwovountmumvmwlxly.melfmgnfme.qlpmpnpoqprpsornrmql.raqbqcrdscsbra.tssttuutts.wkvlvmwnxmylxkwk.xmwnwoxpyoynxm.yjxkylzlAkAjziyj.zeyfzgzhziAjBkCjCiChCgCfBeAeze.zvywyxzyAxAwzv.AqzrzsAtBuCuDtCsCrBqAq.AtzuzvAwBwCvBuAt])");
@@ -9531,121 +9656,13 @@ int main(int argc, char* argv[]) {
   
   switch (mode) {
   case Mode::play:
-    for (;;) {
-      {
-	MonteCarlo mc;
-	start_time = std::chrono::high_resolution_clock::now();
-	auto best_move = threads_count > 1 ?
-	  mc.findBestMoveMT(game, threads_count, iter_count, 0) :
-	  mc.findBestMove(game, iter_count);
-	end_time = std::chrono::high_resolution_clock::now();
-	std::cerr << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() << " mikros" << std::endl;
-	std::cout << s.substr(0, s.rfind(")")) << best_move << ")" << std::endl;
-      }
-      
-      std::string n(""), buf;
-      do {
-	std::getline(std::cin, buf);
-	if (buf.length()>=3 && buf.substr(0,3) == std::string("END")) {
-	  goto playing_finished;
-	}
-	n += buf;
-      } while (n.find(")") == std::string::npos);
-      if (s.substr(0, s.length()-1) == n.substr(0, s.length()-1)) {
-	// the same beginning, add new moves
-	game.show();
-	std::string added = std::string("(") + n.substr(s.length()-1);
-	std::cerr << "To sgf: " << s << std::endl;
-	std::cerr << "I add moves: " << added << std::endl;
-	SgfParser parser(added);
-	auto seq = parser.parseMainVar();
-	game.replaySgfSequence(seq, std::numeric_limits<int>::max());
-      } else {
-	std::cerr << "NEW GAME STARTED." << std::endl;
-	SgfParser parser(n);
-	auto seq = parser.parseMainVar();
-	game = Game(seq, std::numeric_limits<int>::max());
-      }
-      s = n;
-      //      while (s.back() == '\n') s.pop_back();
-    };
-    playing_finished:;
+    play_engine(game, s, threads_count, iter_count);
     break;
-  case Mode::sgf_move: {
-    MonteCarlo mc;
-    start_time = std::chrono::high_resolution_clock::now();
-    auto best_move = mc.findBestMove(game, iter_count);
-    //auto best_move = mc.findBestMoveMT(game, threads_count, iter_count, 0);
-    end_time = std::chrono::high_resolution_clock::now();
-    std::cerr << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() << " mikros" << std::endl;
-    std::cerr << "debug: " << debug_nanos/1000 << " mikros" << std::endl;
-    std::cerr << "debug2: " << debug_nanos2/1000 << " mikros" << std::endl;
-    std::cerr << "debug3: " << debug_nanos3/1000 << " mikros" << std::endl;   
-    std::cerr << "All threats2m: " << debug_allt2m << ", skipped: " << debug_skippedt2m << ", small singular: " << debug_sing_smallt2m
-	      << ", large singular: " << debug_sing_larget2m
-	      << ", found before: " << debug_foundt2m << ". n= " << debug_n << ", N=" << debug_N <<  std::endl;
+  case Mode::sgf_move:
+    findAndPrintBestMove(game, iter_count);
     break;
-  }
   case Mode::interactive:
-    for (;;) {
-      // get input
-      std::string buf, error_info = "";
-      std::getline(std::cin, buf);
-      CommandParser comm_parser;
-      try {
-	auto commands = comm_parser.parse(buf);
-	if (commands[0] == "threads") {
-	  threads_count = std::stoi(commands[1]);
-	  if (threads_count <= 0) threads_count = 1;
-	  std::cerr << "set threads to " << threads_count << std::endl;
-	} else if (commands[0] == "iters") {
-	  iter_count = std::stoi(commands[1]);
-	  if (iter_count <= 0) iter_count = 1;
-	  std::cerr << "set iterations to " << iter_count << std::endl;
-	} else if (commands[0] == "first") {
-	} else if (commands[0] == "second") {
-	} else if (commands[0] == "help" or commands[0] == "?") {
-	  std::cerr << "Type 'show', 'quit' or 'bye', coordinate(s) to play at given point (and enclose next points)" << std::endl
-		    << "'move' to make a move by AI, 'threads', 'iters' to change AI settings" << std::endl;
-	} else if (commands[0] == "new") {
-	} else if (commands[0] == "move") {
-	  {
-	    MonteCarlo mc;
-	    start_time = std::chrono::high_resolution_clock::now();
-	    auto best_move = threads_count > 1 ?
-	      mc.findBestMoveMT(game, threads_count, iter_count, 0) :
-	      mc.findBestMove(game, iter_count);
-	    end_time = std::chrono::high_resolution_clock::now();
-	    std::cerr << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() << " mikros" << std::endl;
-	    auto l = best_move.find_first_of('[');
-	    auto r = best_move.find_last_of(']');
-	    if (l < r) {
-	      best_move = best_move.substr(l+1, r-l-1);
-	    }
-	    std::cerr << "best move: " << best_move << std::endl;
-	    game.makeSgfMove(best_move, game.whoNowMoves());
-	  }
-	
-	} else if (commands[0] == "quit" || commands[0] ==  "bye") {
-	  break;
-	} else if (commands[0] == "back") {
-	
-	} else if (commands[0] == "show") {
-	  game.show();	
-	} else if (commands[0] == "_play") {
-	  // get coordinates, in [1] point to play, in [2...] points to enclose (if any)
-	  std::string s = commands[1];
-	  for (int i=2; i<commands.size(); ++i) {
-	    s += "!" + commands[i];
-	  }
-	  game.makeSgfMove(s, game.whoNowMoves());
-
-	}
-      } catch (const std::runtime_error& e) {
-	std::cerr << e.what() << std::endl;
-      }
-
-    }
+    playInteractively(game, threads_count, iter_count);
     break;
   }
   
