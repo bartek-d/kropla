@@ -10,7 +10,7 @@
 override CXXFLAGS += -std=c++11
 DEFS =
 LIBS += -pthread
-INCL =
+INCL=-I../boost/boost_1_63_0
 SUFFIX =
 
 
@@ -46,16 +46,16 @@ $(kropla) : $(objects)
 	$(CXX) $(LDFLAGS) $(DEFS) $(INCL) -o $(kropla) $(objects) $(LIBS)
 
 board$(SUFFIX).o: board.cc board.h connections_tab02.cc connections_tab03_simple.cc
-	$(CXX) -c $(CXXFLAGS) $(DEFS) board.cc -o board$(SUFFIX).o
+	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCL) board.cc -o board$(SUFFIX).o
 
 sgf$(SUFFIX).o: sgf.cc sgf.h
-	$(CXX) -c $(CXXFLAGS) $(DEFS) sgf.cc -o sgf$(SUFFIX).o
+	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCL) sgf.cc -o sgf$(SUFFIX).o
 
 command$(SUFFIX).o: command.cc command.h board.h
-	$(CXX) -c $(CXXFLAGS) $(DEFS) command.cc -o command$(SUFFIX).o
+	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCL) command.cc -o command$(SUFFIX).o
 
 game$(SUFFIX).o: game.cc sgf.h board.h connections_tab02.cc connections_tab03_simple.cc
-	$(CXX) -c $(CXXFLAGS) $(DEFS) game.cc -o game$(SUFFIX).o
+	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCL) game.cc -o game$(SUFFIX).o
 
 
 .PHONY : clean

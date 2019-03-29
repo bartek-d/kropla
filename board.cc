@@ -92,24 +92,6 @@ Svg::to_str()
   Coord class for manipulating coordinates.
 *********************************************************************************************************/
 
-#include "connections_tab02.cc"  // std::array<pti, 256*256> Coord::connections_tab = {...}; see szabl_neighb02.cc
-#include "connections_tab03_simple.cc"  // std::array<std::array<pti,4>, 256> Coord::connections_tab_simple = {...}, see szabl_neighb03.cc
-
-uint64_t Coord::zobrist_dots[2][maxSize];
-uint64_t Coord::zobrist_encl[2][maxSize];
-pti Coord::N;
-pti Coord::S;
-pti Coord::W;
-pti Coord::E;
-pti Coord::NE, Coord::NW, Coord::SE, Coord::SW;
-pti Coord::NN, Coord::WW, Coord::SS, Coord::EE;
-pti Coord::NNE, Coord::NNW, Coord::NWW, Coord::SWW, Coord::SSE, Coord::SSW, Coord::SEE, Coord::NEE;
-pti Coord::nb4[4];
-pti Coord::nb8[32];
-pti Coord::nb25[25];
-pti Coord::first, Coord::last;
-
-
 Coord::Coord(int x, int y)
 {
   changeSize(x, y);

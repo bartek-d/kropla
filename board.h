@@ -77,25 +77,25 @@ public:
   const static int maxy = 40;
   const static int maxSize = (maxx+2)*(maxy+1) +1;
 
-  static uint64_t zobrist_dots[2][maxSize];
-  static uint64_t zobrist_encl[2][maxSize];
-  static pti N;
-  static pti S;
-  static pti W;
-  static pti E;
-  static pti NE, NW, SE, SW;
-  static pti NN, WW, SS, EE;
-  static pti NNE, NNW, NWW, SWW, SSE, SSW, SEE, NEE;
-  static pti nb4[4];  // neighbours (N, E, S, W), order is important
-  static pti nb8[32];  // 8 neighbours repeated 4 times, order is important for some functions (NE, E, ... -- clockwise), repeat is to avoid nb8[(i+...)&7]
-  static pti nb25[25];  // the central point and its 24 neighbours
-  static pti first, last;  // smallest and largest coordinate possible for a point inside the board
+  uint64_t zobrist_dots[2][maxSize];
+  uint64_t zobrist_encl[2][maxSize];
+  pti N;
+  pti S;
+  pti W;
+  pti E;
+  pti NE, NW, SE, SW;
+  pti NN, WW, SS, EE;
+  pti NNE, NNW, NWW, SWW, SSE, SSW, SEE, NEE;
+  pti nb4[4];  // neighbours (N, E, S, W), order is important
+  pti nb8[32];  // 8 neighbours repeated 4 times, order is important for some functions (NE, E, ... -- clockwise), repeat is to avoid nb8[(i+...)&7]
+  pti nb25[25];  // the central point and its 24 neighbours
+  pti first, last;  // smallest and largest coordinate possible for a point inside the board
 
   std::array<int8_t, maxSize> x;
   std::array<int8_t, maxSize> y;
   std::array<int8_t, maxSize> dist;
-  static std::array<pti, 256*256> connections_tab;
-  static std::array<std::array<pti,4>, 256> connections_tab_simple;
+#include "connections_tab02.cc"  // std::array<pti, 256*256> connections_tab = {...}; see szabl_neighb02.cc
+#include "connections_tab03_simple.cc"  // std::array<std::array<pti,4>, 256> connections_tab_simple = {...}, see szabl_neighb03.cc
 
   Coord(int x, int y);
   pti ind(int x, int y) const { return (x+1)*(wlky+1) + y+1; };
