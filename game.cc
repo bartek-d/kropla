@@ -2713,8 +2713,10 @@ Game::Game(SgfSequence seq, int max_moves)
   auto sz_pos = seq[0].findProp("SZ");
   std::string sz = (sz_pos != seq[0].props.end()) ? sz_pos->second[0] : "";
   if (sz.find(':') == std::string::npos) {
-    int x = stoi(sz);
-    coord.changeSize(x, x);
+    if (sz != "") {
+      int x = stoi(sz);
+      coord.changeSize(x, x);
+    }
   } else {
     std::string::size_type i = sz.find(':');
     int x = stoi(sz.substr(0, i));
