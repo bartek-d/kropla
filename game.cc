@@ -87,8 +87,8 @@ class CleanupUsingList {
   T andMask;
 public:
   std::array<pti, Coord::maxSize> list;
-  int count;
-  CleanupUsingList(Container &cont, T am) : c(cont), andMask(am) { count=0; };
+  int count {0};
+  CleanupUsingList(Container &cont, T am) : c(cont), andMask(am) {};
   void push(pti p) { list[count++] = p; };
   ~CleanupUsingList() { for (int i=0; i<count; i++) c[list[i]]&=andMask; };
 };
@@ -99,8 +99,8 @@ class CleanupUsingListOfValues {
 public:
   std::array<pti, Coord::maxSize> point;
   std::array<T, Coord::maxSize> values;
-  int count;
-  CleanupUsingListOfValues(Container &cont) : c(cont) { count=0; };
+  int count {0};
+  CleanupUsingListOfValues(Container &cont) : c(cont) {};
   void push(pti p, T val) { point[count] = p;  values[count] = val;  ++count;  };
   ~CleanupUsingListOfValues() { for (int i=0; i<count; i++) c[point[i]] = values[i]; };
 };
@@ -110,8 +110,8 @@ class CleanupOneVar {
   T saved_value;
   T* ref_value;
 public:
-  CleanupOneVar(T* ref, T new_val) { ref_value = ref;  saved_value = *ref;  *ref = new_val; };
-  ~CleanupOneVar() { *ref_value = saved_value; };
+  CleanupOneVar(T* ref, T new_val) : ref_value(ref), saved_value(*ref) { *ref = new_val; }
+  ~CleanupOneVar() { *ref_value = saved_value; }
 };
   
 
@@ -277,9 +277,8 @@ Enclosure::toSgfString() const
 template <class T, int N>
 class SmallMultiset {
   std::array<T, N> data;
-  int count;
+  int count {0};
 public:
-  SmallMultiset() { count = 0; };
   void insert(T x);
   int remove_one(T x);
   bool contains(T x) const;
@@ -350,18 +349,18 @@ template class SmallMultiset<pti, 4>;
 *********************************************************************************************************/
 struct Threat {
   pti where;   // where to put dot, or 0 if no need to put a dot (so a TERRitory)
-  uint16_t type;
-  int16_t terr_points;     // == number of empty places inside
-  int16_t opp_dots;
-  int16_t singular_dots;   // == number of opp's dots which are inside only this threat
-  int16_t border_dots_in_danger;  // == number of dots in border that are in some opp's threats
+  uint16_t type {0};
+  int16_t terr_points {0};     // == number of empty places inside
+  int16_t opp_dots {0};
+  int16_t singular_dots {0};   // == number of opp's dots which are inside only this threat
+  int16_t border_dots_in_danger {0};  // == number of dots in border that are in some opp's threats
   uint64_t zobrist_key;
   std::shared_ptr<Enclosure> encl;
   std::vector<uint64_t> opp_thr;  // zobrist keys of opp's threats that enclose some border points of this threat
   std::array<pti, 4>  shortcuts;  // this is only used for Threat2m (TODO: maybe inherit a new class with this field?)
   // SmallMultiset<pti, 4> shortcuts;  // this is only used for Threat2m (TODO: maybe inherit a new class with this field?)
-  //Threat() : encl(nullptr) { };
-  Threat() : shortcuts()  { type=0; terr_points=0; opp_dots=0; singular_dots=0; border_dots_in_danger=0; };
+  //Threat() : encl(nullptr) { }
+  Threat() : shortcuts()  {}
   bool isShortcut(pti x) const;
   void addShortcuts(pti ind0, pti ind1);
   std::string show() const;
@@ -435,9 +434,9 @@ void removeMarkedThreats(std::vector<Threat> &thr_list)
 *********************************************************************************************************/
 struct Threat2m {
   pti where0;   // where to put the first dot
-  int16_t  min_win, min_win2;   // minimal win, second minimal win (i.e., how many opponent dots are captured)
-  uint16_t flags;               // currently only FLAG_SAFE, in which case the threats get counted in AllThreats::is_in_2m_encl/is_in_2m_miai
-  int16_t  win_move_count;      // number of threats in thr_list with opp-dot capture
+  int16_t  min_win {0}, min_win2 {0}; // minimal win, second minimal win (i.e., how many opponent dots are captured)
+  uint16_t flags {0};           // currently only FLAG_SAFE, in which case the threats get counted in AllThreats::is_in_2m_encl/is_in_2m_miai
+  int16_t  win_move_count {0};      // number of threats in thr_list with opp-dot capture
   std::vector<pti> is_in_encl2;   // this we assign to 0 only after we have at least 2 threats
   std::vector<Threat> thr_list;
   static const uint16_t FLAG_SAFE=1;
@@ -445,7 +444,6 @@ struct Threat2m {
   static const uint16_t ENCL2_MIAI=1;   // this bit we set in is_in_encl2 to denote miai (i.e., exists other threat with opp-dots win)
   static const uint16_t ENCL2_INSIDE_ADD=2;  // this number we add for each point inside threat
   static const uint16_t ENCL2_INSIDE_THRESHOLD=2*ENCL2_INSIDE_ADD;  // the threshold to see whether a point can be for sure captured
-  Threat2m() { flags=0; min_win=0; min_win2=0; win_move_count=0; };
   bool isSafe() const { return (flags & FLAG_SAFE)!=0; };
   //void removeMarked();
   std::string show() const;
@@ -897,11 +895,10 @@ struct Move {
   std::vector<std::shared_ptr<Enclosure> > enclosures;
   uint64_t zobrist_key;
   pti ind;
-  pti who;
+  pti who {-1};
   bool operator==(const Move& other) const { return zobrist_key == other.zobrist_key; };
   SgfProperty toSgfString() const;
   std::string show() const;
-  Move() { who = -1; };
 };
 
 SgfProperty
@@ -999,10 +996,9 @@ class Connections {
   Connections class
 *********************************************************************************************************/
 struct OneConnection {
-  std::array<pti,4> groups_id;    // id's of connected groups, the same may appear more than once,
+  std::array<pti,4> groups_id {0,0,0,0};    // id's of connected groups, the same may appear more than once,
                                   // 0-filled at the end if necessary
-  int code;       // code of the neighbourhood used by coord.connections_tab
-  OneConnection() { groups_id[0] = groups_id[1] = groups_id[2] = groups_id[3] = 0;  code=0; };
+  int code {0};       // code of the neighbourhood used by coord.connections_tab
   // int() and != are mainly for debugging, to print and check connections
   operator int() const { return (groups_id[0]!=0) + (groups_id[1]!=0) + (groups_id[2]!=0) + (groups_id[3]!=0); };
   bool operator!=(const OneConnection& other) const;
@@ -2400,10 +2396,9 @@ public:
   };
   struct PointInfluence {
     std::array<InfluenceAtPoint, POINT_INFLUENCE_SIZE> list;
-    int size;
-    int table_no;
-    float sum;
-    PointInfluence() { size = 0;  sum = 0.0;  table_no = -1; };
+    int size {0};
+    int table_no {-1};
+    float sum {0.0};
   };
   struct Tuple {
     pti p, dir;
@@ -2501,7 +2496,7 @@ class Game {
   std::vector<std::shared_ptr<Enclosure> > ml_encl_moves;
   std::vector<std::shared_ptr<Enclosure> > ml_opt_encl_moves;
   std::vector<uint64_t> ml_encl_zobrists;
-  int dame_moves_so_far;
+  int dame_moves_so_far {0};
   Influence influence;
   // worm[] has worm-id if it is >= 4 && <= MASK_WORM_NO,
   // worm[] & MASK_DOT can have 4 values: 0=empty, 1,2 = dots, 3=point outside the board
@@ -2598,7 +2593,6 @@ public:
     history.push_back(1);
     komi = 0;
     komi_ratchet = 10000;
-    dame_moves_so_far = 0;
     pattern3_value[0] = std::vector<pattern3_val>(coord.getSize(), 0);
     pattern3_value[1] = std::vector<pattern3_val>(coord.getSize(), 0);
     pattern3_at = std::vector<pattern3_t>(coord.getSize(), 0);
@@ -2709,7 +2703,6 @@ Game::Game(SgfSequence seq, int max_moves)
   assert(Pattern3extra::MASK_DOT == MASK_DOT);
   komi = 0;
   komi_ratchet = 10000;  
-  dame_moves_so_far = 0;
   auto sz_pos = seq[0].findProp("SZ");
   std::string sz = (sz_pos != seq[0].props.end()) ? sz_pos->second[0] : "";
   if (sz.find(':') == std::string::npos) {
