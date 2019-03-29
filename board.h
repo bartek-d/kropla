@@ -26,6 +26,7 @@
 #include <array>
 
 typedef int16_t  pti;  // point int, i.e., int suitable for coordinates
+typedef float real_t;
 
 /********************************************************************************************************
   Colour constants.

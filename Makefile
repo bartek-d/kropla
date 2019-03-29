@@ -39,7 +39,7 @@ ifdef SPEED_TEST
 endif
 
 
-objects = board$(SUFFIX).o sgf$(SUFFIX).o game$(SUFFIX).o command$(SUFFIX).o
+objects = board$(SUFFIX).o sgf$(SUFFIX).o game$(SUFFIX).o command$(SUFFIX).o patterns$(SUFFIX).o
 kropla = kropla$(SUFFIX)
 
 $(kropla) : $(objects)
@@ -53,6 +53,9 @@ sgf$(SUFFIX).o: sgf.cc sgf.h
 
 command$(SUFFIX).o: command.cc command.h board.h
 	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCL) command.cc -o command$(SUFFIX).o
+
+patterns$(SUFFIX).o: patterns.cc patterns.h board.h
+	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCL) patterns.cc -o patterns$(SUFFIX).o
 
 game$(SUFFIX).o: game.cc sgf.h board.h connections_tab02.cc connections_tab03_simple.cc
 	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCL) game.cc -o game$(SUFFIX).o
