@@ -132,8 +132,7 @@ struct Enclosure {
 
   Enclosure(std::vector<pti> i, std::vector<pti> b) : interior(i.begin(), i.end()), border(b.begin(), b.end()) {};
   */
-  
-  Enclosure() {};
+  Enclosure() = default;
   bool isInInterior(pti p) const;
   bool isInBorder(pti p) const;
   bool isEmpty() const;
@@ -7303,9 +7302,9 @@ Game::makeMoveWithPointsToEnclose(Move &m, std::vector<std::string> to_enclose)
       makeEnclosure(*encl, true);
     }
     for (auto &e : to_enclose) {
-      std::shared_ptr<Enclosure> encl = std::make_shared<Enclosure>(findEnclosure(coord.sgfToPti(e), MASK_DOT, nowMoves));
-      if (!encl->isEmpty()) {
-	makeEnclosure(*encl, true);
+      Enclosure encl = findEnclosure(coord.sgfToPti(e), MASK_DOT, nowMoves);
+      if (!encl.isEmpty()) {
+	makeEnclosure(encl, true);
       }
     }
     recalculatePatt3Values();
