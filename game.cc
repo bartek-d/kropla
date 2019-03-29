@@ -9469,7 +9469,7 @@ std::string sgf185253("(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[30]RU[Punish=0,Hol
 
 int main(int argc, char* argv[]) {
   std::string s(sgf185253);
-  enum Mode { play, sgf_move, interactive } mode;
+  enum class Mode { play, sgf_move, interactive } mode;
   if (argc > 1) {
     std::string name(argv[1]);
     if (name == "-") {
@@ -9479,7 +9479,7 @@ int main(int argc, char* argv[]) {
 	std::getline(std::cin, buf);
 	s += buf;
       } while (s.find(")") == std::string::npos);
-      mode = play;
+      mode = Mode::play;
       std::cerr << "Parameter: " << s << std::endl;
     } else if (name == "--help") {
       std::cerr << R"raws(Usage:
@@ -9502,10 +9502,10 @@ int main(int argc, char* argv[]) {
       std::stringstream buffer;
       buffer << t.rdbuf();
       s = buffer.str();
-      mode = sgf_move;
+      mode = Mode::sgf_move;
     }
   } else {   // no parameters = interactive mode
-    mode = interactive;
+    mode = Mode::interactive;
     s = "(;FF[4]GM[40]CA[UTF-8]AP[kropla]SZ[15]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=15])"; // no sgf; interactive mode";
   }
   // for debug, save the sgf we have read
@@ -9530,7 +9530,7 @@ int main(int argc, char* argv[]) {
   int threads_count = (argc > 4) ?  std::atoi(argv[4]) : 3;
   
   switch (mode) {
-  case play:
+  case Mode::play:
     for (;;) {
       {
 	MonteCarlo mc;
@@ -9571,7 +9571,7 @@ int main(int argc, char* argv[]) {
     };
     playing_finished:;
     break;
-  case sgf_move: {
+  case Mode::sgf_move: {
     MonteCarlo mc;
     start_time = std::chrono::high_resolution_clock::now();
     auto best_move = mc.findBestMove(game, iter_count);
@@ -9586,7 +9586,7 @@ int main(int argc, char* argv[]) {
 	      << ", found before: " << debug_foundt2m << ". n= " << debug_n << ", N=" << debug_N <<  std::endl;
     break;
   }
-  case interactive:
+  case Mode::interactive:
     for (;;) {
       // get input
       std::string buf, error_info = "";
