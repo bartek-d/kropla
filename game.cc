@@ -1330,8 +1330,8 @@ ListOfPlaces::isOnList(pti p) const
 class PossibleMoves {
   std::vector<pti> mtype;   // type of move OR-ed with its index on the list (neutral, dame or bad)
   void removeFromList(pti p);
-  typedef enum { LEFT, TOP, RIGHT, BOTTOM } edge_type;
-  void newDotOnEdge(pti p, edge_type edge);
+  enum class EdgeType { LEFT, TOP, RIGHT, BOTTOM };
+  void newDotOnEdge(pti p, EdgeType edge);
 public:
   std::vector<pti> lists[3];  // neutral, dame, bad;
   bool left, top, right, bottom;  // are margins empty?
@@ -1371,11 +1371,11 @@ PossibleMoves::removeFromList(pti p)
 }
 
 void
-PossibleMoves::newDotOnEdge(pti p, edge_type edge)
+PossibleMoves::newDotOnEdge(pti p, EdgeType edge)
 {
   int ind, iter, count = 0;
   switch (edge) {
-  case LEFT:
+  case EdgeType::LEFT:
     if (left) {
       ind = coord.ind(0,1);
       iter = coord.S;
@@ -1383,7 +1383,7 @@ PossibleMoves::newDotOnEdge(pti p, edge_type edge)
       left = false;
     }
     break;
-  case RIGHT:
+  case EdgeType::RIGHT:
     if (right) {
       ind = coord.ind(coord.wlkx-1, 1);
       iter = coord.S;
@@ -1391,7 +1391,7 @@ PossibleMoves::newDotOnEdge(pti p, edge_type edge)
       right = false;
     }
     break;
-  case TOP:
+  case EdgeType::TOP:
     if (top) {
       ind = coord.ind(1, 0);
       iter = coord.E;
@@ -1399,7 +1399,7 @@ PossibleMoves::newDotOnEdge(pti p, edge_type edge)
       top = false;
     }
     break;
-  case BOTTOM:
+  case EdgeType::BOTTOM:
     if (bottom) {
       ind = coord.ind(1, coord.wlky-1);
       iter = coord.E;
@@ -1451,14 +1451,14 @@ PossibleMoves::changeMove(pti p, int new_type)
     // check where is the new dot
     int x = coord.x[p], y = coord.y[p];
     if (x == 1 || (x == 0 && y !=0 && y != coord.wlky-1)) {
-      newDotOnEdge(p, LEFT);
+      newDotOnEdge(p, EdgeType::LEFT);
     } else if (x == coord.wlkx-2 || (x == coord.wlkx-1 && y !=0 && y != coord.wlky-1)) {
-      newDotOnEdge(p, RIGHT);
+      newDotOnEdge(p, EdgeType::RIGHT);
     }
     if (y == 1 || (y == 0 && x !=0 && x != coord.wlkx-1)) {
-      newDotOnEdge(p, TOP);
+      newDotOnEdge(p, EdgeType::TOP);
     } else if (y == coord.wlky-2 || (y == coord.wlky-1 && x !=0 && x != coord.wlkx-1)) {
-      newDotOnEdge(p, BOTTOM);
+      newDotOnEdge(p, EdgeType::BOTTOM);
     }    
   }
 }
