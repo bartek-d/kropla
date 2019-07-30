@@ -52,6 +52,7 @@
 #include "sgf.h"
 #include "command.h"
 #include "patterns.h"
+#include "influence.h"
 
 Coord coord(15,15);
 
@@ -1542,85 +1543,8 @@ InterestingMoves::classOfMove(pti p) const
   return 3 - curr_list;
 }
 
-/********************************************************************************************************
-  Influence class
-*********************************************************************************************************/
-const int POINT_INFLUENCE_SIZE = 40;
 const bool INFLUENCE_TURNED_OFF = true;   // to turn off completely
 
-class Influence {
-public:
-  struct InfluenceAtPoint {
-    float v;
-    int32_t p;
-  };
-  struct PointInfluence {
-    std::array<InfluenceAtPoint, POINT_INFLUENCE_SIZE> list;
-    int size {0};
-    int table_no {-1};
-    float sum {0.0};
-  };
-  struct Tuple {
-    pti p, dir;
-    int32_t dist;
-    bool operator<(const Tuple& other) const { return dist > other.dist; };  // warning: > to make closer points of higher priority!
-  };
-  std::priority_queue<Tuple> queue;
-private:
-  std::vector<PointInfluence> influence_from;   // to keep influence contribution from individual points
-public:
-  bool turned_off;
-  std::vector<float> influence[3];
-  Influence() { turned_off = false; };
-  Influence(int n);
-  void allocMem(int n);
-  std::vector<float> working;
-  void changePointInfluence(PointInfluence new_pi, int ind);
-  bool checkInfluenceFromAt(PointInfluence &other, int ind) const;
-};
-
-Influence::Influence(int n)
-{
-  allocMem(n);
-}
-
-void
-Influence::allocMem(int n)
-{
-  influence[0] = std::vector<float>(n, 0.0);
-  influence[1] = std::vector<float>(n, 0.0);
-  influence[2] = std::vector<float>(n, 0.0);
-  working = std::vector<float>(n, 0.0);
-  //  PointInfluence pi;
-  influence_from = std::vector<PointInfluence>(n, PointInfluence());
-  turned_off = false;
-}
-
-void
-Influence::changePointInfluence(PointInfluence new_pi, int ind)
-{
-  // the assumption is that new dots may only decrease influence, so if the sum (and table_no) are still the same,
-  // then the new influence must be the same as the old one
-  if (new_pi.sum == influence_from[ind].sum && new_pi.table_no == influence_from[ind].table_no)
-    return;
-  // first subtract old influence
-  for (int i=0; i<influence_from[ind].size; i++) {
-    influence[influence_from[ind].table_no][influence_from[ind].list[i].p] -= influence_from[ind].list[i].v;
-  }
-  // save and add new influence
-  influence_from[ind] = new_pi;
-  for (int i=0; i<influence_from[ind].size; i++) {
-    influence[influence_from[ind].table_no][influence_from[ind].list[i].p] += influence_from[ind].list[i].v;
-  }
-}
-
-bool
-Influence::checkInfluenceFromAt(PointInfluence &other, int ind) const
-{
-  return (other.sum == influence_from[ind].sum && (other.table_no == influence_from[ind].table_no || other.sum==0));
-}
-    
-  
 /********************************************************************************************************
   Game class
 *********************************************************************************************************/
