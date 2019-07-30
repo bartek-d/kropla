@@ -134,6 +134,7 @@ struct Enclosure {
   Enclosure(std::vector<pti> i, std::vector<pti> b) : interior(i.begin(), i.end()), border(b.begin(), b.end()) {};
   */
   Enclosure() = default;
+  ~Enclosure() = default;
   bool isInInterior(pti p) const;
   bool isInBorder(pti p) const;
   bool isEmpty() const;
@@ -166,7 +167,7 @@ Enclosure::isInBorder(pti p) const
 bool
 Enclosure::isEmpty() const
 {
-  return (border.size() == 0);
+  return border.empty();
 }
 
 // returns some element on the border

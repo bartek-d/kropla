@@ -57,7 +57,7 @@ command$(SUFFIX).o: command.cc command.h board.h
 patterns$(SUFFIX).o: patterns.cc patterns.h board.h
 	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCL) patterns.cc -o patterns$(SUFFIX).o
 
-influence(SUFFIX).o: influence.cc influence.h board.h
+influence$(SUFFIX).o: influence.cc influence.h board.h
 	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCL) influence.cc -o influence$(SUFFIX).o
 
 game$(SUFFIX).o: game.cc sgf.h board.h connections_tab02.cc connections_tab03_simple.cc
