@@ -7,7 +7,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 include_directories(src)
 
-add_executable(kropla src/game.cc src/board.h src/board.cc     src/influence.h  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h  src/influence.cc   src/patterns.h)
+add_executable(kropla src/game.cc src/board.h src/board.cc     src/influence.h  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h  src/influence.cc   src/patterns.h src/enclosure.cc src/enclosure.h)
 target_link_libraries(kropla Threads::Threads)
 
 add_subdirectory(gtest)
