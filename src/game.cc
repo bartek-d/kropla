@@ -193,6 +193,15 @@ template class SmallMultiset<pti, 4>;
 /********************************************************************************************************
   Threat class
 *********************************************************************************************************/
+namespace ThreatConsts
+{
+  // threat types
+  constexpr int TERR=1;
+  constexpr int ENCL=2;
+  constexpr int TO_REMOVE=64;
+  constexpr int TO_CHECK=128;
+};
+
 struct Threat {
   pti where;   // where to put dot, or 0 if no need to put a dot (so a TERRitory)
   uint16_t type {0};
@@ -210,11 +219,6 @@ struct Threat {
   bool isShortcut(pti x) const;
   void addShortcuts(pti ind0, pti ind1);
   std::string show() const;
-  // threat types
-  static const int TERR=1;
-  static const int ENCL=2;
-  static const int TO_REMOVE=64;
-  static const int TO_CHECK=128;
 };
 
 bool
@@ -266,8 +270,8 @@ void removeMarkedThreats(std::vector<Threat> &thr_list)
 {
   int s = thr_list.size();
   for (int i=0; i<s; ++i) {
-    if (thr_list[i].type & Threat::TO_REMOVE) {
-      do { --s; } while (i<s && (thr_list[s].type & Threat::TO_REMOVE));
+    if (thr_list[i].type & ThreatConsts::TO_REMOVE) {
+      do { --s; } while (i<s && (thr_list[s].type & ThreatConsts::TO_REMOVE));
       if (i<s) std::swap(thr_list[i], thr_list[s]);
     }
   }
@@ -312,8 +316,8 @@ Threat2m::removeMarked()
 {
   int s = thr_list.size();
   for (int i=0; i<s; ++i) {
-    if (thr_list[i].type & Threat::TO_REMOVE) {
-      do { --s; } while (i<s && (thr_list[s].type & Threat::TO_REMOVE));
+    if (thr_list[i].type & ThreatConsts::TO_REMOVE) {
+      do { --s; } while (i<s && (thr_list[s].type & ThreatConsts::TO_REMOVE));
       if (i<s) std::swap(thr_list[i], thr_list[s]);
     }
   }
@@ -506,8 +510,8 @@ AllThreats::addThreat2moves(pti ind0, pti ind1, bool safe0, bool safe1, int who,
       if (pos2 != pos->thr_list.end()) {
 	
 	debug_foundt2m++;
-	if (pos2->type & Threat::TO_REMOVE) {
-	  pos2->type &= ~Threat::TO_REMOVE;
+	if (pos2->type & ThreatConsts::TO_REMOVE) {
+	  pos2->type &= ~ThreatConsts::TO_REMOVE;
 	  continue;   // this threat has been found before;  used to be 'break' (v120-), we now (v121+) use continue to reset TO_REMOVE also in the second copy of this threat
 	} else {
 	  break;     // v121+: now we only break if bit TO_REMOVE was not set
@@ -675,14 +679,14 @@ AllThreats::removeMarkedAndAtPoint2moves(pti ind)
     for (auto &t2 : threats2m) {
       bool to_remove = false;
       for (auto &t : t2.thr_list) {
-	if (t2.where0 == ind || t.where == ind || (t.type & Threat::TO_REMOVE)) {
+	if (t2.where0 == ind || t.where == ind || (t.type & ThreatConsts::TO_REMOVE)) {
 	  subtractThreat2moves(t2, t);
-	  t.type |= Threat::TO_REMOVE;
+	  t.type |= ThreatConsts::TO_REMOVE;
 	  to_remove = true;
 	}
       }
       if (to_remove) {
-	//	t2.thr_list.erase( std::remove_if( t2.thr_list.begin(), t2.thr_list.end(), [](Threat &t) { return (t.type & Threat::TO_REMOVE); } ), t2.thr_list.end() );
+	//	t2.thr_list.erase( std::remove_if( t2.thr_list.begin(), t2.thr_list.end(), [](Threat &t) { return (t.type & ThreatConsts::TO_REMOVE); } ), t2.thr_list.end() );
 	removeMarkedThreats(t2.thr_list);
 	//t2.removeMarked();
 	//
@@ -709,14 +713,14 @@ AllThreats::removeMarked2moves()
     for (auto &t2 : threats2m) {
       bool to_remove = false;
       for (auto &t : t2.thr_list) {
-	if (t.type & Threat::TO_REMOVE) {
+	if (t.type & ThreatConsts::TO_REMOVE) {
 	  subtractThreat2moves(t2, t);
-	  t.type |= Threat::TO_REMOVE;
+	  t.type |= ThreatConsts::TO_REMOVE;
 	  to_remove = true;
 	}
       }
       if (to_remove) {
-	// t2.thr_list.erase( std::remove_if( t2.thr_list.begin(), t2.thr_list.end(), [](Threat &t) { return (t.type & Threat::TO_REMOVE); } ),  t2.thr_list.end() );
+	// t2.thr_list.erase( std::remove_if( t2.thr_list.begin(), t2.thr_list.end(), [](Threat &t) { return (t.type & ThreatConsts::TO_REMOVE); } ),  t2.thr_list.end() );
 	removeMarkedThreats(t2.thr_list);
 	//t2.removeMarked();
 	if (t2.thr_list.empty()) {
@@ -2252,10 +2256,10 @@ Game::findThreats_preDot(pti ind, int who)
   if (threats[who-1].is_in_terr[ind]) {
     int nthr = threats[who-1].is_in_terr[ind];
     for (auto &thr : threats[who-1].threats) {
-      if (thr.type & Threat::TERR) {
+      if (thr.type & ThreatConsts::TERR) {
 	if (thr.encl->isInInterior(ind)) {
 	  if (thr.encl->interior.size() == 1) {
-	    thr.type |= Threat::TO_REMOVE;
+	    thr.type |= ThreatConsts::TO_REMOVE;
 	    return possible_threats;
 	  }
 	  if (thr.encl->interior.size() < smallest_size) {
@@ -2290,7 +2294,7 @@ Game::findThreats_preDot(pti ind, int who)
 	if (thr.where == ind) encl_count++;
       }
       if (encl_count == count) {
-	smallest_terr->type |= Threat::TO_REMOVE;  // territory will split into 2+ new ones
+	smallest_terr->type |= ThreatConsts::TO_REMOVE;  // territory will split into 2+ new ones
       } else {
 	// in this case the territory does not split
 	// example situation, where O = last dot, the large territory of 'o' is not divided into two, although there is a new smaller one inside
@@ -2317,25 +2321,25 @@ Game::findThreats_preDot(pti ind, int who)
 	pti nb = ind + coord.nb8[j];
 	if (isDotAt(nb) && descr.at(worm[nb]).group_id == border_group) gdots++;
       }
-      if (gdots>1) smallest_terr->type |= Threat::TO_CHECK; // territory may (will?) have now smaller area
+      if (gdots>1) smallest_terr->type |= ThreatConsts::TO_CHECK; // territory may (will?) have now smaller area
     }
   }
   // check our enclosures containing [ind]
   if (threats[who-1].is_in_encl[ind] || threats[who-1].is_in_border[ind]) {
     std::vector<Threat*> this_encl;
     for (auto &thr : threats[who-1].threats) {
-      if (thr.type & Threat::ENCL) {
+      if (thr.type & ThreatConsts::ENCL) {
 	if (thr.where == ind) {
-	  thr.type ^= (Threat::ENCL | Threat::TERR);   // switch ENCL bit to TERR
+	  thr.type ^= (ThreatConsts::ENCL | ThreatConsts::TERR);   // switch ENCL bit to TERR
 	  thr.where = 0;
 	  threats[who-1].changeEnclToTerr(thr);
 	  this_encl.push_back(&thr);
 	  // thr.zobrist_key does not change
 	} else if (thr.encl->isInInterior(ind)) {
 	  if (thr.encl->interior.size() == 1) {
-	    thr.type |= Threat::TO_REMOVE;
+	    thr.type |= ThreatConsts::TO_REMOVE;
 	  } else {
-	    thr.type |= Threat::TO_CHECK;
+	    thr.type |= ThreatConsts::TO_CHECK;
 	  }
 	}
       }
@@ -2346,8 +2350,8 @@ Game::findThreats_preDot(pti ind, int who)
       for (auto tt : this_encl)
 	for (auto i : tt->encl->interior) this_interior[i] = 1;
       for (auto &thr : threats[who-1].threats) {
-	if ((thr.type & Threat::ENCL) && this_interior[thr.where]) {
-	  thr.type |= Threat::TO_CHECK;
+	if ((thr.type & ThreatConsts::ENCL) && this_interior[thr.where]) {
+	  thr.type |= ThreatConsts::TO_CHECK;
 	  // TODO: we could remove thr if it is almost the same (one of) current enclosure(s)  [almost: thr.interior + [ind] == curr_encl.interior ]
 	}
       }
@@ -2858,7 +2862,7 @@ Game::checkThreat_encl(Threat* thr, int who)
 /// The function may add a threat, thus invalidating threat list and perhaps also 'thr' pointer.
 /// @param[in] who  Whose threat it is (i.e., who makes this enclosure).
 {
-  thr->type |= Threat::TO_REMOVE;
+  thr->type |= ThreatConsts::TO_REMOVE;
   int where = thr->where;
 #ifndef NDEBUG
   //std::cerr << "Zagrozenie do usuniecia: " << who << " w " << coord.showPt(where) << std::endl;
@@ -2874,7 +2878,7 @@ Game::checkThreat_encl(Threat* thr, int who)
 	  Threat t;
 	  t.encl = std::make_shared<Enclosure>(findEnclosure(nb, MASK_DOT, who));
 	  if (!t.encl->isEmpty() && !t.encl->isInInterior(where)) {
-	    t.type = Threat::ENCL;
+	    t.type = ThreatConsts::ENCL;
 	    t.where = where;
 	    auto zobr = t.zobrist_key = t.encl->zobristKey(who);
 	    // if some next neighbour has been enclosed, mark it as done
@@ -2896,7 +2900,7 @@ Game::checkThreat_encl(Threat* thr, int who)
 	      //std::cerr << "Zagrozenie dodane" << std::endl;
 #endif
 	    } else {
-	      thrfz->type &= ~(t.TO_CHECK | t.TO_REMOVE);
+	      thrfz->type &= ~(ThreatConsts::TO_CHECK | ThreatConsts::TO_REMOVE);
 #ifndef NDEBUG
 	      //std::cerr << "Zagrozenie NIEDODANE" << std::endl;
 	      //if (where == coord.ind(24, 23)) std::cerr << t.show() << std::endl;
@@ -2927,15 +2931,15 @@ Game::checkThreat_terr(Threat* thr, pti p, int who)
   Threat t;
   std::shared_ptr<Enclosure> en = t.encl = std::make_shared<Enclosure>(findEnclosure(p, MASK_DOT, who));
   if (!t.encl->isEmpty()) {
-    t.type = Threat::TERR;
+    t.type = ThreatConsts::TERR;
     t.where = 0;
     auto zobr = t.zobrist_key = t.encl->zobristKey(who);
     if (thr && t.zobrist_key == thr->zobrist_key) {
-      thr->type &= ~(Threat::TO_CHECK | Threat::TO_REMOVE);  //  thr->type = Threat::TERR;
+      thr->type &= ~(ThreatConsts::TO_CHECK | ThreatConsts::TO_REMOVE);  //  thr->type = ThreatConsts::TERR;
     } else {
       Threat *tz = threats[who-1].findThreatZobrist(zobr);
       if (tz != nullptr) {
-	tz->type  &= ~(Threat::TO_CHECK | Threat::TO_REMOVE);  // may be redundant, but it's as fast to do as to check
+	tz->type  &= ~(ThreatConsts::TO_CHECK | ThreatConsts::TO_REMOVE);  // may be redundant, but it's as fast to do as to check
       } else {
 	auto tmp = countDotsTerrInEncl(*t.encl, 3-who);
 	t.opp_dots = std::get<0>(tmp);
@@ -2955,8 +2959,8 @@ Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
   // check our old threats  -- already in preDot
   for (auto &thr : threats[who-1].threats) {
     if (thr.where == ind) {
-      if (thr.type == Threat::ENCL) {
-	thr.type = Threat::TERR;
+      if (thr.type == ThreatConsts::ENCL) {
+	thr.type = ThreatConsts::TERR;
 	thr.where = 0;
 	// thr.zobrist_key does not change
       }
@@ -2967,11 +2971,11 @@ Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
   //for (int who=1; who<=2; who++)   // <-- not needed, because there are no opponent threats markes as TO_CHECK
   for (int tn=0; tn<threats[who-1].threats.size(); tn++) {
     Threat *thr = &threats[who-1].threats[tn];
-    if (thr->type & Threat::TO_CHECK) {
-      if (thr->type & Threat::ENCL) {
+    if (thr->type & ThreatConsts::TO_CHECK) {
+      if (thr->type & ThreatConsts::ENCL) {
 	checkThreat_encl(thr, who);
-      } else if (thr->type & Threat::TERR) {
-	thr->type |= Threat::TO_REMOVE;
+      } else if (thr->type & ThreatConsts::TERR) {
+	thr->type |= ThreatConsts::TO_REMOVE;
 	std::vector<int8_t> done(coord.last+1, 0);
 	std::shared_ptr<Enclosure> encl = thr->encl;     // thr may be invalidated by adding new threats in checkThreat_terr
 	for (auto p : encl->interior)
@@ -3024,7 +3028,7 @@ Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
 	Threat t;
 	t.encl = std::make_shared<Enclosure>(findEnclosure(pt, MASK_DOT, who));
 	if (!t.encl->isEmpty() && !t.encl->isInInterior(where)) {
-	  t.type = Threat::ENCL;
+	  t.type = ThreatConsts::ENCL;
 	  t.where = where;
 	  auto zobr = t.zobrist_key = t.encl->zobristKey(who);
 	  if (threats[who-1].findThreatZobrist(zobr) == nullptr) {
@@ -3051,7 +3055,7 @@ Game::checkThreat2moves_encl(Threat* thr, pti where0, int who)
 /// @param[in] where0  The first dot of the threat.
 /// @param[in] who  Whose threat it is (i.e., who makes this enclosure).  
 {
-  thr->type |= Threat::TO_REMOVE;
+  thr->type |= ThreatConsts::TO_REMOVE;
   int where = thr->where;
   if (worm[where] == 0 && worm[where0] == 0) {
     CleanupOneVar<pti> worm_where_cleanup0(&worm[where0], who);   //  worm[where0] = who;  with restored old value (0) by destructor
@@ -3069,10 +3073,10 @@ Game::checkThreat2moves_encl(Threat* thr, pti where0, int who)
 	      && !t[j].encl->checkIfRedundant(where) && !t[j].encl->checkIfRedundant(where0)) {   // added in v139
 	    t[j].zobrist_key = t[j].encl->zobristKey(who);
 	    if (t[j].zobrist_key == thr->zobrist_key) {   // our old threat is still valid --> this is in addThreat2moves
-	      thr->type &= ~Threat::TO_REMOVE;
+	      thr->type &= ~ThreatConsts::TO_REMOVE;
 	      break;
 	    }
-	    t[j].type = Threat::ENCL;
+	    t[j].type = ThreatConsts::ENCL;
 	    t[j].where = where;
 	    // if some next neighbour has been enclosed, mark it as done
 	    for (int k=j+1; k<4; k++) {
@@ -3100,7 +3104,7 @@ int
 Game::addThreat2moves(pti ind0, pti ind1, int who, std::shared_ptr<Enclosure> &encl)
 {
   Threat t;
-  t.type = Threat::ENCL;
+  t.type = ThreatConsts::ENCL;
   t.zobrist_key = encl->zobristKey(who);
   t.encl = encl;
   auto tmp = countDotsTerrInEncl(*encl, 3-who);
@@ -3192,7 +3196,7 @@ Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
     if (t2.where0 == ind) {
       // all threats should be removed, because we played at where0
       for (auto &t : t2.thr_list) {
-	t.type |= Threat::TO_REMOVE;
+	t.type |= ThreatConsts::TO_REMOVE;
       }
     } else {
       for (auto &t : t2.thr_list) {
@@ -3206,7 +3210,7 @@ Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
 	  }
 	  */
 	  assert(t.where == ind || (t.encl->checkShortcut(t2.where0, ind) || t.encl->checkShortcut(t.where, ind)) == t.isShortcut(ind));
-	  t.type |= Threat::TO_REMOVE;
+	  t.type |= ThreatConsts::TO_REMOVE;
 	} else {
 	  /*
 	  if(t.where != ind && (t.encl->checkShortcut(t2.where0, ind) || t.encl->checkShortcut(t.where, ind)) != t.shortcuts.contains(ind)) {
@@ -3232,7 +3236,7 @@ Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
 	  }
 	  assert(t.where == ind || (t.encl->checkShortcut(t2.where0, ind) || t.encl->checkShortcut(t.where, ind)) == t.isShortcut(ind));
 	  if (t.encl->isInInterior(ind)) {
-	    t.type |= Threat::TO_REMOVE;
+	    t.type |= ThreatConsts::TO_REMOVE;
 	    // we removed the threat and now add it to check again
 	    // TODO: in most cases it could be done more efficiently by checking whether the threat is still valid
 	    if (t2.where0 < t.where && t.encl->interior.size() > 1) {
@@ -3409,11 +3413,11 @@ Game::addThreat(Threat&& t, int who)
 {
   boost::container::small_vector<pti,8> counted_worms;   // list of counted worms for singular_dots
   for (auto i : t.encl->interior) {
-    if (t.type & Threat::TERR) {
+    if (t.type & ThreatConsts::TERR) {
       assert(i>=coord.first && i<=coord.last && i<threats[who-1].is_in_terr.size());
       ++threats[who-1].is_in_terr[i];
     } else {
-      assert(t.type & Threat::ENCL);
+      assert(t.type & ThreatConsts::ENCL);
       assert(i>=coord.first && i<=coord.last && i<threats[who-1].is_in_encl.size());
       ++threats[who-1].is_in_encl[i];
     }
@@ -3478,10 +3482,10 @@ Game::subtractThreat(const Threat& t, int who)
   bool threatens = false;   // if t threatend some opp's threat
   for (auto i : t.encl->interior) {
     assert(i>=coord.first && i<=coord.last);
-    if (t.type & Threat::TERR) {
+    if (t.type & ThreatConsts::TERR) {
       --threats[who-1].is_in_terr[i];
     } else {
-      assert(t.type & Threat::ENCL);
+      assert(t.type & ThreatConsts::ENCL);
       --threats[who-1].is_in_encl[i];
     }
     if (whoseDotMarginAt(i)==3-who) {
@@ -3545,14 +3549,14 @@ Game::removeMarkedAndAtPoint(pti ind, int who)
 {
   if (!threats[who-1].threats.empty()) {
     for (auto &t : threats[who-1].threats)
-      if (t.where == ind || (t.type & Threat::TO_REMOVE)) {
+      if (t.where == ind || (t.type & ThreatConsts::TO_REMOVE)) {
 	subtractThreat(t, who);
-	t.type |= Threat::TO_REMOVE;
+	t.type |= ThreatConsts::TO_REMOVE;
       }
     //removeMarkedThreats(threats[who-1].threats);
     
     threats[who-1].threats.erase( std::remove_if( threats[who-1].threats.begin(), threats[who-1].threats.end(),
-						  [](Threat &t) { return (t.type & Threat::TO_REMOVE); } ),
+						  [](Threat &t) { return (t.type & ThreatConsts::TO_REMOVE); } ),
 				  threats[who-1].threats.end() );
     
   }
@@ -3580,7 +3584,7 @@ Game::removeAtPoint(pti ind, int who)
 	    }
 	  }
 	}
-	//t.type |= Threat::TO_REMOVE;
+	//t.type |= ThreatConsts::TO_REMOVE;
       }
     if (removed) {
       threats[who-1].threats.erase( std::remove_if( threats[who-1].threats.begin(), threats[who-1].threats.end(),
@@ -3597,13 +3601,13 @@ Game::removeMarked(int who)
   // remove our marked threats
   if (!threats[who-1].threats.empty()) {
     for (auto &t : threats[who-1].threats)
-      if (t.type & Threat::TO_REMOVE) {
+      if (t.type & ThreatConsts::TO_REMOVE) {
 	subtractThreat(t, who);
       }
     //removeMarkedThreats(threats[who-1].threats);
     
     threats[who-1].threats.erase( std::remove_if( threats[who-1].threats.begin(), threats[who-1].threats.end(),
-						  [](Threat &t) { return (t.type & Threat::TO_REMOVE); } ),
+						  [](Threat &t) { return (t.type & ThreatConsts::TO_REMOVE); } ),
 				  threats[who-1].threats.end() );
     
   }
@@ -4067,7 +4071,7 @@ Game::getSimplifyingEnclAndPriorities(int who)
   ml_deleted_opp_thr.clear();
   bool something_left = false;
   for (auto &t : threats[who-1].threats) {
-    if ((t.type & Threat::TERR) && (t.terr_points == 0)) {
+    if ((t.type & ThreatConsts::TERR) && (t.terr_points == 0)) {
       assert(t.opp_dots);
       ml_encl_moves.push_back(t.encl);
       ml_encl_zobrists[0] ^= t.zobrist_key;
@@ -4353,25 +4357,25 @@ Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure> > &encl_moves, std::ve
   ml_priority_vect.clear();
   /*
   for (auto &t : ml_priorities) {
-    if ((t.type & Threat::TERR) || (t.move == move && (t.type & Threat::ENCL))) {
+    if ((t.type & ThreatConsts::TERR) || (t.move == move && (t.type & ThreatConsts::ENCL))) {
       ml_priority_vect.push_back(t);   // TODO: use copy_if ?
     }
   }
   */
   std::copy_if(ml_priorities.begin(), ml_priorities.end(), back_inserter(ml_priority_vect),
-	       [move](ThrInfo &t) { return (t.type & Threat::TERR) || (t.move == move && (t.type & Threat::ENCL)); });
+	       [move](ThrInfo &t) { return (t.type & ThreatConsts::TERR) || (t.move == move && (t.type & ThreatConsts::ENCL)); });
   if (move==0) {
     ml_special_moves.clear();
     // here we are called by generateListOfMoves, so we will need  ml_special_moves list
     for (auto &t: threats[2-who].threats) {
       if (t.where != 0) {
-	assert(t.type & Threat::ENCL);
+	assert(t.type & ThreatConsts::ENCL);
 	ml_special_moves.push_back(t.where);
       }
     }
     for (auto &t : ml_priorities) {
       if (t.move !=0) {
-	assert(t.type & Threat::ENCL);
+	assert(t.type & ThreatConsts::ENCL);
 	ml_special_moves.push_back(t.move);
       }
     }
@@ -4381,7 +4385,7 @@ Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure> > &encl_moves, std::ve
   if (move) {
     for (auto &t: threats[2-who].threats) {
       if (t.where == move) {
-	assert(t.type & Threat::ENCL);
+	assert(t.type & ThreatConsts::ENCL);
 	for (auto &ourt : ml_priority_vect) {
 	  auto pos = std::find(ourt.opp_thr.begin(), ourt.opp_thr.end(), t.zobrist_key);
 	  if (pos != ourt.opp_thr.end()) {
@@ -5667,14 +5671,14 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
   }
   // remove our threats
   for (auto &t: threats[who-1].threats)
-    if ((t.type & t.TO_REMOVE)==0 && stack[t.where] == 0) {
+    if ((t.type & ThreatConsts::TO_REMOVE)==0 && stack[t.where] == 0) {
       for (auto &p : t.encl->border) {
 	if (stack[p]) {
-	  t.type |= t.TO_REMOVE;
+	  t.type |= ThreatConsts::TO_REMOVE;
 	  break;
 	}
       }
-      if ((t.type & t.TO_REMOVE) == 0 && is_in_our_terr_or_encl) {
+      if ((t.type & ThreatConsts::TO_REMOVE) == 0 && is_in_our_terr_or_encl) {
 	// update t, if it happens to include made enclosure
 	// first fast check -- if it does not contain one interior point, it does not include enclosure encl, so we're done
 	if (t.encl->isInInterior(encl.getInteriorElement())) {
@@ -5694,20 +5698,20 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
 	}
       }
     } else {
-      t.type |= t.TO_REMOVE;
+      t.type |= ThreatConsts::TO_REMOVE;
     }
   // remove our threats in 2 moves
   for (auto &t2: threats[who-1].threats2m) {
     for (auto &t : t2.thr_list) {
-      if ((t.type & t.TO_REMOVE)==0 && stack[t.where] == 0 && stack[t2.where0] == 0) {
+      if ((t.type & ThreatConsts::TO_REMOVE)==0 && stack[t.where] == 0 && stack[t2.where0] == 0) {
 	for (auto &p : t.encl->border) {
 	  if (stack[p]) {
-	    t.type |= t.TO_REMOVE;
+	    t.type |= ThreatConsts::TO_REMOVE;
 	    break;
 	  }
 	}
       } else {
-	t.type |= t.TO_REMOVE;
+	t.type |= ThreatConsts::TO_REMOVE;
       }
     }
   }
@@ -5716,7 +5720,7 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
     auto zobr = encl.zobristKey(who);
     for (auto &t: threats[who-1].threats) {
       if (t.zobrist_key == zobr) {
-	t.type |= t.TO_REMOVE;	
+	t.type |= ThreatConsts::TO_REMOVE;	
       }
     }
   }
@@ -5728,24 +5732,24 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
   bool removed = false;
   for (int tn=0; tn<threats[2-who].threats.size(); tn++) {
     Threat *thr = &threats[2-who].threats[tn];
-    if ((thr->type & Threat::TO_REMOVE)==0) {
+    if ((thr->type & ThreatConsts::TO_REMOVE)==0) {
       if (stack[thr->where] == 1) {
-	thr->type |= Threat::TO_REMOVE;   removed = true;
+	thr->type |= ThreatConsts::TO_REMOVE;   removed = true;
 	//std::cerr << "removing " << coord.showPt(thr->where) << std::endl;
       } else {
 	std::shared_ptr<Enclosure> encl = thr->encl;     // thr may be invalidated by adding new threats in checkThreat_terr
 	for (auto &p : encl->border) {
 	  if (stack[p]) {
-	    thr->type |= Threat::TO_REMOVE;   removed = true;
+	    thr->type |= ThreatConsts::TO_REMOVE;   removed = true;
 	    //std::cerr << "removing2 " << coord.showPt(thr->where) << ", zobr=" << thr->zobrist_key << std::endl;
-	    if (check_encl && (thr->type & Threat::ENCL)) {
+	    if (check_encl && (thr->type & ThreatConsts::ENCL)) {
 	      checkThreat_encl(thr, 3-who);
 	      thr = &threats[2-who].threats[tn];  // thr could be invalidated
 	    }
 	    break;
 	  }
 	}
-	if ((thr->type & Threat::TO_REMOVE) == 0 && thr->encl->isInInterior(encl->getBorderElement())) {
+	if ((thr->type & ThreatConsts::TO_REMOVE) == 0 && thr->encl->isInInterior(encl->getBorderElement())) {
 	  auto tmp = countDotsTerrInEncl(*thr->encl, who);
 	  thr->opp_dots = std::get<0>(tmp);
 	  thr->terr_points = std::get<1>(tmp);
@@ -5765,20 +5769,20 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
   for (auto &thr2t : threats[2-who].threats2m) {
     if (stack[thr2t.where0] == 1) {
       for (auto &t : thr2t.thr_list) {
-	t.type |= Threat::TO_REMOVE;
+	t.type |= ThreatConsts::TO_REMOVE;
       }
       removed2 = true;
     } else {
       for (int tn=0; tn < thr2t.thr_list.size(); tn++) {
 	Threat *thr = &thr2t.thr_list[tn];
 	if (stack[thr->where] == 1) {
-	  thr->type |= Threat::TO_REMOVE;   removed2 = true;
+	  thr->type |= ThreatConsts::TO_REMOVE;   removed2 = true;
 	} else {
 	  std::shared_ptr<Enclosure> encl = thr->encl;     // thr may be invalidated by adding new threats in checkThreat_terr
 	  for (auto &p : encl->border) {
 	    if (stack[p]) {
 	      removed2 = true;
-	      // thr->type |= Threat::TO_REMOVE;  // in checkThreat2moves_encl
+	      // thr->type |= ThreatConsts::TO_REMOVE;  // in checkThreat2moves_encl
 	      // if (check_encl2moves) { ...
 	      checkThreat2moves_encl(thr, thr2t.where0, 3-who);
 	      //thr2 = &threats[2-who].threats2m[tn2];  // thr2 and
@@ -6464,7 +6468,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 	// note:  (threats[who-1].is_in_border[i] > 0) possible only for territory threats (i.e., we build a new territory)
 	int min_terr_size = std::numeric_limits<int>::max();
 	for (auto &t : threats[2-who].threats) {
-	  if (t.type & t.TERR) {
+	  if (t.type & ThreatConsts::TERR) {
 	    if (t.terr_points < min_terr_size && t.encl->isInInterior(i)) {
 	      min_terr_size = t.terr_points;
 	      if (min_terr_size <= 2) break;
@@ -6698,7 +6702,7 @@ Game::chooseAtariMove(int who)
 {
   boost::container::small_vector<pti, 16> urgent; //, non_urgent;
   for (auto &t : threats[who-1].threats) {
-    if (t.type & Threat::ENCL) {
+    if (t.type & ThreatConsts::ENCL) {
       if ((t.border_dots_in_danger && t.opp_dots) || t.singular_dots) {
 	urgent.push_back(t.where);
 	int count = t.border_dots_in_danger ? t.opp_dots : t.singular_dots;
@@ -6711,7 +6715,7 @@ Game::chooseAtariMove(int who)
     }
   }
   for (auto &t : threats[2-who].threats) {
-    if (t.singular_dots && (t.type & Threat::ENCL)) {
+    if (t.singular_dots && (t.type & ThreatConsts::ENCL)) {
       // TODO: check also the ladder
       if (threats[2-who].is_in_encl[t.where]==0 && threats[2-who].is_in_2m_miai[t.where]==0 && threats[2-who].is_in_2m_miai[t.where]==0) {
 	urgent.push_back(t.where);
@@ -7535,7 +7539,7 @@ Game::checkThreatCorrectness()
 	// first check territory enclosing [ind]
 	t.encl = std::make_shared<Enclosure>(findEnclosure_notOptimised(ind, MASK_DOT, who));
 	if (!t.encl->isEmpty()) {
-	  t.type = Threat::TERR;
+	  t.type = ThreatConsts::TERR;
 	  t.where = 0;
 	  t.zobrist_key = t.encl->zobristKey(who);
 	  // try to save it
@@ -7553,7 +7557,7 @@ Game::checkThreatCorrectness()
 	  if (coord.dist[nb]>=0 && (worm[nb] & MASK_DOT) != who) {
 	    t.encl = std::make_shared<Enclosure>(findEnclosure_notOptimised(nb, MASK_DOT, who));
 	    if (!t.encl->isEmpty() && std::find(t.encl->border.begin(), t.encl->border.end(), ind) != t.encl->border.end() ) {
-	      t.type = Threat::ENCL;
+	      t.type = ThreatConsts::ENCL;
 	      t.where = ind;
 	      t.zobrist_key = t.encl->zobristKey(who);
 	      // try to save it, if not yet saved
@@ -7572,7 +7576,7 @@ Game::checkThreatCorrectness()
       int who = (worm[ind] & MASK_DOT) ^ MASK_DOT;
       t.encl = std::make_shared<Enclosure>(findEnclosure_notOptimised(ind, MASK_DOT, who));
       if (!t.encl->isEmpty()) {
-	t.type = Threat::TERR;
+	t.type = ThreatConsts::TERR;
 	t.where = 0;
 	t.zobrist_key = t.encl->zobristKey(who);
 	// try to save it
@@ -7592,11 +7596,11 @@ Game::checkThreatCorrectness()
 	std::cerr << "Nieaktualne zagrozenie (gracz=" << pl+1 << "):" << std::endl;
 	std::cerr << thr.show() << std::endl;
       } else {
-	if (pos->second.type & Threat::TO_REMOVE) {
+	if (pos->second.type & ThreatConsts::TO_REMOVE) {
 	  if (!shown) { shown=true;  show();  }	  
 	  std::cerr << "Powtórzone zagrożenie (gracz=" << pl+1 << "):" << std::endl;
 	} else {
-	  pos->second.type |= Threat::TO_REMOVE;
+	  pos->second.type |= ThreatConsts::TO_REMOVE;
 	}
       }
       int16_t true_opp_dots, true_terr;
@@ -7612,12 +7616,12 @@ Game::checkThreatCorrectness()
     }
   for (int pl=0; pl<2; pl++)
     for (auto &thr : checked[pl]) {
-      if ((thr.second.type & Threat::TO_REMOVE)==0) {
+      if ((thr.second.type & ThreatConsts::TO_REMOVE)==0) {
 	// maybe this is an uninteresting threat?
-	if (thr.second.type & Threat::ENCL) {
+	if (thr.second.type & ThreatConsts::ENCL) {
 	  auto zobr = thr.second.zobrist_key ^ coord.zobrist_encl[pl][thr.second.where];
 	  Threat *tz = threats[pl].findThreatZobrist(zobr);
-	  if (tz != nullptr && (tz->type & (Threat::TO_CHECK | Threat::TO_REMOVE))==0)
+	  if (tz != nullptr && (tz->type & (ThreatConsts::TO_CHECK | ThreatConsts::TO_REMOVE))==0)
 	    {
 	    continue;  // trivial enclosure! (we put dot inside our territory and have an enclosure 1-dot smaller than the original territory)
 	    }
@@ -7628,7 +7632,7 @@ Game::checkThreatCorrectness()
 	    std::vector<int8_t> interior(coord.last+1, 0);
 	    for (auto i : thr.second.encl->interior) interior[i]=1;
 	    for (auto &t : threats[pl].threats)
-	      if (t.type & Threat::TERR) {
+	      if (t.type & ThreatConsts::TERR) {
 		bool subset = true;
 		// check if every point in old terr is a point inside new one or our dot
 		for (auto i : t.encl->interior) {
@@ -7674,14 +7678,14 @@ Game::checkThreatCorrectness()
     std::vector<pti> en(coord.getSize(), 0);
     std::vector<pti> bo(coord.getSize(), 0);
     for (Threat &thr : threats[pl].threats) {
-      if (thr.type & Threat::TERR) {
+      if (thr.type & ThreatConsts::TERR) {
 	for (auto i : thr.encl->interior) ++te[i];
-      } else if (thr.type & Threat::ENCL) {
+      } else if (thr.type & ThreatConsts::ENCL) {
 	for (auto i : thr.encl->interior) ++en[i];
       }
       for (auto i : thr.encl->border) ++bo[i];
       bo[thr.encl->border[0]]--;   // this was counted twice
-      if (thr.type & Threat::TO_REMOVE) {
+      if (thr.type & ThreatConsts::TO_REMOVE) {
 	if (!shown) { shown=true;  show();  }
 	std::cerr << "Nieusuniete zagrozenie (gracz=" << pl+1 << "):" << std::endl << thr.show() << std::endl;
       }
