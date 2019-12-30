@@ -1329,6 +1329,22 @@ ListOfPlaces::isOnList(pti p) const
 /********************************************************************************************************
   PossibleMoves class for keeping track of possible moves
 *********************************************************************************************************/
+namespace PossibleMovesConsts
+{
+  constexpr int LIST_NEUTRAL{0};
+  constexpr int LIST_DAME    = 1;
+  constexpr int LIST_TERRM   = 2;
+  constexpr int LIST_REMOVED = 3;  // although there's no list for that
+  constexpr int MASK_SHIFT  = 12;
+  constexpr int INDEX_MASK = (1 << MASK_SHIFT) - 1;  // 0xfff
+  //
+  constexpr int NEUTRAL = LIST_NEUTRAL << MASK_SHIFT;  // 0x0000;
+  constexpr int DAME    = LIST_DAME << MASK_SHIFT;     // 0x1000;
+  constexpr int TERRM   = LIST_TERRM << MASK_SHIFT;      // 0x2000;
+  constexpr int REMOVED = LIST_REMOVED << MASK_SHIFT;  // 0x3000;
+  constexpr int TYPE_MASK = (NEUTRAL | DAME | TERRM | REMOVED);   // 0x3000;  
+};
+
 class PossibleMoves {
   std::vector<pti> mtype;   // type of move OR-ed with its index on the list (neutral, dame or bad)
   void removeFromList(pti p);
@@ -1338,18 +1354,6 @@ public:
   std::vector<pti> lists[3];  // neutral, dame, bad;
   bool left, top, right, bottom;  // are margins empty?
 
-  static const int LIST_NEUTRAL = 0;
-  static const int LIST_DAME    = 1;
-  static const int LIST_TERRM   = 2;
-  static const int LIST_REMOVED = 3;  // although there's no list for that
-  static const int MASK_SHIFT  = 12;
-  static const int INDEX_MASK = (1 << MASK_SHIFT) - 1;  // 0xfff
-  //
-  static const int NEUTRAL = LIST_NEUTRAL << MASK_SHIFT;  // 0x0000;
-  static const int DAME    = LIST_DAME << MASK_SHIFT;     // 0x1000;
-  static const int TERRM   = LIST_TERRM << MASK_SHIFT;      // 0x2000;
-  static const int REMOVED = LIST_REMOVED << MASK_SHIFT;  // 0x3000;
-  static const int TYPE_MASK = (NEUTRAL | DAME | TERRM | REMOVED);   // 0x3000;  
   void generate();
   void changeMove(pti p, int new_type);
 };
@@ -1359,14 +1363,14 @@ public:
 void
 PossibleMoves::removeFromList(pti p)
 {
-  int curr_list = mtype[p] >> MASK_SHIFT;
+  int curr_list = mtype[p] >> PossibleMovesConsts::MASK_SHIFT;
   if (curr_list < 3) {
-    int ind = (mtype[p] & INDEX_MASK);
+    int ind = (mtype[p] & PossibleMovesConsts::INDEX_MASK);
     if (ind+1 < lists[curr_list].size()) {
       // p is not the last element on the curr_list, so replace it by the last one
       pti last = lists[curr_list].back();
       lists[curr_list][ind] = last;
-      mtype[last] = (curr_list << MASK_SHIFT) | ind;
+      mtype[last] = (curr_list << PossibleMovesConsts::MASK_SHIFT) | ind;
     }
     lists[curr_list].pop_back();
   }
@@ -1412,7 +1416,7 @@ PossibleMoves::newDotOnEdge(pti p, EdgeType edge)
   }
   // change dame moves on the edge to neutral
   for (; count!=0; --count) {
-    if (ind != p) changeMove(ind, NEUTRAL);
+    if (ind != p) changeMove(ind, PossibleMovesConsts::NEUTRAL);
     ind += iter;
   }
 }
@@ -1423,15 +1427,15 @@ PossibleMoves::generate()
   lists[0].reserve(coord.last);
   lists[1].reserve(coord.last);
   lists[2].reserve(coord.last);
-  mtype = std::vector<pti>(coord.getSize(), REMOVED);
+  mtype = std::vector<pti>(coord.getSize(), PossibleMovesConsts::REMOVED);
   for (int i=coord.first; i<=coord.last; ++i) {
     if (coord.dist[i] > 0) {
-      mtype[i] = NEUTRAL | lists[LIST_NEUTRAL].size();
-      lists[LIST_NEUTRAL].push_back(i);
+      mtype[i] = PossibleMovesConsts::NEUTRAL | lists[PossibleMovesConsts::LIST_NEUTRAL].size();
+      lists[PossibleMovesConsts::LIST_NEUTRAL].push_back(i);
     }
     else if (coord.dist[i] == 0) {
-      mtype[i] = DAME | lists[LIST_DAME].size();
-      lists[LIST_DAME].push_back(i);
+      mtype[i] = PossibleMovesConsts::DAME | lists[PossibleMovesConsts::LIST_DAME].size();
+      lists[PossibleMovesConsts::LIST_DAME].push_back(i);
     }
   }
   left = true;  top = true;  right = true;  bottom = true;
@@ -1441,15 +1445,15 @@ PossibleMoves::generate()
 void
 PossibleMoves::changeMove(pti p, int new_type)
 {
-  if (new_type != REMOVED) {
-    auto curr_type = mtype[p] & TYPE_MASK;
+  if (new_type != PossibleMovesConsts::REMOVED) {
+    auto curr_type = mtype[p] & PossibleMovesConsts::TYPE_MASK;
     if (curr_type == new_type) return;
     removeFromList(p);
-    mtype[p] = lists[new_type >> MASK_SHIFT].size() | new_type;
-    lists[new_type >> MASK_SHIFT].push_back(p);
+    mtype[p] = lists[new_type >> PossibleMovesConsts::MASK_SHIFT].size() | new_type;
+    lists[new_type >> PossibleMovesConsts::MASK_SHIFT].push_back(p);
   } else {
     removeFromList(p);
-    mtype[p] = REMOVED;
+    mtype[p] = PossibleMovesConsts::REMOVED;
     // check where is the new dot
     int x = coord.x[p], y = coord.y[p];
     if (x == 1 || (x == 0 && y !=0 && y != coord.wlky-1)) {
@@ -1469,24 +1473,28 @@ PossibleMoves::changeMove(pti p, int new_type)
 /********************************************************************************************************
   InterestingMoves -- class for keeping track of 3 lists of interesting moves, very similar to PossibleMoves
 *********************************************************************************************************/
+namespace InterestingMovesConsts
+{
+  constexpr int LIST_0 = 0;
+  constexpr int LIST_1 = 1;
+  constexpr int LIST_2 = 2;
+  constexpr int LIST_REMOVED = 3;  // although there's no list for that
+  constexpr int MASK_SHIFT  = 12;
+  constexpr int INDEX_MASK = (1 << MASK_SHIFT) - 1;  // 0xfff
+  //
+  constexpr int MOVE_0 = LIST_0 << MASK_SHIFT;  // 0x0000;
+  constexpr int MOVE_1 = LIST_1 << MASK_SHIFT;     // 0x1000;
+  constexpr int MOVE_2 = LIST_2 << MASK_SHIFT;      // 0x2000;
+  constexpr int REMOVED = LIST_REMOVED << MASK_SHIFT;  // 0x3000;
+  constexpr int TYPE_MASK = (MOVE_0 | MOVE_1 | MOVE_2 | REMOVED);   // 0x3000;  
+};
+
 class InterestingMoves {
   std::vector<pti> mtype;   // type of move OR-ed with its index on the list (0, 1 or 2)
   void removeFromList(pti p);
 public:
   std::vector<pti> lists[3];  // list0, list1, list2
 
-  static const int LIST_0 = 0;
-  static const int LIST_1 = 1;
-  static const int LIST_2 = 2;
-  static const int LIST_REMOVED = 3;  // although there's no list for that
-  static const int MASK_SHIFT  = 12;
-  static const int INDEX_MASK = (1 << MASK_SHIFT) - 1;  // 0xfff
-  //
-  static const int MOVE_0 = LIST_0 << MASK_SHIFT;  // 0x0000;
-  static const int MOVE_1 = LIST_1 << MASK_SHIFT;     // 0x1000;
-  static const int MOVE_2 = LIST_2 << MASK_SHIFT;      // 0x2000;
-  static const int REMOVED = LIST_REMOVED << MASK_SHIFT;  // 0x3000;
-  static const int TYPE_MASK = (MOVE_0 | MOVE_1 | MOVE_2 | REMOVED);   // 0x3000;  
   void generate();
   void changeMove(pti p, int new_type);
   int classOfMove(pti p) const;
@@ -1497,14 +1505,14 @@ public:
 void
 InterestingMoves::removeFromList(pti p)
 {
-  int curr_list = mtype[p] >> MASK_SHIFT;
+  int curr_list = mtype[p] >> InterestingMovesConsts::MASK_SHIFT;
   if (curr_list < 3) {
-    int ind = (mtype[p] & INDEX_MASK);
+    int ind = (mtype[p] & InterestingMovesConsts::INDEX_MASK);
     if (ind+1 < lists[curr_list].size()) {
       // p is not the last element on the curr_list, so replace it by the last one
       pti last = lists[curr_list].back();
       lists[curr_list][ind] = last;
-      mtype[last] = (curr_list << MASK_SHIFT) | ind;
+      mtype[last] = (curr_list << InterestingMovesConsts::MASK_SHIFT) | ind;
     }
     lists[curr_list].pop_back();
   }
@@ -1516,31 +1524,32 @@ InterestingMoves::generate()
   lists[0].reserve(coord.last);
   lists[1].reserve(coord.last);
   lists[2].reserve(coord.last);
-  mtype = std::vector<pti>(coord.getSize(), REMOVED);
+  mtype = std::vector<pti>(coord.getSize(), InterestingMovesConsts::REMOVED);
 }
 
 /// new_type should be MOVE_0, MOVE_1, MOVE_2 or REMOVED
 void
 InterestingMoves::changeMove(pti p, int new_type)
 {
-  assert(new_type == MOVE_0 || new_type == MOVE_1 || new_type == MOVE_2 || new_type == REMOVED);
+  assert(new_type == InterestingMovesConsts::MOVE_0 || new_type == InterestingMovesConsts::MOVE_1
+	 || new_type == InterestingMovesConsts::MOVE_2 || new_type == InterestingMovesConsts::REMOVED);
   assert(p>=coord.first && p<=coord.last);
-  if (new_type != REMOVED) {
-    auto curr_type = mtype[p] & TYPE_MASK;
+  if (new_type != InterestingMovesConsts::REMOVED) {
+    auto curr_type = mtype[p] & InterestingMovesConsts::TYPE_MASK;
     if (curr_type == new_type) return;
     removeFromList(p);
-    mtype[p] = lists[new_type >> MASK_SHIFT].size() | new_type;
-    lists[new_type >> MASK_SHIFT].push_back(p);
+    mtype[p] = lists[new_type >> InterestingMovesConsts::MASK_SHIFT].size() | new_type;
+    lists[new_type >> InterestingMovesConsts::MASK_SHIFT].push_back(p);
   } else {
     removeFromList(p);
-    mtype[p] = REMOVED;
+    mtype[p] = InterestingMovesConsts::REMOVED;
   }
 }
 
 int
 InterestingMoves::classOfMove(pti p) const
 {
-  int curr_list = mtype[p] >> MASK_SHIFT;
+  int curr_list = mtype[p] >> InterestingMovesConsts::MASK_SHIFT;
   return 3 - curr_list;
 }
 
@@ -3544,8 +3553,8 @@ Game::pointNowInDanger2moves(pti ind, int who)
     }
   }
   if (whoseDotMarginAt(ind)==0) {
-    possible_moves.changeMove(ind, PossibleMoves::TERRM);
-    interesting_moves.changeMove(ind, InterestingMoves::REMOVED);
+    possible_moves.changeMove(ind, PossibleMovesConsts::TERRM);
+    interesting_moves.changeMove(ind, InterestingMovesConsts::REMOVED);
   }
 }
 
@@ -4776,8 +4785,8 @@ Game::placeDot(int x, int y, int who)
   checkThreats2moves_postDot(to_check2m, ind, who);
   // remove move [ind] from possible moves
   pattern3_value[0][ind] = 0;    pattern3_value[1][ind] = 0;
-  possible_moves.changeMove(ind, PossibleMoves::REMOVED);
-  interesting_moves.changeMove(ind, InterestingMoves::REMOVED);
+  possible_moves.changeMove(ind, PossibleMovesConsts::REMOVED);
+  interesting_moves.changeMove(ind, InterestingMovesConsts::REMOVED);
   if (update_safety_dame) {
     possibleMoves_updateSafetyDame();
   } else if (coord.dist[ind]==1) {
@@ -5805,8 +5814,8 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
     stack[p] = 1;
     pattern3_value[0][p] = 0;  // and zero pattern3 values
     pattern3_value[1][p] = 0;
-    possible_moves.changeMove(p, PossibleMoves::REMOVED);
-    interesting_moves.changeMove(p, InterestingMoves::REMOVED);
+    possible_moves.changeMove(p, PossibleMovesConsts::REMOVED);
+    interesting_moves.changeMove(p, InterestingMovesConsts::REMOVED);
   }
   if (update_safety_dame) {
     possibleMoves_updateSafetyDame();
@@ -7045,10 +7054,10 @@ Game::chooseInfluenceMove(int who)
     move.ind = 0;
     return move;  
   }
-  if (possible_moves.lists[PossibleMoves::LIST_NEUTRAL].size()>=2) {
+  if (possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size()>=2) {
     std::vector<pti> infl_moves;
-    infl_moves.reserve(possible_moves.lists[PossibleMoves::LIST_NEUTRAL].size());
-    for (auto i : possible_moves.lists[PossibleMoves::LIST_NEUTRAL]) {
+    infl_moves.reserve(possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size());
+    for (auto i : possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL]) {
       if (isInfluential(i, true)) {
 	infl_moves.push_back(i);
       }
@@ -7106,8 +7115,8 @@ std::vector<pti>
 Game::getGoodTerrMoves(int who) const
 {
   std::vector<pti> good_moves;
-  for (int i=0; i<possible_moves.lists[PossibleMoves::LIST_TERRM].size(); ++i) {
-    auto p = possible_moves.lists[PossibleMoves::LIST_TERRM][i];
+  for (int i=0; i<possible_moves.lists[PossibleMovesConsts::LIST_TERRM].size(); ++i) {
+    auto p = possible_moves.lists[PossibleMovesConsts::LIST_TERRM][i];
     if ((connects[who-1][p].groups_id[0] == 0 &&
 	 (threats[2-who].is_in_terr[p] > 0 || threats[2-who].is_in_encl[p] > 0)) ||
 	(connects[2-who][p].groups_id[0] == 0 &&
@@ -7153,19 +7162,19 @@ Game::chooseAnyMove_pm(int who)
   Move move;
   move.who = who;
   assert(checkPossibleMovesCorrectness(who));
-  if (!possible_moves.lists[PossibleMoves::LIST_NEUTRAL].empty()) {
+  if (!possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].empty()) {
     int number;
-    if (!possible_moves.lists[PossibleMoves::LIST_TERRM].empty()) {
+    if (!possible_moves.lists[PossibleMovesConsts::LIST_TERRM].empty()) {
       // if there are some TERRM moves, maybe we should consider one of them; throw a dice to decide
-      std::uniform_int_distribution<int> di(0, possible_moves.lists[PossibleMoves::LIST_NEUTRAL].size()
-					    + std::min(int(possible_moves.lists[PossibleMoves::LIST_TERRM].size()), 2) - 1);
+      std::uniform_int_distribution<int> di(0, possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size()
+					    + std::min(int(possible_moves.lists[PossibleMovesConsts::LIST_TERRM].size()), 2) - 1);
       number = di(engine);
     } else {
-      std::uniform_int_distribution<int> di(0, possible_moves.lists[PossibleMoves::LIST_NEUTRAL].size() - 1);
+      std::uniform_int_distribution<int> di(0, possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size() - 1);
       number = di(engine);
     }
-    if (number < possible_moves.lists[PossibleMoves::LIST_NEUTRAL].size()) {
-      move.ind = possible_moves.lists[PossibleMoves::LIST_NEUTRAL][number];
+    if (number < possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size()) {
+      move.ind = possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL][number];
       dame_moves_so_far = 0;
       return getRandomEncl(move);   // TODO: do we have to set zobrist?
     }
@@ -7176,12 +7185,12 @@ Game::chooseAnyMove_pm(int who)
   // v138
   // check if there are no edge moves
   /*
-  if (possible_moves.lists[PossibleMoves::LIST_NEUTRAL].empty() &&
-      possible_moves.lists[PossibleMoves::LIST_DAME].empty()) {
+  if (possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].empty() &&
+      possible_moves.lists[PossibleMovesConsts::LIST_DAME].empty()) {
     for (int i=coord.first; i<=coord.last; i++)
       if (coord.dist[i] == 0 && whoseDotMarginAt(i) == 0) {
 	show();
-	std::cerr << "neutral moves: " << possible_moves.lists[PossibleMoves::LIST_NEUTRAL].size() << std::endl;
+	std::cerr << "neutral moves: " << possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size() << std::endl;
 	std::cerr << "good_moves = ";
 	for (auto p : good_moves) {
 	  std::cerr << coord.showPt(p) << " ";
@@ -7196,30 +7205,30 @@ Game::chooseAnyMove_pm(int who)
   */
   
   // try neutral or good
-  int n_or_g = possible_moves.lists[PossibleMoves::LIST_NEUTRAL].size() + good_moves.size();
+  int n_or_g = possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size() + good_moves.size();
   if (n_or_g > 0) {
     std::uniform_int_distribution<int> di(0, n_or_g - 1);
     int number = di(engine);
-    if (number < possible_moves.lists[PossibleMoves::LIST_NEUTRAL].size())
-      move.ind = possible_moves.lists[PossibleMoves::LIST_NEUTRAL][number];
+    if (number < possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size())
+      move.ind = possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL][number];
     else
-      move.ind = good_moves[number - possible_moves.lists[PossibleMoves::LIST_NEUTRAL].size()];
+      move.ind = good_moves[number - possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size()];
     dame_moves_so_far = 0;
     return getRandomEncl(move);   // TODO: do we have to set zobrist?
   }
   // try dame
-  if (possible_moves.lists[PossibleMoves::LIST_DAME].size() > 0) {
-    std::uniform_int_distribution<int> di(0, possible_moves.lists[PossibleMoves::LIST_DAME].size() - 1);
+  if (possible_moves.lists[PossibleMovesConsts::LIST_DAME].size() > 0) {
+    std::uniform_int_distribution<int> di(0, possible_moves.lists[PossibleMovesConsts::LIST_DAME].size() - 1);
     int number = di(engine);
-    move.ind = possible_moves.lists[PossibleMoves::LIST_DAME][number];
+    move.ind = possible_moves.lists[PossibleMovesConsts::LIST_DAME][number];
     dame_moves_so_far++;
     return getRandomEncl(move);   // TODO: do we have to set zobrist?
   }
   // maybe there's some bad move left
-  if (possible_moves.lists[PossibleMoves::LIST_TERRM].size() > 0) {   // note: here possible_moves.lists[LIST_TERRM] == list of bad_moves
-    std::uniform_int_distribution<int> di(0, possible_moves.lists[PossibleMoves::LIST_TERRM].size() - 1);
+  if (possible_moves.lists[PossibleMovesConsts::LIST_TERRM].size() > 0) {   // note: here possible_moves.lists[LIST_TERRM] == list of bad_moves
+    std::uniform_int_distribution<int> di(0, possible_moves.lists[PossibleMovesConsts::LIST_TERRM].size() - 1);
     int number = di(engine);
-    move.ind = possible_moves.lists[PossibleMoves::LIST_TERRM][number];
+    move.ind = possible_moves.lists[PossibleMovesConsts::LIST_TERRM][number];
     dame_moves_so_far++;   // not really dame, but we just want to stop the simulation
     return getRandomEncl(move);   // TODO: do we have to set zobrist?
   }
@@ -7234,13 +7243,13 @@ Game::chooseInterestingMove(int who)
 {
   Move move;
   move.who = who;
-  int which_list = InterestingMoves::LIST_0;
-  assert(InterestingMoves::LIST_0 + 1 == InterestingMoves::LIST_1 &&
-	 InterestingMoves::LIST_1 + 1 == InterestingMoves::LIST_2 &&
-	 InterestingMoves::LIST_2 + 1 == InterestingMoves::LIST_REMOVED);
+  int which_list = InterestingMovesConsts::LIST_0;
+  assert(InterestingMovesConsts::LIST_0 + 1 == InterestingMovesConsts::LIST_1 &&
+	 InterestingMovesConsts::LIST_1 + 1 == InterestingMovesConsts::LIST_2 &&
+	 InterestingMovesConsts::LIST_2 + 1 == InterestingMovesConsts::LIST_REMOVED);
   while (interesting_moves.lists[which_list].empty()) {
     which_list++;
-    if (which_list == InterestingMoves::LIST_REMOVED) {
+    if (which_list == InterestingMovesConsts::LIST_REMOVED) {
       move.ind = 0;
       return move;
     }
@@ -7395,13 +7404,13 @@ Game::checkInterestingMove(pti p) const
   if (threats[0].is_in_encl[p]==0 && threats[0].is_in_terr[p]==0 && threats[1].is_in_encl[p]==0 && threats[1].is_in_terr[p]==0) {
     auto v = patt3_symm.getValue(pattern3_at[p], 1);
     assert(v>=0 && v<8);
-    int lists[8] = {InterestingMoves::REMOVED, InterestingMoves::REMOVED,
-		    InterestingMoves::MOVE_2, InterestingMoves::MOVE_2,
-		    InterestingMoves::MOVE_2, InterestingMoves::MOVE_1,
-		    InterestingMoves::MOVE_0, InterestingMoves::MOVE_0};  // best moves goes to LIST_0
+    int lists[8] = {InterestingMovesConsts::REMOVED, InterestingMovesConsts::REMOVED,
+		    InterestingMovesConsts::MOVE_2, InterestingMovesConsts::MOVE_2,
+		    InterestingMovesConsts::MOVE_2, InterestingMovesConsts::MOVE_1,
+		    InterestingMovesConsts::MOVE_0, InterestingMovesConsts::MOVE_0};  // best moves goes to LIST_0
     return lists[v];
   }
-  return InterestingMoves::REMOVED;
+  return InterestingMovesConsts::REMOVED;
 }
 
 /// This function checks if p is still dame or now dame, because of its pattern3_value change.
@@ -7409,23 +7418,23 @@ int
 Game::checkDame(pti p) const
 {
   if (threats[0].is_in_encl[p]==0 && threats[0].is_in_terr[p]==0 && threats[1].is_in_encl[p]==0 && threats[1].is_in_terr[p]==0) {
-    if (pattern3_value[0][p] < 0) return PossibleMoves::DAME;
+    if (pattern3_value[0][p] < 0) return PossibleMovesConsts::DAME;
     if (coord.dist[p] == 0) {
       int x = coord.x[p], y = coord.y[p];
-      if ((x==0 || x==coord.wlkx-1) && (y==0 || y==coord.wlky-1)) return PossibleMoves::DAME;   // corner
+      if ((x==0 || x==coord.wlkx-1) && (y==0 || y==coord.wlky-1)) return PossibleMovesConsts::DAME;   // corner
       if ((x==0 && possible_moves.left) || (x==coord.wlkx-1 && possible_moves.right) ||
-	  (y==0 && possible_moves.top) || (y==coord.wlky-1 && possible_moves.bottom)) return PossibleMoves::DAME;
+	  (y==0 && possible_moves.top) || (y==coord.wlky-1 && possible_moves.bottom)) return PossibleMovesConsts::DAME;
       for (int i=0; i<4; i++) {
 	pti nb = p + coord.nb4[i];
 	if (coord.dist[nb]==1) {
-	  if (worm[nb] && descr.at(worm[nb]).isSafe()) return PossibleMoves::DAME;
+	  if (worm[nb] && descr.at(worm[nb]).isSafe()) return PossibleMovesConsts::DAME;
 	  break;
 	}
       }
     }
-    return PossibleMoves::NEUTRAL;
+    return PossibleMovesConsts::NEUTRAL;
   } else {
-    return PossibleMoves::TERRM;
+    return PossibleMovesConsts::TERRM;
   }
 }
 
@@ -7438,7 +7447,7 @@ Game::possibleMoves_updateSafety(pti p)
     for (int i=0; i<4; i++) {
       pti nb = p + coord.nb4[i];
       if (coord.dist[nb] == 0 && whoseDotMarginAt(nb) == 0) {
-	possible_moves.changeMove(nb, descr.at(worm[p]).isSafe() ? PossibleMoves::DAME : PossibleMoves::NEUTRAL);
+	possible_moves.changeMove(nb, descr.at(worm[p]).isSafe() ? PossibleMovesConsts::DAME : PossibleMovesConsts::NEUTRAL);
       }
     }
   }
@@ -7451,7 +7460,7 @@ Game::possibleMoves_updateSafetyDame()
     pti p = coord.ind(0,1);
     for (int y=coord.wlky-2; y>0; --y) {
       if (worm[p + coord.E] != 0 && whoseDotMarginAt(p) == 0) {
-	possible_moves.changeMove(p, descr.at(worm[p + coord.E]).isSafe() ? PossibleMoves::DAME : PossibleMoves::NEUTRAL);
+	possible_moves.changeMove(p, descr.at(worm[p + coord.E]).isSafe() ? PossibleMovesConsts::DAME : PossibleMovesConsts::NEUTRAL);
       }
       p += coord.S;
     }
@@ -7460,7 +7469,7 @@ Game::possibleMoves_updateSafetyDame()
     pti p = coord.ind(coord.wlkx-1, 1);
     for (int y=coord.wlky-2; y>0; --y) {
       if (worm[p + coord.W] != 0 && whoseDotMarginAt(p) == 0) {
-	 possible_moves.changeMove(p, descr.at(worm[p + coord.W]).isSafe() ? PossibleMoves::DAME : PossibleMoves::NEUTRAL);
+	 possible_moves.changeMove(p, descr.at(worm[p + coord.W]).isSafe() ? PossibleMovesConsts::DAME : PossibleMovesConsts::NEUTRAL);
       }
       p += coord.S;
     }
@@ -7469,7 +7478,7 @@ Game::possibleMoves_updateSafetyDame()
     pti p = coord.ind(1, 0);
     for (int x=coord.wlkx-2; x>0; --x) {
       if (worm[p + coord.S] != 0 && whoseDotMarginAt(p) == 0) {
-	 possible_moves.changeMove(p, descr.at(worm[p + coord.S]).isSafe() ? PossibleMoves::DAME : PossibleMoves::NEUTRAL);
+	 possible_moves.changeMove(p, descr.at(worm[p + coord.S]).isSafe() ? PossibleMovesConsts::DAME : PossibleMovesConsts::NEUTRAL);
       }
       p += coord.E;
     }
@@ -7478,7 +7487,7 @@ Game::possibleMoves_updateSafetyDame()
     pti p = coord.ind(1, coord.wlky-1);
     for (int x=coord.wlkx-2; x>0; --x) {
       if (worm[p + coord.N] != 0 && whoseDotMarginAt(p) == 0) {
-	 possible_moves.changeMove(p, descr.at(worm[p + coord.N]).isSafe() ? PossibleMoves::DAME : PossibleMoves::NEUTRAL);
+	 possible_moves.changeMove(p, descr.at(worm[p + coord.N]).isSafe() ? PossibleMovesConsts::DAME : PossibleMovesConsts::NEUTRAL);
       }
       p += coord.E;
     }
@@ -7539,7 +7548,7 @@ Game::checkRootListOfMovesCorrectness(Treenode *children) const
     std::cerr << "Vanishing moves!!!" << std::endl;
     return false;
   }
-  if (possible_moves.lists[PossibleMoves::LIST_DAME].size() > 0 && possible_moves.lists[PossibleMoves::LIST_NEUTRAL].size() && dame == 0 && outside_terr == 0) {
+  if (possible_moves.lists[PossibleMovesConsts::LIST_DAME].size() > 0 && possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size() && dame == 0 && outside_terr == 0) {
     return false;   // no dame move among children, but there should be!
   }
   return true;
@@ -8098,11 +8107,11 @@ Game::checkPattern3valuesCorrectness() const
     if (whoseDotMarginAt(ind)==0) {
       if (threats[0].is_in_encl[ind]==0 && threats[0].is_in_terr[ind]==0 && threats[1].is_in_encl[ind]==0 && threats[1].is_in_terr[ind]==0) {
 	if (isDame_directCheck_symm(ind))
-	  listm[PossibleMoves::LIST_DAME].push_back(ind);
+	  listm[PossibleMovesConsts::LIST_DAME].push_back(ind);
 	else
-	  listm[PossibleMoves::LIST_NEUTRAL].push_back(ind);
+	  listm[PossibleMovesConsts::LIST_NEUTRAL].push_back(ind);
       } else {
-	listm[PossibleMoves::LIST_TERRM].push_back(ind);
+	listm[PossibleMovesConsts::LIST_TERRM].push_back(ind);
       }
     }
   }
@@ -8179,26 +8188,26 @@ Game::checkPossibleMovesCorrectness(int who) const
       }
     }
   }
-  if ( (neutral_or_dame > 0) != (!possible_moves.lists[PossibleMoves::LIST_NEUTRAL].empty() || !possible_moves.lists[PossibleMoves::LIST_DAME].empty()) ) {
+  if ( (neutral_or_dame > 0) != (!possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].empty() || !possible_moves.lists[PossibleMovesConsts::LIST_DAME].empty()) ) {
     if (neutral_or_dame > 0) {
       std::cerr << "Possible neutral or dame moves is empty, but there is such a move: " << coord.showPt(exnd) << std::endl;
     } else {
-      if (!possible_moves.lists[PossibleMoves::LIST_NEUTRAL].empty()) {
-	std::cerr << "Possible neutral moves has: " << coord.showPt(possible_moves.lists[PossibleMoves::LIST_NEUTRAL][0]) << std::endl;
+      if (!possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].empty()) {
+	std::cerr << "Possible neutral moves has: " << coord.showPt(possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL][0]) << std::endl;
       }
-      if (!possible_moves.lists[PossibleMoves::LIST_DAME].empty()) {
-	std::cerr << "Possible dame moves has: " << coord.showPt(possible_moves.lists[PossibleMoves::LIST_DAME][0]) << std::endl;
+      if (!possible_moves.lists[PossibleMovesConsts::LIST_DAME].empty()) {
+	std::cerr << "Possible dame moves has: " << coord.showPt(possible_moves.lists[PossibleMovesConsts::LIST_DAME][0]) << std::endl;
       }
       
     }
     show();
     return false;
   }
-  if ( (terr > 0) != (!possible_moves.lists[PossibleMoves::LIST_TERRM].empty()) ) {
+  if ( (terr > 0) != (!possible_moves.lists[PossibleMovesConsts::LIST_TERRM].empty()) ) {
     if (terr > 0) {
       std::cerr << "TERR moves is empty, but there is such a move: " << coord.showPt(ext) << std::endl;
     } else {
-      std::cerr << "Possible TERR move: " << coord.showPt(possible_moves.lists[PossibleMoves::LIST_TERRM][0]) << std::endl;
+      std::cerr << "Possible TERR move: " << coord.showPt(possible_moves.lists[PossibleMovesConsts::LIST_TERRM][0]) << std::endl;
     }
     show();
     return false;
