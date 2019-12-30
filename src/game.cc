@@ -282,6 +282,16 @@ void removeMarkedThreats(std::vector<Threat> &thr_list)
 /********************************************************************************************************
   Threat2m (threat in 2 moves) class
 *********************************************************************************************************/
+namespace Threat2mconsts
+{
+  constexpr uint16_t FLAG_SAFE=1;
+  constexpr uint16_t FLAG_RECALCULATE=2;   // should we recalcuate min_wins and miai flag after removal
+  constexpr uint16_t ENCL2_MIAI=1;   // this bit we set in is_in_encl2 to denote miai (i.e., exists other threat with opp-dots win)
+  constexpr uint16_t ENCL2_INSIDE_ADD=2;  // this number we add for each point inside threat
+  constexpr uint16_t ENCL2_INSIDE_THRESHOLD=2*ENCL2_INSIDE_ADD;  // the threshold to see whether a point can be for sure captured
+
+};
+
 struct Threat2m {
   pti where0;   // where to put the first dot
   int16_t  min_win {0}, min_win2 {0}; // minimal win, second minimal win (i.e., how many opponent dots are captured)
@@ -289,12 +299,7 @@ struct Threat2m {
   int16_t  win_move_count {0};      // number of threats in thr_list with opp-dot capture
   std::vector<pti> is_in_encl2;   // this we assign to 0 only after we have at least 2 threats
   std::vector<Threat> thr_list;
-  static const uint16_t FLAG_SAFE=1;
-  static const uint16_t FLAG_RECALCULATE=2;   // should we recalcuate min_wins and miai flag after removal
-  static const uint16_t ENCL2_MIAI=1;   // this bit we set in is_in_encl2 to denote miai (i.e., exists other threat with opp-dots win)
-  static const uint16_t ENCL2_INSIDE_ADD=2;  // this number we add for each point inside threat
-  static const uint16_t ENCL2_INSIDE_THRESHOLD=2*ENCL2_INSIDE_ADD;  // the threshold to see whether a point can be for sure captured
-  bool isSafe() const { return (flags & FLAG_SAFE)!=0; };
+  bool isSafe() const { return (flags & Threat2mconsts::FLAG_SAFE)!=0; };
   //void removeMarked();
   std::string show() const;
 };
@@ -398,35 +403,35 @@ AllThreats::addThreat2moves_toStats(Threat2m &t2, Threat &t)
   assert(!t2.is_in_encl2.empty());
   if (t2.win_move_count >= 2 || (t2.win_move_count == 1 && t.opp_dots==0)) {
     // miai possibility
-    if (t2.flags & Threat2m::FLAG_SAFE) {
+    if (t2.flags & Threat2mconsts::FLAG_SAFE) {
       for (pti p : t.encl->interior) {
-	if ((t2.is_in_encl2[p] & Threat2m::ENCL2_MIAI)==0) {
-	  t2.is_in_encl2[p] |= Threat2m::ENCL2_MIAI;
+	if ((t2.is_in_encl2[p] & Threat2mconsts::ENCL2_MIAI)==0) {
+	  t2.is_in_encl2[p] |= Threat2mconsts::ENCL2_MIAI;
 	  is_in_2m_miai[p]++;
 	}
-	bool was_not = (t2.is_in_encl2[p] < Threat2m::ENCL2_INSIDE_THRESHOLD);
-	t2.is_in_encl2[p] += Threat2m::ENCL2_INSIDE_ADD;
-	if (was_not && t2.is_in_encl2[p] >= Threat2m::ENCL2_INSIDE_THRESHOLD)
+	bool was_not = (t2.is_in_encl2[p] < Threat2mconsts::ENCL2_INSIDE_THRESHOLD);
+	t2.is_in_encl2[p] += Threat2mconsts::ENCL2_INSIDE_ADD;
+	if (was_not && t2.is_in_encl2[p] >= Threat2mconsts::ENCL2_INSIDE_THRESHOLD)
 	  is_in_2m_encl[p]++;
       }
     } else {
       for (pti p : t.encl->interior) {
-	t2.is_in_encl2[p] |= Threat2m::ENCL2_MIAI;
-	t2.is_in_encl2[p] += Threat2m::ENCL2_INSIDE_ADD;
+	t2.is_in_encl2[p] |= Threat2mconsts::ENCL2_MIAI;
+	t2.is_in_encl2[p] += Threat2mconsts::ENCL2_INSIDE_ADD;
       }
     }
   } else {
     // no miai
-    if (t2.flags & Threat2m::FLAG_SAFE) {
+    if (t2.flags & Threat2mconsts::FLAG_SAFE) {
       for (pti p : t.encl->interior) {
-	bool was_not = (t2.is_in_encl2[p] < Threat2m::ENCL2_INSIDE_THRESHOLD);
-	t2.is_in_encl2[p] += Threat2m::ENCL2_INSIDE_ADD;
-	if (was_not && t2.is_in_encl2[p] >= Threat2m::ENCL2_INSIDE_THRESHOLD)
+	bool was_not = (t2.is_in_encl2[p] < Threat2mconsts::ENCL2_INSIDE_THRESHOLD);
+	t2.is_in_encl2[p] += Threat2mconsts::ENCL2_INSIDE_ADD;
+	if (was_not && t2.is_in_encl2[p] >= Threat2mconsts::ENCL2_INSIDE_THRESHOLD)
 	  is_in_2m_encl[p]++;
       }
     } else {
       for (pti p : t.encl->interior) {
-	t2.is_in_encl2[p] += Threat2m::ENCL2_INSIDE_ADD;
+	t2.is_in_encl2[p] += Threat2mconsts::ENCL2_INSIDE_ADD;
       }
     }
   }
@@ -438,16 +443,16 @@ AllThreats::addThreat2moves_toMiai(Threat2m &t2, Threat &t)
   assert(!t2.is_in_encl2.empty());
   if (t2.win_move_count >= 2 || (t2.win_move_count == 1 && t.opp_dots==0)) {
     // miai possibility
-    if (t2.flags & Threat2m::FLAG_SAFE) {
+    if (t2.flags & Threat2mconsts::FLAG_SAFE) {
       for (pti p : t.encl->interior) {
-	if ((t2.is_in_encl2[p] & Threat2m::ENCL2_MIAI)==0) {
-	  t2.is_in_encl2[p] |= Threat2m::ENCL2_MIAI;
+	if ((t2.is_in_encl2[p] & Threat2mconsts::ENCL2_MIAI)==0) {
+	  t2.is_in_encl2[p] |= Threat2mconsts::ENCL2_MIAI;
 	  is_in_2m_miai[p]++;
 	}
       }
     } else {
       for (pti p : t.encl->interior) {
-	t2.is_in_encl2[p] |= Threat2m::ENCL2_MIAI;
+	t2.is_in_encl2[p] |= Threat2mconsts::ENCL2_MIAI;
       }
     }
   } else {
@@ -488,7 +493,7 @@ AllThreats::addThreat2moves(pti ind0, pti ind1, bool safe0, bool safe1, int who,
     if (pos == threats2m.end()) {
       Threat2m t2;
       t2.where0 = ind0;
-      t2.flags = safe0 ? Threat2m::FLAG_SAFE : 0;
+      t2.flags = safe0 ? Threat2mconsts::FLAG_SAFE : 0;
       t.where = ind1;
       t2.thr_list = std::vector<Threat> {t};
       if (t.opp_dots) {
@@ -502,10 +507,10 @@ AllThreats::addThreat2moves(pti ind0, pti ind1, bool safe0, bool safe1, int who,
       auto pos2 = std::find_if(pos->thr_list.begin(), pos->thr_list.end(),
 			       [t](Threat &tt) { return (tt.zobrist_key == t.zobrist_key); } );
 #ifndef NDEBUG
-      if (((pos->flags & Threat2m::FLAG_SAFE)!=0) != safe0) {
+      if (((pos->flags & Threat2mconsts::FLAG_SAFE)!=0) != safe0) {
 	std::cerr << pos->show() << std::endl;
       }
-      assert(((pos->flags & Threat2m::FLAG_SAFE)!=0) == safe0);
+      assert(((pos->flags & Threat2mconsts::FLAG_SAFE)!=0) == safe0);
 #endif      
       if (pos2 != pos->thr_list.end()) {
 	
@@ -557,7 +562,7 @@ AllThreats::addThreat2moves(pti ind0, pti ind1, bool safe0, bool safe1, int who,
 	  pos->is_in_encl2.assign(coord.getSize(), 0);
 	  assert(pos->thr_list.size() == 1);
 	  for (pti p : pos->thr_list[0].encl->interior) {
-	    pos->is_in_encl2[p] = Threat2m::ENCL2_INSIDE_ADD;
+	    pos->is_in_encl2[p] = Threat2mconsts::ENCL2_INSIDE_ADD;
 	  }
 	}
       }
@@ -578,17 +583,17 @@ AllThreats::subtractThreat2moves(Threat2m &t2, const Threat& t)
 {
   if (!t2.is_in_encl2.empty()) {
     for (pti p : t.encl->interior) {
-      bool was = (t2.is_in_encl2[p] >= Threat2m::ENCL2_INSIDE_THRESHOLD);
-      t2.is_in_encl2[p] -= Threat2m::ENCL2_INSIDE_ADD;
-      if (was && t2.is_in_encl2[p] < Threat2m::ENCL2_INSIDE_THRESHOLD &&
-	  (t2.flags & Threat2m::FLAG_SAFE)) {
+      bool was = (t2.is_in_encl2[p] >= Threat2mconsts::ENCL2_INSIDE_THRESHOLD);
+      t2.is_in_encl2[p] -= Threat2mconsts::ENCL2_INSIDE_ADD;
+      if (was && t2.is_in_encl2[p] < Threat2mconsts::ENCL2_INSIDE_THRESHOLD &&
+	  (t2.flags & Threat2mconsts::FLAG_SAFE)) {
 	is_in_2m_encl[p]--;
       }
     }
   }
   if (t2.win_move_count) {
     if (t.opp_dots) t2.win_move_count--;
-    t2.flags |= Threat2m::FLAG_RECALCULATE;
+    t2.flags |= Threat2mconsts::FLAG_RECALCULATE;
   }
 }
 
@@ -599,8 +604,8 @@ AllThreats::deleteMiai(Threat2m &t2) {
   if (t2.is_in_encl2.empty()) return;
   // delete all miai's
   for (int i=coord.first; i<=coord.last; i++) {
-    if (t2.is_in_encl2[i] & Threat2m::ENCL2_MIAI) {
-      if (t2.flags & Threat2m::FLAG_SAFE) is_in_2m_miai[i]--;
+    if (t2.is_in_encl2[i] & Threat2mconsts::ENCL2_MIAI) {
+      if (t2.flags & Threat2mconsts::FLAG_SAFE) is_in_2m_miai[i]--;
     }
   }
 }
@@ -611,9 +616,9 @@ AllThreats::recalculateMiai(Threat2m &t2) {
   assert(!t2.is_in_encl2.empty());
   // delete all miai's
   for (int i=coord.first; i<=coord.last; i++) {
-    if (t2.is_in_encl2[i] & Threat2m::ENCL2_MIAI) {
-      t2.is_in_encl2[i] &= ~Threat2m::ENCL2_MIAI;
-      if (t2.flags & Threat2m::FLAG_SAFE) is_in_2m_miai[i]--;
+    if (t2.is_in_encl2[i] & Threat2mconsts::ENCL2_MIAI) {
+      t2.is_in_encl2[i] &= ~Threat2mconsts::ENCL2_MIAI;
+      if (t2.flags & Threat2mconsts::FLAG_SAFE) is_in_2m_miai[i]--;
     }
   }
   // do them again
@@ -626,20 +631,20 @@ AllThreats::recalculateMiai(Threat2m &t2) {
     }
     addThreat2moves_toMiai(t2, t);
   }
-  t2.flags &= ~Threat2m::FLAG_RECALCULATE;
+  t2.flags &= ~Threat2mconsts::FLAG_RECALCULATE;
 }
 
 
 void
 AllThreats::changeFlagSafe(Threat2m &t2)
 {
-  t2.flags ^= Threat2m::FLAG_SAFE;
+  t2.flags ^= Threat2mconsts::FLAG_SAFE;
   if (t2.thr_list.size()>=2 && t2.win_move_count>=1) {
-    pti change = (t2.flags & Threat2m::FLAG_SAFE) ? 1 : -1;
+    pti change = (t2.flags & Threat2mconsts::FLAG_SAFE) ? 1 : -1;
     for (int ind=coord.first; ind<=coord.last; ind++) {
-      if (t2.is_in_encl2[ind] & Threat2m::ENCL2_MIAI)
+      if (t2.is_in_encl2[ind] & Threat2mconsts::ENCL2_MIAI)
 	is_in_2m_miai[ind] += change;
-      if (t2.is_in_encl2[ind] >= Threat2m::ENCL2_INSIDE_THRESHOLD)
+      if (t2.is_in_encl2[ind] >= Threat2mconsts::ENCL2_INSIDE_THRESHOLD)
 	is_in_2m_encl[ind] += change;
     }
   }
@@ -692,9 +697,9 @@ AllThreats::removeMarkedAndAtPoint2moves(pti ind)
 	//
 	if (t2.thr_list.empty()) {
 	  to_remove2=true;
-	  if (t2.flags & Threat2m::FLAG_RECALCULATE) deleteMiai(t2);
+	  if (t2.flags & Threat2mconsts::FLAG_RECALCULATE) deleteMiai(t2);
 	}
-	else if (t2.flags & Threat2m::FLAG_RECALCULATE) recalculateMiai(t2);
+	else if (t2.flags & Threat2mconsts::FLAG_RECALCULATE) recalculateMiai(t2);
       }
     }
     if (to_remove2) {
@@ -725,9 +730,9 @@ AllThreats::removeMarked2moves()
 	//t2.removeMarked();
 	if (t2.thr_list.empty()) {
 	  to_remove2=true;
-	  if (t2.flags & Threat2m::FLAG_RECALCULATE) deleteMiai(t2);
+	  if (t2.flags & Threat2mconsts::FLAG_RECALCULATE) deleteMiai(t2);
 	}
-	else if (t2.flags & Threat2m::FLAG_RECALCULATE) recalculateMiai(t2);
+	else if (t2.flags & Threat2mconsts::FLAG_RECALCULATE) recalculateMiai(t2);
       }
     }
     if (to_remove2) {
@@ -3385,7 +3390,7 @@ Game::pointNowInDanger2moves(pti ind, int who)
   for (auto &t2 : threats[who-1].threats2m) {
     if (t2.where0 == ind) {
       // TODO: if (threats[who-1].is_in_border[ind]) { check if we may cancel opp's threats by playing at ind }
-      if (t2.flags & Threat2m::FLAG_SAFE) {
+      if (t2.flags & Threat2mconsts::FLAG_SAFE) {
 	// it was safe but is not anymore
 	threats[who-1].changeFlagSafe(t2);
       }
@@ -3619,7 +3624,7 @@ Game::pointNowSafe2moves(pti ind, int who)
 {
   for (auto &t2 : threats[who-1].threats2m) {
     if (t2.where0 == ind) {
-      if ((t2.flags & Threat2m::FLAG_SAFE)==0) {
+      if ((t2.flags & Threat2mconsts::FLAG_SAFE)==0) {
 	// it was not safe but is now safe
 	threats[who-1].changeFlagSafe(t2);
       }
@@ -7797,7 +7802,7 @@ Game::checkThreat2movesCorrectness()
     for (auto &thr2 : threats[who-1].threats2m) {
       pti where0 = thr2.where0;
       std::vector<pti> is_in_encl2(coord.getSize(), 0);
-      int found_safe = ((thr2.flags & Threat2m::FLAG_SAFE) != 0);
+      int found_safe = ((thr2.flags & Threat2mconsts::FLAG_SAFE) != 0);
       int real_safe = (threats[2-who].is_in_encl[where0] == 0 && threats[2-who].is_in_terr[where0] == 0);
       if (found_safe != real_safe) {
 	std::cerr << "flag = " << thr2.flags << "; is_in_encl[where0]==" << threats[2-who].is_in_encl[where0]
@@ -7846,8 +7851,8 @@ Game::checkThreat2movesCorrectness()
 	}
 	// check stats
 	for (pti p : thr.encl->interior) {
-	  is_in_encl2[p] += Threat2m::ENCL2_INSIDE_ADD;
-	  if (thr2.win_move_count >= 2 || (thr2.win_move_count==1 && thr.opp_dots==0)) is_in_encl2[p] |= Threat2m::ENCL2_MIAI;
+	  is_in_encl2[p] += Threat2mconsts::ENCL2_INSIDE_ADD;
+	  if (thr2.win_move_count >= 2 || (thr2.win_move_count==1 && thr.opp_dots==0)) is_in_encl2[p] |= Threat2mconsts::ENCL2_MIAI;
 	}
       }
       std::string err;
@@ -7864,9 +7869,9 @@ Game::checkThreat2movesCorrectness()
 	    correct = false;
 	    break;
 	  }
-	  if (thr2.flags & Threat2m::FLAG_SAFE) {
-	    is_in_2m_encl[i] += (is_in_encl2[i] > Threat2m::ENCL2_INSIDE_THRESHOLD);
-	    is_in_2m_miai[i] += (is_in_encl2[i] & Threat2m::ENCL2_MIAI) != 0;
+	  if (thr2.flags & Threat2mconsts::FLAG_SAFE) {
+	    is_in_2m_encl[i] += (is_in_encl2[i] > Threat2mconsts::ENCL2_INSIDE_THRESHOLD);
+	    is_in_2m_miai[i] += (is_in_encl2[i] & Threat2mconsts::ENCL2_MIAI) != 0;
 	  }
 	}
       }
