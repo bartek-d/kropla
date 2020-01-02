@@ -490,3 +490,18 @@ AllThreats::removeMarked2moves()
     }
   }
 }
+
+
+std::string
+ThrInfo::show() const
+{
+  std::stringstream out;
+  out << "lost_terr=" << lost_terr_points << ", won_dots=" << won_dots << ",  saved_dots=" <<  saved_dots << ", priority_value=" << priority_value;
+  return out.str();
+}
+
+pti
+ThrInfo::calculatePriorityValue() const
+{
+  return -lost_terr_points + saved_dots * ThrInfoConsts::VALUE_SAVED_DOT + won_dots * ThrInfoConsts::VALUE_WON_DOT;
+}

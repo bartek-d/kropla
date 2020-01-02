@@ -115,3 +115,28 @@ private:
 };
 
 extern int debug_foundt2m;
+
+
+/********************************************************************************************************
+  ThrInfo class for finding necessary enclosures
+*********************************************************************************************************/
+namespace ThrInfoConsts {
+  constexpr pti MINF = -20000;
+  constexpr pti VALUE_WON_DOT = 8;
+  constexpr pti VALUE_SAVED_DOT = 8;
+};
+
+struct ThrInfo {
+  std::vector<uint64_t> opp_thr;
+  std::vector<pti> saved_worms;  // list of our saved worms, to calculated saved_dots correctly
+  uint64_t zobrist_key;
+  const Threat* thr_pointer;
+  pti type;
+  pti move;
+  pti lost_terr_points, won_dots, saved_dots, priority_value;
+  bool operator<(const ThrInfo& other) const { return priority_value > other.priority_value; };  // warning: > to sort descending!
+  ThrInfo() { thr_pointer = nullptr; type=0; move=0; lost_terr_points= won_dots= saved_dots= priority_value= 0; };
+  std::string show() const;
+  pti calculatePriorityValue() const;
+};
+

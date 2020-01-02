@@ -550,40 +550,6 @@ TreenodeAllocator::getSize(Treenode *ch)
 
 
 /********************************************************************************************************
-  ThrInfo class for finding necessary enclosures
-*********************************************************************************************************/
-struct ThrInfo {
-  std::vector<uint64_t> opp_thr;
-  std::vector<pti> saved_worms;  // list of our saved worms, to calculated saved_dots correctly
-  uint64_t zobrist_key;
-  const Threat* thr_pointer;
-  pti type;
-  pti move;
-  pti lost_terr_points, won_dots, saved_dots, priority_value;
-  static const pti MINF = -20000;
-  static const pti VALUE_WON_DOT = 8;
-  static const pti VALUE_SAVED_DOT = 8;
-  bool operator<(const ThrInfo& other) const { return priority_value > other.priority_value; };  // warning: > to sort descending!
-  ThrInfo() { thr_pointer = nullptr; type=0; move=0; lost_terr_points= won_dots= saved_dots= priority_value= 0; };
-  std::string show() const;
-  pti calculatePriorityValue() const;
-};
-
-std::string
-ThrInfo::show() const
-{
-  std::stringstream out;
-  out << "lost_terr=" << lost_terr_points << ", won_dots=" << won_dots << ",  saved_dots=" <<  saved_dots << ", priority_value=" << priority_value;
-  return out.str();
-}
-
-pti
-ThrInfo::calculatePriorityValue() const
-{
-  return -lost_terr_points + saved_dots * VALUE_SAVED_DOT + won_dots * VALUE_WON_DOT;
-}
-
-/********************************************************************************************************
   ListOfPlaces -- helper class for PossibleMoves
 *********************************************************************************************************/
 /*
@@ -3862,9 +3828,9 @@ Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure> > &encl_moves, std::ve
 	      ourt.saved_dots -= opp_d;
 	    }
 	    if (ourt.opp_thr.empty()) {
-	      ourt.priority_value = ThrInfo::MINF;
+	      ourt.priority_value = ThrInfoConsts::MINF;
 	    } else {
-	      ourt.priority_value -= ThrInfo::VALUE_SAVED_DOT * opp_d;
+	      ourt.priority_value -= ThrInfoConsts::VALUE_SAVED_DOT * opp_d;
 	    }
 	  }
 	}
@@ -3875,7 +3841,7 @@ Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure> > &encl_moves, std::ve
   std::sort(ml_priority_vect.begin(), ml_priority_vect.end());
   auto encl_zobrists_0 = encl_zobrists.back();
   for (auto it = ml_priority_vect.begin(); it!=ml_priority_vect.end(); ++it) {
-    if (it->priority_value > ThrInfo::MINF) {
+    if (it->priority_value > ThrInfoConsts::MINF) {
       /*
       Threat *thr = threats[who-1].findThreatZobrist(it->zobrist_key);
       assert(thr != nullptr);
@@ -3901,7 +3867,7 @@ Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure> > &encl_moves, std::ve
 	    it2->opp_thr.pop_back();
 	    unsorted = true;
 	    if (it2->opp_thr.empty()) {
-	      it2->priority_value = ThrInfo::MINF;
+	      it2->priority_value = ThrInfoConsts::MINF;
 	    } else {
 	      if (othr == nullptr) othr = threats[2-who].findThreatZobrist_const(z);   // lazy evaluated here
 	      auto opp_d = 0;
@@ -3922,7 +3888,7 @@ Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure> > &encl_moves, std::ve
 		}
 		it2->saved_dots -= opp_d;
 	      }
-	      it2->priority_value -= ThrInfo::VALUE_SAVED_DOT * opp_d;
+	      it2->priority_value -= ThrInfoConsts::VALUE_SAVED_DOT * opp_d;
 	    }
 	}
       }
@@ -6081,7 +6047,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 	if (parent->parent == parent)
 	  std::cerr << "Enclosure after move " << coord.showPt(i) << ":" << std::endl << ml_encl_moves[j]->show() << "  priority info=" << ml_priority_vect[j-em].show() << std::endl;
 #endif
-	if (ml_priority_vect[j-em].priority_value > ThrInfo::MINF) {
+	if (ml_priority_vect[j-em].priority_value > ThrInfoConsts::MINF) {
 	  saved_dots += ml_priority_vect[j-em].saved_dots;
 	}
       }
@@ -6101,7 +6067,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
       for (int opi=0; opi<ml_opt_encl_moves.size(); opi++) {
 	tn.move.enclosures.push_back(ml_opt_encl_moves[opi]);
 	tn.move.zobrist_key ^= ml_encl_zobrists[opi+2];
-	if (ml_priority_vect[ml_encl_moves.size() - em + opi].priority_value > ThrInfo::MINF) {
+	if (ml_priority_vect[ml_encl_moves.size() - em + opi].priority_value > ThrInfoConsts::MINF) {
 #ifndef NDEBUG
 	  if (parent->parent == parent)
 	    std::cerr << "Enclosure after move " << coord.showPt(i) << ":" << std::endl << ml_opt_encl_moves[opi]->show() << "  priority info=" << ml_priority_vect[ml_encl_moves.size() - em + opi].show() << std::endl;
