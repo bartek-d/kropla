@@ -9,7 +9,7 @@
 
 override CXXFLAGS += -std=c++11
 DEFS =
-LIBS += -pthread
+LIBS += -pthread -lgcov
 INCL=-I../boost/boost_1_63_0
 SUFFIX =
 
@@ -20,7 +20,7 @@ ifdef NDEBUG
   LDFLAGS  += -s
   SUFFIX :=$(strip $(SUFFIX))-opt
 else
-  override CXXFLAGS += -g -O0
+  override CXXFLAGS += -g -O0 --coverage
   LDFLAGS  += -g
 endif
 
@@ -39,7 +39,7 @@ ifdef SPEED_TEST
 endif
 
 
-objects = board$(SUFFIX).o sgf$(SUFFIX).o game$(SUFFIX).o command$(SUFFIX).o patterns$(SUFFIX).o influence$(SUFFIX).o
+objects = board$(SUFFIX).o sgf$(SUFFIX).o game$(SUFFIX).o command$(SUFFIX).o patterns$(SUFFIX).o influence$(SUFFIX).o threats$(SUFFIX).o enclosure$(SUFFIX).o
 kropla = kropla$(SUFFIX)
 
 $(kropla) : $(objects)
@@ -59,6 +59,12 @@ patterns$(SUFFIX).o: patterns.cc patterns.h board.h
 
 influence$(SUFFIX).o: influence.cc influence.h board.h
 	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCL) influence.cc -o influence$(SUFFIX).o
+
+threats$(SUFFIX).o: threats.cc threats.h
+	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCL) threats.cc -o threats$(SUFFIX).o
+
+enclosure$(SUFFIX).o: enclosure.cc enclosure.h
+	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCL) enclosure.cc -o enclosure$(SUFFIX).o
 
 game$(SUFFIX).o: game.cc sgf.h board.h connections_tab02.cc connections_tab03_simple.cc
 	$(CXX) -c $(CXXFLAGS) $(DEFS) $(INCL) game.cc -o game$(SUFFIX).o

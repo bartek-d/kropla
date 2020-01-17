@@ -105,13 +105,13 @@ public:
   int count {0};
   CleanupUsingListOfValues(Container &cont) : c(cont) {};
   void push(pti p, T val) { point[count] = p;  values[count] = val;  ++count;  };
-  ~CleanupUsingListOfValues() { for (int i=0; i<count; i++) c[point[i]] = values[i]; };
+  ~CleanupUsingListOfValues() { for (int i=count-1; i>=0; --i) c[point[i]] = values[i]; };
 };
 
 template <typename T>
 class CleanupOneVar {
-  T saved_value;
   T* ref_value;
+  T saved_value;
 public:
   CleanupOneVar(T* ref, T new_val) : ref_value(ref), saved_value(*ref) { *ref = new_val; }
   ~CleanupOneVar() { *ref_value = saved_value; }
@@ -356,6 +356,7 @@ Movestats::operator+=(const Movestats& other)
 {
   playouts += other.playouts;
   value_sum += other.value_sum;
+  return *this;
 }
 
 bool
@@ -632,7 +633,7 @@ PossibleMoves::removeFromList(pti p)
 {
   int curr_list = mtype[p] >> PossibleMovesConsts::MASK_SHIFT;
   if (curr_list < 3) {
-    int ind = (mtype[p] & PossibleMovesConsts::INDEX_MASK);
+    unsigned int ind = (mtype[p] & PossibleMovesConsts::INDEX_MASK);
     if (ind+1 < lists[curr_list].size()) {
       // p is not the last element on the curr_list, so replace it by the last one
       pti last = lists[curr_list].back();
@@ -774,7 +775,7 @@ InterestingMoves::removeFromList(pti p)
 {
   int curr_list = mtype[p] >> InterestingMovesConsts::MASK_SHIFT;
   if (curr_list < 3) {
-    int ind = (mtype[p] & InterestingMovesConsts::INDEX_MASK);
+    unsigned int ind = (mtype[p] & InterestingMovesConsts::INDEX_MASK);
     if (ind+1 < lists[curr_list].size()) {
       // p is not the last element on the curr_list, so replace it by the last one
       pti last = lists[curr_list].back();
@@ -1668,7 +1669,7 @@ Game::findThreats_preDot(pti ind, int who)
 {
   std::vector<pti> possible_threats;
   Threat *smallest_terr = nullptr;
-  int smallest_size = coord.maxSize;
+  unsigned int smallest_size = coord.maxSize;
   // find smallest territory that [ind] is (if any), return immediately if we are inside an 1-point-territory pool
   // (so we cannot check for ind==thr.where here, because of this side-effect!)
   if (threats[who-1].is_in_terr[ind]) {
@@ -2387,7 +2388,7 @@ Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
   */
   // process our threats marked as TO_CHECK
   //for (int who=1; who<=2; who++)   // <-- not needed, because there are no opponent threats markes as TO_CHECK
-  for (int tn=0; tn<threats[who-1].threats.size(); tn++) {
+  for (unsigned int tn=0; tn<threats[who-1].threats.size(); tn++) {
     Threat *thr = &threats[who-1].threats[tn];
     if (thr->type & ThreatConsts::TO_CHECK) {
       if (thr->type & ThreatConsts::ENCL) {
@@ -2725,15 +2726,15 @@ Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
 	//   which should have been found before move L.
 	// First pass: check for simple enclosures, maybe we can find one.
 	debug_n++;  debug_N+=count;
-	bool was_one = false;
+	//bool was_one = false;
 	for (int i=count; i>0; --i) {
 	  pti pt = newthr[newthr.size() - i];
 	  assert(coord.dist[pt] >= 1 && whoseDotMarginAt(pt) != who);
 	  std::shared_ptr<Enclosure> encl = std::make_shared<Enclosure>(findSimpleEnclosure(pt, MASK_DOT, who));
-	  if (!encl->isEmpty()) was_one = true;
+	  //if (!encl->isEmpty()) was_one = true;
 	  if (!encl->isEmpty() && encl->isInBorder(ind) && encl->isInBorder(ind0) && encl->isInBorder(ind1)) {
 	    addThreat2moves(ind0, ind1, who, encl);
-	    was_one = true;
+	    //was_one = true;
 	    debug_sing_smallt2m++;
 	    goto one_found;
 	  }		  
@@ -2743,10 +2744,10 @@ Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
 	  pti pt = newthr[newthr.size() - i];
 	  std::shared_ptr<Enclosure> encl = std::make_shared<Enclosure>(findNonSimpleEnclosure(pt, MASK_DOT, who));
 									//findEnclosure(pt, MASK_DOT, who));  // findNonSimpleEnclosure(pt, MASK_DOT, who));
-	  if (!encl->isEmpty()) was_one = true;
+	  //if (!encl->isEmpty()) was_one = true;
 	  if (!encl->isEmpty() && encl->isInBorder(ind) && encl->isInBorder(ind0) && encl->isInBorder(ind1)) {
 	    addThreat2moves(ind0, ind1, who, encl);
-	    was_one = true;
+	    //was_one = true;
 	    debug_sing_larget2m++;
 	    goto one_found;
 	  }		  
@@ -2762,16 +2763,16 @@ Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
 	*/
       } else {
 	// Here there might be more than 1 threat.
-	bool was_one = false;
+	//bool was_one = false;
 	for (; count>0; --count) {
 	  assert(!newthr.empty());
 	  pti pt = newthr.back();  newthr.pop_back();
 	  assert(coord.dist[pt] >= 1 && whoseDotMarginAt(pt) != who);
 	  std::shared_ptr<Enclosure> encl = std::make_shared<Enclosure>(findEnclosure(pt, MASK_DOT, who));
-	  if (!encl->isEmpty()) was_one = true;
+	  //if (!encl->isEmpty()) was_one = true;
 	  if (!encl->isEmpty() && encl->isInBorder(ind) && encl->isInBorder(ind0) && encl->isInBorder(ind1)) {
 	    addThreat2moves(ind0, ind1, who, encl);
-	    was_one = true;
+	    //was_one = true;
 	    /*
 	    if (debug_count >=2 && debug_probably_1_encl) {
 	      show();
@@ -3174,7 +3175,6 @@ Game::findPointInfluence(pti ind)
   const int32_t DIST_THRESHOLD_PUSH = 3;
   int who = whoseDotMarginAt(ind);
   ret.table_no = who ? who-1 : 2;
-  int opp = 3-who;
   influence.working[ind] = 1.0;
   int dir_count = 8;  // at the source we visit in all directions
   influence.queue.push({ind, 0, 0});
@@ -4614,7 +4614,7 @@ Game::findImportantMoves(pti who)
   float maxi = moves[0].value;
   const float shift = 0.1;
   float dist_rec_points = 7.01 / (maxi - median + shift);
-  for (int i=0; i<moves.size(); i++) {
+  for (unsigned i=0; i<moves.size(); i++) {
     int no = int( (moves[i].value - median + shift)  * dist_rec_points );
     if (no >= 1) {
       list[moves[i].point] = no;
@@ -4854,7 +4854,7 @@ Game::floodFillExterior(std::vector<pti> &tab, pti mark_by, pti stop_at) const
       }
     }
   }
-
+  return count;
 }
 
 
@@ -4867,7 +4867,7 @@ Game::findInterior(std::vector<pti> border) const
   std::vector<pti> dad(coord.getSize(), 0);
   std::vector<pti> dad2(coord.getSize(), 0);
   // mark border id dad
-  for (int i=0; i<border.size()-1; ++i) {
+  for (unsigned i=0; i<border.size()-1; ++i) {
     auto b = border[i];
     auto next = border[i+1];
     dad[b] = next;
@@ -5105,7 +5105,7 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
 	  if (encl.interior.size() > 1) {
 	    // interior is bigger than 1 point, need to check carefully
 	    // we want to do it faster than by m*n operations (m,n -- interior sizes of t.encl, encl)
-	    int count = 0;
+	    unsigned count = 0;
 	    for (auto &p : t.encl->interior) count += stack[p];
 	    contains = (count == encl.interior.size());
 	  }
@@ -5148,7 +5148,7 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
   // remove opponent threats
   //std::cerr << "remove opp threats..." << std::endl;
   bool removed = false;
-  for (int tn=0; tn<threats[2-who].threats.size(); tn++) {
+  for (unsigned tn=0; tn<threats[2-who].threats.size(); tn++) {
     Threat *thr = &threats[2-who].threats[tn];
     if ((thr->type & ThreatConsts::TO_REMOVE)==0) {
       if (stack[thr->where] == 1) {
@@ -5191,7 +5191,7 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
       }
       removed2 = true;
     } else {
-      for (int tn=0; tn < thr2t.thr_list.size(); tn++) {
+      for (unsigned tn=0; tn < thr2t.thr_list.size(); tn++) {
 	Threat *thr = &thr2t.thr_list[tn];
 	if (stack[thr->where] == 1) {
 	  thr->type |= ThreatConsts::TO_REMOVE;   removed2 = true;
@@ -5495,7 +5495,7 @@ Game::makeSgfMove(std::string m, int who)
   move.who = who;
   std::vector<pti> border;
   std::vector<std::string> points_to_enclose;
-  int pos = 2;
+  unsigned pos = 2;
   char mode = '.';
   while (pos<=m.length()) {
     if ((pos<m.length() && (m[pos] == '.' || m[pos] == '!')) || pos == m.length()) {
@@ -6009,7 +6009,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
       //ml_list.push_back(tn);
       *alloc.getNext() = tn;
       assert(neutral_opt_encl_moves.size()+1 == neutral_encl_zobrists.size());
-      for (int opi=0; opi<neutral_opt_encl_moves.size(); opi++) {
+      for (unsigned opi=0; opi<neutral_opt_encl_moves.size(); opi++) {
 	tn.move.enclosures.push_back(neutral_opt_encl_moves[opi]);
 	tn.move.zobrist_key ^= neutral_encl_zobrists[opi+1];
 	*alloc.getNext() = tn;
@@ -6042,7 +6042,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
       tn.move.enclosures.insert(tn.move.enclosures.end(), ml_encl_moves.begin(), ml_encl_moves.end());
       //tn.t.playouts *= 3;   tn.t.value_sum *= 3;   // take more virtual sims
       int saved_dots = 0;
-      for (int j=em; j<ml_encl_moves.size(); ++j) {
+      for (unsigned j=em; j<ml_encl_moves.size(); ++j) {
 #ifndef NDEBUG
 	if (parent->parent == parent)
 	  std::cerr << "Enclosure after move " << coord.showPt(i) << ":" << std::endl << ml_encl_moves[j]->show() << "  priority info=" << ml_priority_vect[j-em].show() << std::endl;
@@ -6064,7 +6064,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
       //ml_list.push_back(tn);
       assert(ml_opt_encl_moves.size()+2 == ml_encl_zobrists.size());
       assert(ml_priority_vect.size() >= ml_encl_moves.size() - em + ml_opt_encl_moves.size());
-      for (int opi=0; opi<ml_opt_encl_moves.size(); opi++) {
+      for (unsigned opi=0; opi<ml_opt_encl_moves.size(); opi++) {
 	tn.move.enclosures.push_back(ml_opt_encl_moves[opi]);
 	tn.move.zobrist_key ^= ml_encl_zobrists[opi+2];
 	if (ml_priority_vect[ml_encl_moves.size() - em + opi].priority_value > ThrInfoConsts::MINF) {
@@ -6382,7 +6382,7 @@ std::vector<pti>
 Game::getGoodTerrMoves(int who) const
 {
   std::vector<pti> good_moves;
-  for (int i=0; i<possible_moves.lists[PossibleMovesConsts::LIST_TERRM].size(); ++i) {
+  for (unsigned i=0; i<possible_moves.lists[PossibleMovesConsts::LIST_TERRM].size(); ++i) {
     auto p = possible_moves.lists[PossibleMovesConsts::LIST_TERRM][i];
     if ((connects[who-1][p].groups_id[0] == 0 &&
 	 (threats[2-who].is_in_terr[p] > 0 || threats[2-who].is_in_encl[p] > 0)) ||
@@ -6430,14 +6430,14 @@ Game::chooseAnyMove_pm(int who)
   move.who = who;
   assert(checkPossibleMovesCorrectness(who));
   if (!possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].empty()) {
-    int number;
+    unsigned number;
     if (!possible_moves.lists[PossibleMovesConsts::LIST_TERRM].empty()) {
       // if there are some TERRM moves, maybe we should consider one of them; throw a dice to decide
-      std::uniform_int_distribution<int> di(0, possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size()
-					    + std::min(int(possible_moves.lists[PossibleMovesConsts::LIST_TERRM].size()), 2) - 1);
+      std::uniform_int_distribution<unsigned> di(0, possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size()
+						 + std::min(int(possible_moves.lists[PossibleMovesConsts::LIST_TERRM].size()), 2) - 1);
       number = di(engine);
     } else {
-      std::uniform_int_distribution<int> di(0, possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size() - 1);
+      std::uniform_int_distribution<unsigned> di(0, possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size() - 1);
       number = di(engine);
     }
     if (number < possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size()) {
@@ -6474,8 +6474,8 @@ Game::chooseAnyMove_pm(int who)
   // try neutral or good
   int n_or_g = possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size() + good_moves.size();
   if (n_or_g > 0) {
-    std::uniform_int_distribution<int> di(0, n_or_g - 1);
-    int number = di(engine);
+    std::uniform_int_distribution<unsigned> di(0, n_or_g - 1);
+    unsigned number = di(engine);
     if (number < possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size())
       move.ind = possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL][number];
     else
@@ -6485,8 +6485,8 @@ Game::chooseAnyMove_pm(int who)
   }
   // try dame
   if (possible_moves.lists[PossibleMovesConsts::LIST_DAME].size() > 0) {
-    std::uniform_int_distribution<int> di(0, possible_moves.lists[PossibleMovesConsts::LIST_DAME].size() - 1);
-    int number = di(engine);
+    std::uniform_int_distribution<unsigned> di(0, possible_moves.lists[PossibleMovesConsts::LIST_DAME].size() - 1);
+    unsigned number = di(engine);
     move.ind = possible_moves.lists[PossibleMovesConsts::LIST_DAME][number];
     dame_moves_so_far++;
     return getRandomEncl(move);   // TODO: do we have to set zobrist?
@@ -6549,6 +6549,7 @@ Game::choosePatt3extraMove(int who)
     }
   }
   assert(0);
+  return move;  
 }
 
 
@@ -7145,7 +7146,7 @@ Game::checkThreatCorrectness()
       std::vector<uint64_t> old_ot(thr.opp_thr);
       std::sort(true_ot.begin(), true_ot.end());
       std::sort(old_ot.begin(), old_ot.end());
-      for (int i=0; i<std::min(true_ot.size(), old_ot.size()); i++) {
+      for (unsigned i=0; i<std::min(true_ot.size(), old_ot.size()); i++) {
 	if (true_ot[i] != old_ot[i]) {
 	  std::cerr << "Blad: jest " << old_ot[i] << ", powinno byc " << true_ot[i] <<std::endl;
 	  show();
@@ -7159,14 +7160,14 @@ Game::checkThreatCorrectness()
       }
       if (true_ot.size() != old_ot.size()) {
 	if (true_ot.size() < old_ot.size()) {
-	  for (int i=true_ot.size(); i<old_ot.size(); i++) {
+	  for (unsigned i=true_ot.size(); i<old_ot.size(); i++) {
 	    std::cerr << "Nadmiarowe opp_thr " << old_ot[i] << std::endl;
 	    for (auto &ot : threats[1-pl].threats) {
 	      if (ot.zobrist_key == old_ot[i]) thr.show();
 	    }
 	  }
 	} else {
-	  for (int i=old_ot.size(); i<true_ot.size(); i++) {
+	  for (unsigned i=old_ot.size(); i<true_ot.size(); i++) {
 	    std::cerr << "Nadmiarowe opp_thr " << true_ot[i] << std::endl;
 	    for (auto &ot : threats[1-pl].threats) {
 	      if (ot.zobrist_key == true_ot[i]) thr.show();
@@ -7241,7 +7242,7 @@ Game::checkThreat2movesCorrectness()
 		Threat t;
 		t.encl = std::make_shared<Enclosure>(findEnclosure_notOptimised(nb, MASK_DOT, who));
 		if (!t.encl->isEmpty() && t.encl->isInBorder(where) && t.encl->isInBorder(where0)) {
-		  auto zobr = t.zobrist_key = t.encl->zobristKey(who);
+		  t.zobrist_key = t.encl->zobristKey(who);
 		  if (t.zobrist_key == thr.zobrist_key) {   // our old threat is still valid
 		    correct = true;
 		    goto Thr2_correct;
@@ -7913,7 +7914,7 @@ playInteractively(Game &game, int threads_count, int iter_count)
 	} else if (commands[0] == "_play") {
 	  // get coordinates, in [1] point to play, in [2...] points to enclose (if any)
 	  std::string s = commands[1];
-	  for (int i=2; i<commands.size(); ++i) {
+	  for (unsigned i=2; i<commands.size(); ++i) {
 	    s += "!" + commands[i];
 	  }
 	  game.makeSgfMove(s, game.whoNowMoves());
@@ -7972,12 +7973,13 @@ int main(int argc, char* argv[]) {
     s = "(;FF[4]GM[40]CA[UTF-8]AP[kropla]SZ[15]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=15])"; // no sgf; interactive mode";
   }
   // for debug, save the sgf we have read
+#ifndef SPEED_TEST
   {
     std::ofstream ofs ("debug_mc.txt", std::ofstream::app);
     ofs << "-----------------------------" << std::endl;
     ofs << s << std::endl;
   }
-
+#endif
   
   SgfParser parser(s);
   auto seq = parser.parseMainVar();
@@ -8010,6 +8012,7 @@ int main(int argc, char* argv[]) {
 #endif
 
  
+#ifndef SPEED_TEST
   if (!game.checkCorrectness(seq)) {
     std::cerr << "Error" << std::endl;
     game.show();
@@ -8018,6 +8021,6 @@ int main(int argc, char* argv[]) {
   std::cerr << "***" << std::endl;
 
   game.showSvg();
-
+#endif
 }
 
