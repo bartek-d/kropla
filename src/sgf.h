@@ -40,7 +40,7 @@ typedef std::vector<SgfNode>  SgfSequence;
 
 class SgfParser {
   std::string input;
-  int pos;
+  unsigned pos;
   const static int eof = -1;
   int eatChar();
   int checkChar() const;

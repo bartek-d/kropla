@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 
 project(kropla)
-set(CMAKE_CXX_FLAGS "-g -Wall -std=c++14 -O3 -DNDEBUG -msse3")  #-DSPEED_TEST
+set(CMAKE_CXX_FLAGS "-g -Wall -std=c++14 -O3") # -DNDEBUG -msse3")  #-DSPEED_TEST
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)

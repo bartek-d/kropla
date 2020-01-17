@@ -187,6 +187,7 @@ Coord::findNextOnRight(pti x0, pti y) const
   }
   std::cerr << coord.showPt(x0) << "  " << coord.showPt(y) << std::endl;
   assert(0);
+  return 0;
 }
 
 
@@ -203,6 +204,7 @@ Coord::findDirectionNo(pti x0, pti y) const
   }
   std::cerr << coord.showPt(x0) << "  " << coord.showPt(y) << std::endl;
   assert(0);
+  return 0;
 }
 
 int
@@ -212,6 +214,7 @@ Coord::find_nb25ind(pti delta) const
     if (nb25[i] == delta) return i;
   }
   assert(0);
+  return 0;
 }
 
 

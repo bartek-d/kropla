@@ -39,7 +39,7 @@ Threat::addShortcuts(pti ind0, pti ind1)
   int count = 0;
   assert(encl->border[0] == encl->border[encl->border.size()-1]);
   for (pti ind : {ind0, ind1}) {
-    int nr=0;
+    unsigned nr=0;
     while (encl->border[nr] != ind && nr < encl->border.size()) nr++;
     pti prev, next;
     if (nr > 0) {

@@ -27,7 +27,7 @@
 class WildcardReplacer {
   std::string orig_str, replaced;
   bool end;
-  std::vector<int> current;
+  std::vector<unsigned> current;
   std::vector<std::string> possibilities;
  
 public:
@@ -253,7 +253,7 @@ void
 Pattern3::generate(std::vector<std::string> vs, int type)
 {
   add_type = type;
-  for (int i=0; i<vs.size()-1; i+=2) {
+  for (unsigned i=0; i<vs.size()-1; i+=2) {
     generateFromStr(vs[i], stoi(vs[i+1]), 0);
   }
 }
@@ -303,7 +303,7 @@ Pattern3extra::operator==(const Pattern3extra& other) const
   if (scored_point != other.scored_point //|| score != other.score)
       ) return false;
   int length = 0;
-  for (int i=0; i<conditions.size(); ++i) {
+  for (unsigned i=0; i<conditions.size(); ++i) {
     if ((conditions[i] & IS_SET_MASK) == 0 || (other.conditions[i] & IS_SET_MASK) == 0) {
       if ((conditions[i] & IS_SET_MASK) != 0 || (other.conditions[i] & IS_SET_MASK) != 0) {
 	return false;
@@ -338,7 +338,7 @@ Pattern3extra::show() const
       {  1, 'x' },
       {  2, 'o' }};
   out << coord.dindToStr(coord.nb25[scored_point]) << "H " << int(score) << ", cond: ";
-  for (int i=0; i<conditions.size(); ++i) {
+  for (unsigned i=0; i<conditions.size(); ++i) {
     if (conditions[i] & IS_SET_MASK) {
       out << coord.dindToStr( coord.nb25[ ((conditions[i] & WHICH_POINT_MASK) >> WHICH_POINT_SHIFT) + 9 ] )
 	  << values.at(conditions[i] & (MASK_DOT | EQUAL_MASK)) << " ";
@@ -351,7 +351,7 @@ Pattern3extra::show() const
 bool
 Pattern3extra::checkConditions(const std::vector<pti> &w, pti ind) const
 {
-  for (int i=0; i<conditions.size(); ++i) {
+  for (unsigned i=0; i<conditions.size(); ++i) {
     if ((conditions[i] & IS_SET_MASK) == 0) break;
     if ( ( (w[ind + coord.nb25[ ((conditions[i] & WHICH_POINT_MASK) >> WHICH_POINT_SHIFT) + 9 ]] & MASK_DOT) == (conditions[i] & VALUE_MASK))
 	 !=
@@ -365,7 +365,7 @@ Pattern3extra::checkConditions(const std::vector<pti> &w, pti ind) const
 void
 Pattern3extra::rotate()
 {
-  for (int i=0; i<conditions.size(); ++i) {
+  for (unsigned i=0; i<conditions.size(); ++i) {
     if ((conditions[i] & IS_SET_MASK) == 0) break;
     auto dir = (conditions[i] & WHICH_POINT_MASK);
     conditions[i] &= ~WHICH_POINT_MASK;
@@ -387,7 +387,7 @@ Pattern3extra::rotate()
 void
 Pattern3extra::reflect()
 {
-  for (int i=0; i<conditions.size(); ++i) {
+  for (unsigned i=0; i<conditions.size(); ++i) {
     if ((conditions[i] & IS_SET_MASK) == 0) break;
     auto dir = (conditions[i] & WHICH_POINT_MASK);
     conditions[i] &= ~WHICH_POINT_MASK;
@@ -408,7 +408,7 @@ Pattern3extra::reflect()
 void
 Pattern3extra::reverseColour()
 {
-  for (int i=0; i<conditions.size(); ++i) {
+  for (unsigned i=0; i<conditions.size(); ++i) {
     if ((conditions[i] & IS_SET_MASK) == 0) break;
     auto who = (conditions[i] & VALUE_MASK);
     if (who == 1 || who == 2) {
@@ -437,7 +437,7 @@ Pattern3extra::parseConditions(std::string s, pattern3_val value)
       { 'o', 2 }};
 
   int where = 0;
-  int cond_no = 0;
+  unsigned cond_no = 0;
   for (auto c : s) {
     switch (c) {
     case 'N':
@@ -581,7 +581,7 @@ Pattern3extra_array::generateFromStr(std::string sarg, pattern3_val value, int d
 void
 Pattern3extra_array::generate(std::vector<std::string> vs)
 {
-  for (int i=0; i<vs.size()-1; i+=2) {
+  for (unsigned i=0; i<vs.size()-1; i+=2) {
     generateFromStr(vs[i], stoi(vs[i+1]), 0);
   }
   std::cerr << "max_occupied == " << max_occupied << std::endl;
@@ -680,7 +680,7 @@ Pattern52::getValue(pattern52_t p, int who) const
 void
 Pattern52::generate(std::vector<std::string> vs)
 {
-  for (int i=0; i<vs.size()-1; i+=2) {
+  for (unsigned i=0; i<vs.size()-1; i+=2) {
     generateFromStr(vs[i], stof(vs[i+1]), 0);
   }
 }
