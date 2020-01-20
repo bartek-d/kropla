@@ -74,7 +74,7 @@ class Pattern3 {
   static pattern3_t reverseColour(pattern3_t p);
   void addPatterns(pattern3_t p, pattern3_val value);
   void generateFromStr(std::string sarg, pattern3_val value, int depth);
-  friend class Pattern3full;
+  friend struct Pattern3full;
   friend class Pattern3extra_array;
 public:
   pattern3_val getValue(pattern3_t p, int who) const;
@@ -82,7 +82,7 @@ public:
   static std::string show(pattern3_t p);
   void showCode() const;
   //  static const constexpr T RECALCULATE = 10000.0;  // this constant should be greater than any possible pattern value
-  static bool isPatternPossible(pattern3_t p) { return p>=0 && p<PATTERN3_SIZE; };
+  static bool isPatternPossible(pattern3_t p) { return p<PATTERN3_SIZE; };
   //  static const constexpr T RECALCULATE_TO_0 = 10001.0;  // this constant should be greater than RECALCULATE
   static const int TYPE_REPLACE = 0;
   static const int TYPE_MAX = 1;

@@ -4210,7 +4210,7 @@ Game::getPatt3extraValues() const
       //if (values[i] < symm_value) values[i] = symm_value;
     }
   }
-  return std::move(values);
+  return values;
 }
 
 void
