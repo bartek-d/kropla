@@ -46,6 +46,9 @@
 #include <atomic>
 #include <future>
 
+#include <condition_variable>
+#include <mutex>
+
 #include <boost/container/small_vector.hpp>
 
 #include "board.h"
@@ -7532,8 +7535,8 @@ Game::findConnections()
 class MonteCarlo {
   static Treenode root;
   static std::atomic<bool> finish_sim;
-  static std::atomic<bool> finish_threads;
-  static std::atomic<int> finished_threads;
+  static bool finish_threads;
+  static std::atomic<int> threads_to_be_finished;
   static std::atomic<int64_t> iterations;
 public:
   MonteCarlo();
@@ -7544,9 +7547,14 @@ public:
 
 Treenode MonteCarlo::root;
 std::atomic<bool> MonteCarlo::finish_sim(false);
-std::atomic<bool> MonteCarlo::finish_threads(false);
-std::atomic<int> MonteCarlo::finished_threads(0);
+std::atomic<int> MonteCarlo::threads_to_be_finished{0};
+
 std::atomic<int64_t> MonteCarlo::iterations(0);
+
+bool MonteCarlo::finish_threads(false);
+
+std::mutex mutex_finish_threads;
+std::condition_variable cv_finish_threads;
 
 MonteCarlo::MonteCarlo() //: finish_sim(false), finish_threads(false), finished_threads(0), iterations(0)
 {
@@ -7682,10 +7690,22 @@ MonteCarlo::runSimulations(Game pos, int max_iter_count, int thread_no)
       break;
     }
   }
-  finished_threads++;
-  while (!finish_threads) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  threads_to_be_finished--;
+  if (threads_to_be_finished == 0) {
+    cv_finish_threads.notify_all();
+  } else
+  {
+    // wait for other threads to finish their work
+    std::unique_lock<std::mutex> ul(mutex_finish_threads);
+    cv_finish_threads.wait(ul, [] { return MonteCarlo::threads_to_be_finished == 0; });
   }
+
+  // now the main function may read data, and the threads must wait (not to release memory in TreenodeAllocator)
+  {
+    std::unique_lock<std::mutex> ul(mutex_finish_threads);
+    cv_finish_threads.wait(ul, [] { return MonteCarlo::finish_threads; });
+  }
+  // the main function is done, we may exit
   return i;
 }
 
@@ -7695,13 +7715,14 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
   debug_previous_count = -1;
   root = Treenode();
   root.move = pos.getLastMove();
-  root.parent = &root;    
+  root.parent = &root;
   std::cerr << "Descend starts, komi==" << pos.komi << std::endl;
 #ifdef DEBUG_SGF
   assert(0);  // SGF write is not thread-safe
 #endif
 
-  iterations = 0;  finish_sim = false;  finish_threads = false;  finished_threads = 0;
+  iterations = 0;  finish_sim = false;  finish_threads = false;
+  threads_to_be_finished = threads;
   std::vector< std::future<int> > concurrent;
   concurrent.reserve(threads);
   for (int t=0; t<threads; t++) {
@@ -7725,18 +7746,18 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
 	  }
 	}
       }
-      if (finished_threads == threads) {
+      if (threads_to_be_finished == 0) {
 	finish_sim = true;
 	break;
       }
     }
   } else {
-    while (finished_threads != threads) {
+    while (threads_to_be_finished > 0) {
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
 #ifndef SPEED_TEST
       if (5*iterations > 3*iter_count) {
 	const Treenode *ch = root.getBestChild();
-	int best = (ch != nullptr) ? ch->t.playouts : iter_count;
+	int best = (ch != nullptr) ? ch->t.playouts : (iter_count + 21);
 	if (best > 20 + iter_count/2) {
 	  finish_sim = true;
 	  break;
@@ -7745,11 +7766,13 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
 #endif
     }
   }
-  // wait for threads to finish their work (we cannot kill them before reading best move)
-  // (it could be that we've already waited enough, but not necessarily)
-  while (finished_threads != threads) {   //iterations < iter_count) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+  // wait for threads to finish their work (we cannot kill them before reading best move,
+  // because that would release the memory in TreenodeAllocators)
+  {
+    std::unique_lock<std::mutex> ul(mutex_finish_threads);
+    cv_finish_threads.wait(ul, [] { return MonteCarlo::threads_to_be_finished == 0; });
   }
+
   
   std::cerr << "Descend ends" << std::endl;
   assert(pos.checkRootListOfMovesCorrectness(root.children));
@@ -7791,7 +7814,13 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
     res = root.children[0].getMoveSgf();
   }
 
-  finish_threads = true;
+  // let the threads go to the end
+  {
+    std::lock_guard<std::mutex> lg(mutex_finish_threads);
+    finish_threads = true;
+  }
+  cv_finish_threads.notify_all();
+  // and finish them completely
   for (int t=0; t<threads; t++) {
     int num = concurrent[t].get();
     std::cerr << "Thread " << t << ": sims = " << num << std::endl;
