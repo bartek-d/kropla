@@ -7853,7 +7853,7 @@ play_engine(Game &game, std::string &s, int threads_count, int iter_count)
       }
       n += buf;
     } while (n.find(")") == std::string::npos);
-    if (s.substr(0, s.length()-1) == n.substr(0, s.length()-1)) {
+    if (s.substr(0, s.length()-1) == n.substr(0, s.length()-1) and n.find(";", s.length()-1) != std::string::npos) {
       // the same beginning, add new moves
       game.show();
       std::string added = std::string("(") + n.substr(s.length()-1);
