@@ -217,7 +217,7 @@ int
 AllThreats::addThreat2moves(pti ind0, pti ind1, bool safe0, bool safe1, int who, Threat &t)
 {
 #ifndef NDEBUG
-  // DEBUG: check whether there is a 
+  // DEBUG: check whether there is a
   if (t.encl->checkIfRedundant(ind0)) {
     //game.show();
     std::cerr << "Redundant point0 in thr2m: " << coord.showPt(ind0) << " second point: " << coord.showPt(ind1) <<
@@ -259,9 +259,9 @@ AllThreats::addThreat2moves(pti ind0, pti ind1, bool safe0, bool safe1, int who,
 	std::cerr << pos->show() << std::endl;
       }
       assert(((pos->flags & Threat2mconsts::FLAG_SAFE)!=0) == safe0);
-#endif      
+#endif
       if (pos2 != pos->thr_list.end()) {
-	
+
 	debug_foundt2m++;
 	if (pos2->type & ThreatConsts::TO_REMOVE) {
 	  pos2->type &= ~ThreatConsts::TO_REMOVE;

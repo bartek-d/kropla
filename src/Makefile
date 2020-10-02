@@ -1,10 +1,10 @@
 #  Copyright (C) 2016-2018 Bartek Dyda <bartekdyda@protonmail.com>.
-# 
+#
 #  This file is part of Kropla.
 #
 # usage
 #  $ make [NDEBUG=1] [SGF=1] [CPU=native] [SPEED_TEST=1]
-# or 
+# or
 #  $ make clean
 
 override CXXFLAGS += -std=c++11

@@ -29,7 +29,7 @@ class WildcardReplacer {
   bool end;
   std::vector<unsigned> current;
   std::vector<std::string> possibilities;
- 
+
 public:
   WildcardReplacer(std::string s, int length, bool with_atari);
   WildcardReplacer& operator++();  // prefix ++
@@ -39,7 +39,7 @@ public:
 };
 
 WildcardReplacer::WildcardReplacer(std::string s, int length, bool with_atari)
-{ 
+{
   static const std::map<char, std::string> wildcards =
     { { '?', ".YQ#|@" },
       { '*', ".YQ|@" },
@@ -70,7 +70,7 @@ WildcardReplacer::WildcardReplacer(std::string s, int length, bool with_atari)
 	for (const auto c : wp->second) {
 	  if (c != '|' && c != '@') pos.push_back(c);
 	}
-	possibilities.push_back(std::move(pos));	
+	possibilities.push_back(std::move(pos));
       }
     } else {
       possibilities.push_back(std::string(1, s.at(i)));
@@ -102,7 +102,7 @@ WildcardReplacer::operator++(int) // postfix ++, not really needed
   operator++();
   return tmp;
 }
-  
+
 
 /********************************************************************************************************
   Pattern3 class for handling 3x3 patterns

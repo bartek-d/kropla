@@ -26,7 +26,7 @@ typedef int16_t  pti;  // point int, i.e., int suitable for coordinates
  If there are less then 4 groups connected, then the last number is repeated.
  If the pattern touches the edge, then only the point after the first might be enclosed.
 */
- 
+
 
 
 /********************************************************************************************************
@@ -427,7 +427,7 @@ int main()
 	    maska |= ost_numer;
 	    ost_numer = tmp;
 	  }
-	  break;	  
+	  break;
 	}
 
 	while (przes < 12) {
@@ -443,7 +443,7 @@ int main()
 	  pokazSzabl(p, buf[p]);
 	  } */
 	//
-      } 
+      }
     }
   }
   //
@@ -456,6 +456,6 @@ int main()
     }
     std::cout << std::endl;
   }
-  std::cout << "};" << std::endl; 
+  std::cout << "};" << std::endl;
 }
 

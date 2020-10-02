@@ -24,7 +24,7 @@
 #include <vector>
 #include <string>
 #include <memory>   // unique pointer
-#include <list> 
+#include <list>
 #include <sstream>
 #include <algorithm>
 #include <cassert>
@@ -144,7 +144,7 @@ SgfParser::property()
   values.push_back(propValue());
   for (;;) {
     eatWS();
-    if (checkChar() == '[') 
+    if (checkChar() == '[')
       values.push_back(propValue());
     else break;
   }
@@ -191,7 +191,7 @@ SgfParser::parseMainVar()
     }
   }
 }
-  
+
 
 /********************************************************************************************************
   Sgf tree

@@ -31,7 +31,7 @@ typedef int16_t  pti;  // point int, i.e., int suitable for coordinates
  temp[j] == {n0, n1, n2, n3},  n--positions of four groups (or -1, if less than 4 groups).
  Also possible that n0>=0 but n1==n2==n3==-1, unlike temp[j].
 */
- 
+
 
 
 /********************************************************************************************************
@@ -440,7 +440,7 @@ int main()
 	    maska |= ost_numer;
 	    ost_numer = tmp;
 	  }
-	  break;	  
+	  break;
 	}
 
 	while (przes < 12) {

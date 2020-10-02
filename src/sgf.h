@@ -26,7 +26,7 @@
   SgfParser class and classes for keeping the sgf.
 *********************************************************************************************************/
 typedef std::pair<std::string, std::vector<std::string> >  SgfProperty;
-  
+
 struct SgfNode {
   std::vector<SgfProperty> props;
   std::list<std::shared_ptr<SgfNode> > children;

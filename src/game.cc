@@ -74,11 +74,11 @@ long long debug_nanos3 = 0;
 *********************************************************************************************************/
 const constexpr real_t MC_SIMS_EQUIV_RECIPR = 1.0 / 400.0;  // originally 2500!
 
-  
+
 /********************************************************************************************************
   Cleanup class
 *********************************************************************************************************/
-template <typename Container, typename T> 
+template <typename Container, typename T>
 class Cleanup {
   Container c;
   T andMask;
@@ -86,8 +86,8 @@ public:
   Cleanup(Container &cont, T am) : c(cont), andMask(am) { };
   ~Cleanup() { for (auto &e : c) e&=andMask; };
 };
-  
-template <typename Container, typename T> 
+
+template <typename Container, typename T>
 class CleanupUsingList {
   Container c;
   T andMask;
@@ -99,7 +99,7 @@ public:
   ~CleanupUsingList() { for (int i=0; i<count; i++) c[list[i]]&=andMask; };
 };
 
-template <typename Container, typename T> 
+template <typename Container, typename T>
 class CleanupUsingListOfValues {
   Container c;
 public:
@@ -119,7 +119,7 @@ public:
   CleanupOneVar(T* ref, T new_val) : ref_value(ref), saved_value(*ref) { *ref = new_val; }
   ~CleanupOneVar() { *ref_value = saved_value; }
 };
-  
+
 
 /********************************************************************************************************
   SmallMultiset class
@@ -225,7 +225,7 @@ Move::show() const
 {
   return (who != -1) ? coord.showPt(ind) + " +" + std::to_string(enclosures.size()) + " encl(s), zobr=" + std::to_string(zobrist_key) : "(none)";
 }
-  
+
 /********************************************************************************************************
   Worm description class
 *********************************************************************************************************/
@@ -485,7 +485,7 @@ TreenodeAllocator::TreenodeAllocator()
 
 TreenodeAllocator::~TreenodeAllocator()
 {
-  std::cerr << "Memory use (Treenode) " << pools.size() << " * " << pool_size << " * " << sizeof(Treenode) 
+  std::cerr << "Memory use (Treenode) " << pools.size() << " * " << pool_size << " * " << sizeof(Treenode)
 	    << ";  in last pool: " << cursor << std::endl;
   for (auto &el : pools) {
     delete[] el;
@@ -548,7 +548,7 @@ TreenodeAllocator::getSize(Treenode *ch)
       if (ch->isLast()) break;
       ++ch;
     }
-  }		  
+  }
   return n;
 }
 
@@ -613,7 +613,7 @@ namespace PossibleMovesConsts
   constexpr int DAME    = LIST_DAME << MASK_SHIFT;     // 0x1000;
   constexpr int TERRM   = LIST_TERRM << MASK_SHIFT;      // 0x2000;
   constexpr int REMOVED = LIST_REMOVED << MASK_SHIFT;  // 0x3000;
-  constexpr int TYPE_MASK = (NEUTRAL | DAME | TERRM | REMOVED);   // 0x3000;  
+  constexpr int TYPE_MASK = (NEUTRAL | DAME | TERRM | REMOVED);   // 0x3000;
 };
 
 class PossibleMoves {
@@ -656,7 +656,7 @@ PossibleMoves::newDotOnEdge(pti p, EdgeType edge)
     if (left) {
       ind = coord.ind(0,1);
       iter = coord.S;
-      count = coord.wlky-2;      
+      count = coord.wlky-2;
       left = false;
     }
     break;
@@ -664,7 +664,7 @@ PossibleMoves::newDotOnEdge(pti p, EdgeType edge)
     if (right) {
       ind = coord.ind(coord.wlkx-1, 1);
       iter = coord.S;
-      count = coord.wlky-2;      
+      count = coord.wlky-2;
       right = false;
     }
     break;
@@ -672,7 +672,7 @@ PossibleMoves::newDotOnEdge(pti p, EdgeType edge)
     if (top) {
       ind = coord.ind(1, 0);
       iter = coord.E;
-      count = coord.wlkx-2;      
+      count = coord.wlkx-2;
       top = false;
     }
     break;
@@ -736,7 +736,7 @@ PossibleMoves::changeMove(pti p, int new_type)
       newDotOnEdge(p, EdgeType::TOP);
     } else if (y == coord.wlky-2 || (y == coord.wlky-1 && x !=0 && x != coord.wlkx-1)) {
       newDotOnEdge(p, EdgeType::BOTTOM);
-    }    
+    }
   }
 }
 
@@ -757,7 +757,7 @@ namespace InterestingMovesConsts
   constexpr int MOVE_1 = LIST_1 << MASK_SHIFT;     // 0x1000;
   constexpr int MOVE_2 = LIST_2 << MASK_SHIFT;      // 0x2000;
   constexpr int REMOVED = LIST_REMOVED << MASK_SHIFT;  // 0x3000;
-  constexpr int TYPE_MASK = (MOVE_0 | MOVE_1 | MOVE_2 | REMOVED);   // 0x3000;  
+  constexpr int TYPE_MASK = (MOVE_0 | MOVE_1 | MOVE_2 | REMOVED);   // 0x3000;
 };
 
 class InterestingMoves {
@@ -935,6 +935,7 @@ private:
   void getEnclMoves(std::vector<std::shared_ptr<Enclosure> > &encl_moves, std::vector<std::shared_ptr<Enclosure> > &opt_encl_moves,
 		    std::vector<uint64_t> &encl_zobrists,
 		    pti move, int who);
+  bool appendSimplifyingEncl(std::vector<std::shared_ptr<Enclosure>> &encl_moves, uint64_t &zobrists, int who);
   void getSimplifyingEnclAndPriorities(int who);
   int checkBorderMove(pti ind, int who) const;
   int checkBorderOneSide(pti ind, pti viter, pti vnorm, int who) const;
@@ -970,11 +971,11 @@ public:
   void makeSgfMove(std::string m, int who);
   void makeMove(Move &m);
   void makeMoveWithPointsToEnclose(Move &m, std::vector<std::string> to_enclose);
-  
+
   bool isDotAt(pti ind) const { assert(worm[ind] >= 0 && worm[ind] <= MASK_WORM_NO);  return (worm[ind] >= CONST_WORM_INCR); };
   int whoseDotMarginAt(pti ind) const { return (worm[ind] & MASK_DOT); };
   int whoseDotAt(pti ind) const { int v[4]={0,1,2,0};  return v[worm[ind] & MASK_DOT]; };
-  
+
   void generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth, int who);
   Move getRandomEncl(Move &m);
   Move chooseAtariMove(int who);
@@ -989,7 +990,7 @@ public:
   Move getLastMove();
   real_t randomPlayout();
   void descend(TreenodeAllocator &alloc, Treenode *node, int depth, bool expand);
-  
+
   bool isDame_directCheck(pti p, int who) const;
   bool isDame_directCheck_symm(pti p) const;
   bool checkRootListOfMovesCorrectness(Treenode *children) const;
@@ -1001,21 +1002,21 @@ public:
   bool checkCorrectness(SgfSequence seq);
   bool checkPattern3valuesCorrectness() const;
   bool checkInfluenceCorrectness();
-  
+
   void seedRandomEngine(int newseed) { engine.seed(newseed); };
   void findConnections();
 
   void calculateInfluence();
   void calculateBorderInfluence();
-  
+
   void Test();
   void show() const;
-  void showSvg();  
+  void showSvg();
   void showConnections();
   void showGroupsId();
   void showThreats2m();
   void showPattern3extra();
-  
+
   std::string showDescr(pti p) const { return descr.at(p).show();  };
 };
 
@@ -1049,7 +1050,7 @@ Game::Game(SgfSequence seq, int max_moves)
 {
   assert(Pattern3extra::MASK_DOT == MASK_DOT);
   komi = 0;
-  komi_ratchet = 10000;  
+  komi_ratchet = 10000;
   auto sz_pos = seq[0].findProp("SZ");
   std::string sz = (sz_pos != seq[0].props.end()) ? sz_pos->second[0] : "";
   if (sz.find(':') == std::string::npos) {
@@ -1086,31 +1087,31 @@ Game::Game(SgfSequence seq, int max_moves)
   history.push_back(0);
   possible_moves.generate();
   interesting_moves.generate();
-  
+
   // prepare patterns, taken from Pachi (playout/moggy.c)
   // (these may be pre-calculated)
   patt3.generate({
-        // hane pattern - enclosing hane 
+        // hane pattern - enclosing hane
         "XOX"
         ".H."
         "???",  "52",
-        // hane pattern - non-cutting hane 
+        // hane pattern - non-cutting hane
 	"YO."
 	".H."
         "?.?",  "53",
-	// hane pattern - magari 		// 0.32 
+	// hane pattern - magari 		// 0.32
 	"XO?"
 	"XH."
         "x.?",  "32",  // TODO: empty triange for O possible, when upper ? == O
-	// hane pattern - thin hane 		// 0.22 
+	// hane pattern - thin hane 		// 0.22
 	"XOO"
 	".H."
 	"?.?" "X",   "22",
-	// generic pattern - katatsuke or diagonal attachment; similar to magari 	// 0.37 
+	// generic pattern - katatsuke or diagonal attachment; similar to magari 	// 0.37
 	".Q."
 	"YH."
 	"...",  "37",   // TODO: is it good? seems like Q should be in corner for the diagonal attachment
-	// cut1 pattern (kiri) - unprotected cut 	// 0.28 
+	// cut1 pattern (kiri) - unprotected cut 	// 0.28
 	"XOo"
 	"OHo"
 	"###",  "28",
@@ -1118,19 +1119,19 @@ Game::Game(SgfSequence seq, int max_moves)
 	"XO?"
 	"OHo"
 	"*o*",  "28",
-	// cut1 pattern (kiri) - peeped cut 	// 0.21 
+	// cut1 pattern (kiri) - peeped cut 	// 0.21
 	"XO?"
 	"OHX"
 	"???",  "21",
-	// cut2 pattern (de) 			// 0.19 
+	// cut2 pattern (de) 			// 0.19
 	"?X?"
 	"OHO"
 	"ooo",   "19",
-	// cut keima (not in Mogo) 		// 0.82 
+	// cut keima (not in Mogo) 		// 0.82
 	"OX?"
 	"oHO"   // original was: "?.O", but if ?=O, then it's not a cut
-	"?o?",  "82",  // oo? has some pathological tsumego cases 
-	// side pattern - block side cut 	// 0.20 
+	"?o?",  "82",  // oo? has some pathological tsumego cases
+	// side pattern - block side cut 	// 0.20
 	"OX?"
 	"XHO"
 	"###",  "20",
@@ -1171,7 +1172,7 @@ Game::Game(SgfSequence seq, int max_moves)
 
 
   patt3_symm.generate({
-      // hane pattern - enclosing hane 
+      // hane pattern - enclosing hane
       "XOX"
         ".H."
         "?o?",  "6",   // note: ?O? is contained in other part
@@ -1279,17 +1280,17 @@ Game::Game(SgfSequence seq, int max_moves)
 	"???", "3"
 	});
 
- 
+
   patt3_cost.generate({
       // our bambus
       "X.X"
         "XHX"
         "???" "X", "0",
-        // 
+        //
 	"X.."
 	"XHX"
 	"?.?" "X", "2",
-	// 
+	//
 	"Ox?"
 	"xH?"
 	"???" "X", "40",
@@ -1353,7 +1354,7 @@ Game::Game(SgfSequence seq, int max_moves)
 	},
     Pattern3::TYPE_MAX);
 
-   
+
   patt52_inner.generate({
         // locally bad moves (WARNING: they may be actually good, if there are X above)
         "?OH.O"
@@ -1413,7 +1414,7 @@ Game::Game(SgfSequence seq, int max_moves)
 	"?OHXO"
 	"??..?" "X", "0.7"
 	});
-  
+
   //  patt52_inner.showCode(); // <-- to precalculate
   patt52_edge.generate({
         // locally good moves (usually reductions)
@@ -1723,7 +1724,7 @@ Game::findThreats_preDot(pti ind, int who)
 	//   o o o   o o o
 	// o       o       o
 	// o x     o       o
-	// o     o x o     o 
+	// o     o x o     o
 	// o       O       o
 	//   o           o
 	//     o o o o o
@@ -1853,7 +1854,7 @@ Game::findThreats_preDot(pti ind, int who)
   std::cerr << std::endl;
   */
 #endif
-  
+
   return possible_threats;
 }
 
@@ -1978,7 +1979,7 @@ Game::haveConnection(pti p1, pti p2, int who) const
   }
   return false;
 }
-  
+
 std::vector<pti>
 Game::findThreats2moves_preDot(pti ind, int who)
 // find possible new threats in 2 moves because of the (future) dot of who at [ind]
@@ -2055,7 +2056,7 @@ Game::findThreats2moves_preDot(pti ind, int who)
   }
   // check 2 dots, the first close to ind, the second close to the first
   if (top>=1 && top<=3) {
-     
+
     auto debug_time = std::chrono::high_resolution_clock::now();
 
     //std::cerr << "ind = " << coord.showPt(ind) << std::endl;
@@ -2120,9 +2121,9 @@ Game::findThreats2moves_preDot(pti ind, int who)
 	  if (whoseDotMarginAt(nb3)==who && connected_groups.contains( descr.at(worm[nb3]).group_id )) {
 	    /*
 	    // dla pokazania ustaw kropki na ind, nb, nb2
-	    CleanupOneVar<pti> worm_where_cleanup0(&worm[ind], who+4); 
-	    CleanupOneVar<pti> worm_where_cleanup(&worm[nb], who); 
-	    CleanupOneVar<pti> worm_where_cleanup2(&worm[nb2], who); 
+	    CleanupOneVar<pti> worm_where_cleanup0(&worm[ind], who+4);
+	    CleanupOneVar<pti> worm_where_cleanup(&worm[nb], who);
+	    CleanupOneVar<pti> worm_where_cleanup2(&worm[nb2], who);
 	    show();
 	    std::cerr << "dodaje (ind=" << coord.showPt(ind) << "): " << coord.showPt(nb) << ", " << coord.showPt(nb2) << " --> " << coord.showPt(nb3) << std::endl;
 	    std::cin.ignore();
@@ -2158,9 +2159,9 @@ Game::findThreats2moves_preDot(pti ind, int who)
 	    /*
 	    if (no_thr_expexcted) {
 	      // dla pokazania ustaw kropki na ind, nb, nb2
-	      CleanupOneVar<pti> worm_where_cleanup0(&worm[ind], who+4); 
-	      CleanupOneVar<pti> worm_where_cleanup(&worm[nb], who); 
-	      CleanupOneVar<pti> worm_where_cleanup2(&worm[nb2], who); 
+	      CleanupOneVar<pti> worm_where_cleanup0(&worm[ind], who+4);
+	      CleanupOneVar<pti> worm_where_cleanup(&worm[nb], who);
+	      CleanupOneVar<pti> worm_where_cleanup2(&worm[nb2], who);
 	      show();
 	      std::cerr << "Nieoczekiwanie dodaje (ind=" << coord.showPt(ind) << "): " << coord.showPt(nb) << ", " << coord.showPt(nb2) << " --> " << coord.showPt(nb3) << std::endl;
 	      std::cin.ignore();
@@ -2217,7 +2218,7 @@ Game::findThreats2moves_preDot(pti ind, int who)
       pti p = queue[queue_top++];
       // visit the point p
       if (whoseDotMarginAt(p) == 0) {
-	if (connects[who-1][p].groups_id[0] != 0){ 
+	if (connects[who-1][p].groups_id[0] != 0){
 	  // check if it's connected to one of 'connected_groups'
 	  int connected = 0;
 	  for (int g=0; g<4; ++g) {
@@ -2242,10 +2243,10 @@ Game::findThreats2moves_preDot(pti ind, int who)
 	}
       }
     }
-    
+
   }  // end of new part (v137)
   */
-    
+
   // find empty points in the neighbourhood which touch some other group
   {
     int count = 0;   // number of pairs (group_id, neighbour)
@@ -2316,7 +2317,7 @@ Game::checkThreat_encl(Threat* thr, int who)
 	      auto tmp = countDotsTerrInEncl(*t.encl, 3-who);
 	      t.opp_dots = std::get<0>(tmp);
 	      t.terr_points = std::get<1>(tmp);
-	      //std::tie<t.opp_dots, t.terr_points> 
+	      //std::tie<t.opp_dots, t.terr_points>
 	      addThreat(std::move(t), who);
 #ifndef NDEBUG
 	      //std::cerr << "Zagrozenie dodane" << std::endl;
@@ -2366,7 +2367,7 @@ Game::checkThreat_terr(Threat* thr, pti p, int who)
 	auto tmp = countDotsTerrInEncl(*t.encl, 3-who);
 	t.opp_dots = std::get<0>(tmp);
 	t.terr_points = std::get<1>(tmp);
-	addThreat(std::move(t), who);	
+	addThreat(std::move(t), who);
       }
     }
   }
@@ -2475,7 +2476,7 @@ Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
 void
 Game::checkThreat2moves_encl(Threat* thr, pti where0, int who)
 /// @param[in] where0  The first dot of the threat.
-/// @param[in] who  Whose threat it is (i.e., who makes this enclosure).  
+/// @param[in] who  Whose threat it is (i.e., who makes this enclosure).
 {
   thr->type |= ThreatConsts::TO_REMOVE;
   int where = thr->where;
@@ -2644,8 +2645,8 @@ Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
 	  */
 
 	  if ( !(t.where == ind || (t.encl->checkShortcut(t2.where0, ind) || t.encl->checkShortcut(t.where, ind)) == t.isShortcut(ind)) ) {
-#ifdef DEBUG_SGF	  
-	    std::cerr.flush(); 
+#ifdef DEBUG_SGF
+	    std::cerr.flush();
 	    std::cerr << std::endl << "Sgf:" << std::endl << getSgf_debug() << std::endl << std::endl;
 #endif
 
@@ -2654,7 +2655,7 @@ Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
 	      t.encl->checkShortcut(t2.where0, ind) << ","<<
 	      t.encl->checkShortcut(t.where, ind) << "," << t.isShortcut(ind) << std::endl;
 	    std::cerr << "enclosure: " << t.encl->show() << std::endl;
-	    std::cerr.flush();   
+	    std::cerr.flush();
 	  }
 	  assert(t.where == ind || (t.encl->checkShortcut(t2.where0, ind) || t.encl->checkShortcut(t.where, ind)) == t.isShortcut(ind));
 	  if (t.encl->isInInterior(ind)) {
@@ -2687,7 +2688,7 @@ Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
   // check new
   while (!newthr.empty()) {
     pti ind0 = newthr.back();  newthr.pop_back();
-    assert(!newthr.empty());    
+    assert(!newthr.empty());
     pti ind1 = newthr.back();  newthr.pop_back();
     assert(worm[ind0] == 0 && worm[ind1] == 0);
     {
@@ -2740,7 +2741,7 @@ Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
 	    //was_one = true;
 	    debug_sing_smallt2m++;
 	    goto one_found;
-	  }		  
+	  }
 	}
 	// none was found, second pass: find non-simple enclosure
 	for (int i=count; i>0; --i) {
@@ -2753,7 +2754,7 @@ Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
 	    //was_one = true;
 	    debug_sing_larget2m++;
 	    goto one_found;
-	  }		  
+	  }
 	}
       one_found:;
 	newthr.resize( newthr.size() - count);
@@ -2879,7 +2880,7 @@ Game::addThreat(Threat&& t, int who)
 	}
       }
     }
-  } 
+  }
   for (auto it = t.encl->border.begin()+1; it!=t.encl->border.end(); ++it) {
     pti i = *it;
     assert(i>=coord.first && i<=coord.last && i<threats[who-1].is_in_border.size());
@@ -2976,11 +2977,11 @@ Game::removeMarkedAndAtPoint(pti ind, int who)
 	t.type |= ThreatConsts::TO_REMOVE;
       }
     //removeMarkedThreats(threats[who-1].threats);
-    
+
     threats[who-1].threats.erase( std::remove_if( threats[who-1].threats.begin(), threats[who-1].threats.end(),
 						  [](Threat &t) { return (t.type & ThreatConsts::TO_REMOVE); } ),
 				  threats[who-1].threats.end() );
-    
+
   }
 }
 
@@ -3027,11 +3028,11 @@ Game::removeMarked(int who)
 	subtractThreat(t, who);
       }
     //removeMarkedThreats(threats[who-1].threats);
-    
+
     threats[who-1].threats.erase( std::remove_if( threats[who-1].threats.begin(), threats[who-1].threats.end(),
 						  [](Threat &t) { return (t.type & ThreatConsts::TO_REMOVE); } ),
 				  threats[who-1].threats.end() );
-    
+
   }
 }
 
@@ -3086,7 +3087,7 @@ Game::connectionsRecalculateCode(pti ind, int who)
     code >>= 1;
     connects[who-1][ind].code = code;
   } else {
-    connects[who-1][ind].code = 0;    
+    connects[who-1][ind].code = 0;
   }
 }
 
@@ -3104,7 +3105,7 @@ Game::connectionsRecalculateConnect(pti ind, int who)
     }
   }
 }
-  
+
 void
 Game::connectionsRecalculatePoint(pti ind, int who)
 {
@@ -3244,7 +3245,7 @@ Game::updatePoint_Influence(pti ind)
       }
   }
 }
-    
+
 pattern3_t
 Game::getPattern3_at(pti ind) const
 {
@@ -3282,7 +3283,7 @@ Game::isEmptyInDirection(pti ind, int direction) const
   assert(coord.nb4[0] == coord.N);  // order of nb4 should be: N, E, S, W
   assert(coord.nb8[0] == coord.NE); // order of nb8 should be: NE, E, ... -- clockwise
   assert(coord.dist[ind] >= 1);
-  
+
   pti nb = ind + 2*coord.nb4[direction];
   const pattern3_t masks[4] = { 0x3f0, 0x3f00, 0xf003, 0x3f };
   return (whoseDotMarginAt(nb) == 0) && (pattern3_at[nb] & masks[direction]) == 0;
@@ -3482,6 +3483,25 @@ Game::checkLadderStep(pti x, PointsSet &ladder_breakers, pti v1, pti v2, pti esc
   return ATT_WINS;
 }
 
+
+
+/// Finds simplifying enclosures (=those that have 0 territory).
+bool
+Game::appendSimplifyingEncl(std::vector<std::shared_ptr<Enclosure>> &encl_moves, uint64_t &zobrists, int who)
+{
+  zobrists = 0;
+  bool something_left = false;
+  for (auto &t : threats[who-1].threats) {
+    if ((t.type & ThreatConsts::TERR) && (t.terr_points == 0)) {
+      assert(t.opp_dots);
+      encl_moves.push_back(t.encl);
+      zobrists ^= t.zobrist_key;
+    } else if (t.opp_dots && !t.opp_thr.empty())
+      something_left = true;
+  }
+  return something_left;
+}
+
 /// Finds simplifying enclosures (=those that have 0 territory) and priorities to use in Game::getEnclMoves.
 /// Stores them in  Game::ml_encl_moves and Game::ml_priorities
 void
@@ -3489,24 +3509,20 @@ Game::getSimplifyingEnclAndPriorities(int who)
 {
   ml_encl_moves.clear();
   ml_encl_zobrists.clear();  ml_encl_zobrists.push_back(0);
+  bool something_left = appendSimplifyingEncl(ml_encl_moves, ml_encl_zobrists[0], who);
+  ml_priorities.clear();
+  if (!something_left) return;
+  // this could be omitted, duplicates might slow down later, but checking for them is also slow
   ml_deleted_opp_thr.clear();
-  bool something_left = false;
   for (auto &t : threats[who-1].threats) {
     if ((t.type & ThreatConsts::TERR) && (t.terr_points == 0)) {
-      assert(t.opp_dots);
-      ml_encl_moves.push_back(t.encl);
-      ml_encl_zobrists[0] ^= t.zobrist_key;
       for (auto z : t.opp_thr) {
-	// this 'if' could be omitted, duplicates might slow down later, but checking for them is also slow
 	if (std::find(ml_deleted_opp_thr.begin(), ml_deleted_opp_thr.end(), z) == ml_deleted_opp_thr.end()) {
 	  ml_deleted_opp_thr.push_back(z);
 	}
       }
-    } else if (t.opp_dots && !t.opp_thr.empty())
-      something_left = true;
+    }
   }
-  ml_priorities.clear();
-  if (!something_left) return;
   // now find priorities, i.e., those our threats that may cancel some opp's threat not yet canceled by simplifying_encl
   for (auto &t : threats[who-1].threats) {
     if (t.opp_dots && !t.opp_thr.empty()) {
@@ -4209,7 +4225,7 @@ Game::getPatt3extraValues() const
   for (int i=coord.first; i<=coord.last; ++i) {
     if (whoseDotMarginAt(i) == 0) {
       patt3_extra.setValues(values, worm, pattern3_at[i], i, nowMoves);
-      //auto symm_value = patt3_symm.getValue(pattern3_at[i], 1); 
+      //auto symm_value = patt3_symm.getValue(pattern3_at[i], 1);
       //if (values[i] < symm_value) values[i] = symm_value;
     }
   }
@@ -4292,7 +4308,7 @@ Game::findSimpleEnclosure(std::vector<pti> &tab, pti point, pti mask, pti value)
 				      static_cast<pti>(nb + coord.E), static_cast<pti>(point + coord.E),
 				      static_cast<pti>(point + coord.N) };
 	  //return Enclosure( {point, nb}, border );
-	  return Enclosure( {ptor, nbor}, std::move(border) );	  
+	  return Enclosure( {ptor, nbor}, std::move(border) );
 	}
       }
     }
@@ -4332,7 +4348,7 @@ Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point, pti mask, pti val
 	if ((tab[nb] & MASK_BORDER) == 0) {  // a border dot not yet visited?
 	  tab[nb] |= MASK_BORDER;
 	  cleanup.push(nb);
-	  //border_count++;	  
+	  //border_count++;
 	  if (nb < leftmost) leftmost = nb;
 	}
       } else if ((tab[nb] & MASK_MARK) == 0) {
@@ -4639,7 +4655,7 @@ Game::findImportantMoves(pti who)
   return list;
 }
 
-  
+
 /// who is the attacker, 3-who defends
 /// @return  Value of the territory of 'who' (bigger = better for 'who').
 float
@@ -4657,7 +4673,7 @@ Game::floodFillCost(int who) const
   };
   std::priority_queue<PointCost> queue;
   std::priority_queue<PointCostHigh> all_points;
-  std::vector<float> costs(coord.getSize(), 0.0);  
+  std::vector<float> costs(coord.getSize(), 0.0);
   std::vector<pti> dad(coord.getSize(), 0);
   // left and right edge
   {
@@ -4670,14 +4686,14 @@ Game::floodFillCost(int who) const
 	all_points.push(PointCostHigh(lind, c));
 	costs[lind] = c;
 	dad[lind] = lind;
-      }	
+      }
       c = costOfPoint(rind, who);
       if (c < COST_INFTY) {
 	queue.push(PointCost(rind, c));
-	all_points.push(PointCostHigh(rind, c));	
+	all_points.push(PointCostHigh(rind, c));
 	costs[rind] = c;
 	dad[rind] = rind;
-      }	
+      }
       lind += coord.S;
       rind += coord.S;
     }
@@ -4693,14 +4709,14 @@ Game::floodFillCost(int who) const
 	all_points.push(PointCostHigh(tind, c));
 	costs[tind] = c;
 	dad[tind] = tind;
-      }	
+      }
       c = costOfPoint(bind, who);
       if (c < COST_INFTY) {
 	queue.push(PointCost(bind, c));
 	all_points.push(PointCostHigh(bind, c));
 	costs[bind] = c;
 	dad[bind] = bind;
-      }	
+      }
       tind += coord.E;
       bind += coord.E;
     }
@@ -4715,22 +4731,22 @@ Game::floodFillCost(int who) const
 	if (c < COST_INFTY) {
 	  c += pc.cost;
 	  queue.push(PointCost(nb, c));
-	  all_points.push(PointCostHigh(nb, c));	  
+	  all_points.push(PointCostHigh(nb, c));
 	  costs[nb] = c;
 	  dad[nb] = pc.point;
 	}
       }
     }
   }
-  
+
   // check value of points
   /*
   std::vector<pti> tree_size(coord.getSize(), 0);
   std::vector<float> tree_cost(coord.getSize(), 0.0);
   //  std::vector<pti> interesting_moves;
   //  std::vector<pti> debug_board(coord.getSize(), 0);    // show interesting moves
-  //  std::vector<pti> debug_2(coord.getSize(), 0); 
-  //  std::vector<pti> debug_tc(coord.getSize(), 0); 
+  //  std::vector<pti> debug_2(coord.getSize(), 0);
+  //  std::vector<pti> debug_tc(coord.getSize(), 0);
   while (!all_points.empty()) {
     auto pc = all_points.top();    all_points.pop();
     tree_size[pc.point]++;
@@ -4740,7 +4756,7 @@ Game::floodFillCost(int who) const
       tree_cost[dad[pc.point]] += tree_cost[pc.point];
       tree_size[dad[pc.point]] += tree_size[pc.point];
     }
-    
+
     //    debug_tc[pc.point] = std::min(int(100*tree_cost[pc.point]), 200);
     //
     //    if (whoseDotMarginAt(pc.point) == 0 &&
@@ -5053,7 +5069,7 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
 	  t.terr_points -= empty_count;
 	}
       }
-    }    
+    }
   }
   // recalculate opponents groups, if needed
   if (!gids_to_delete.empty()) {
@@ -5141,7 +5157,7 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
     auto zobr = encl.zobristKey(who);
     for (auto &t: threats[who-1].threats) {
       if (t.zobrist_key == zobr) {
-	t.type |= ThreatConsts::TO_REMOVE;	
+	t.type |= ThreatConsts::TO_REMOVE;
       }
     }
   }
@@ -5287,7 +5303,7 @@ Game::countTerritory(int now_moves) const
   */
   // for each point masked as possibly inside a territory, try to enclose it
   //std::cerr << coord.showBoard(marks) << std::endl;
-    
+
   std::vector<Enclosure> poolsB, poolsW;
   for (int i = coord.first; i<=coord.last; i++) {
     if ((marks[i] & (ct_B | ct_NOT_TERR_B)) == 0 && coord.dist[i]>=0) {
@@ -5438,7 +5454,7 @@ Game::countTerritory_simple(int now_moves) const
 	th[ind] += 2;
       }
     }
-    std::cerr << coord.showBoard(th);    
+    std::cerr << coord.showBoard(th);
     //assert(0);
   }
 #endif
@@ -5492,9 +5508,9 @@ Game::makeSgfMove(std::string m, int who)
 #ifndef NDEBUG
   //show();  showPattern3Values(1);    showPattern3Values(2);
   std::cerr << "[" << ++sgf_move_no << "] Make move " << who << " : " << m << " = " << coord.showPt(coord.sgfToPti(m)) << std::endl;
-  
+
 #endif
-  
+
   move.who = who;
   std::vector<pti> border;
   std::vector<std::string> points_to_enclose;
@@ -5527,23 +5543,23 @@ Game::makeSgfMove(std::string m, int who)
     makeMoveWithPointsToEnclose(move, points_to_enclose);
   }
 
- 
+
   //floodFillCost(nowMoves);
   //findImportantMoves(nowMoves);
   //std::this_thread::sleep_for(std::chrono::milliseconds(200));
- 
+
   /*
   showSvg();
-  std::this_thread::sleep_for(std::chrono::milliseconds(1200));  
+  std::this_thread::sleep_for(std::chrono::milliseconds(1200));
   */
-  
+
   assert(checkThreatCorrectness());
   assert(checkThreat2movesCorrectness());
   assert(checkWormCorrectness());
   assert(checkConnectionsCorrectness());
   assert(checkPattern3valuesCorrectness());
   assert(checkInfluenceCorrectness());
-  
+
   //#ifndef NDEBUG
   {
 #ifdef DEBUG_SGF
@@ -5563,7 +5579,7 @@ Game::makeSgfMove(std::string m, int who)
 	prop.second.clear();
       }
       list.clear();
-      
+
       SgfProperty miai;
       for (int i=coord.first; i<=coord.last; i++) {
 	if (threats[who-1].is_in_2m_encl[i]) {
@@ -5584,7 +5600,7 @@ Game::makeSgfMove(std::string m, int who)
     }
 #endif
     showPattern3extra();
-  
+
     /*
     std::vector<pti> list_of_moves;
     for (int i=0; i<coord.maxSize; i++) {
@@ -5622,8 +5638,8 @@ Game::makeSgfMove(std::string m, int who)
     //std::cerr << "List of moves: " << std::endl << coord.showColouredBoard(list_of_moves) << std::endl;
   }
   //#endif
-  
-  
+
+
 }
 
 
@@ -5673,7 +5689,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
     if (worm[ind] != 0 || worm[ind+coord.S] != 0) top = false;
     ind = coord.ind(i, coord.wlky-1);
     if (worm[ind] != 0 || worm[ind+coord.N] != 0) bottom = false;
-  } 
+  }
   if (worm[coord.ind(0,1)] || worm[coord.ind(coord.wlkx-1,1)]) top = false;
   if (worm[coord.ind(0,coord.wlky-2)] || worm[coord.ind(coord.wlkx-1,coord.wlky-2)]) bottom = false;
   for (int j=1; j<coord.wlky-1; j++) {
@@ -5681,7 +5697,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
     if (worm[ind] != 0 || worm[ind+coord.E] != 0) left = false;
     ind = coord.ind(coord.wlkx-1, j);
     if (worm[ind] != 0 || worm[ind+coord.W] != 0) right = false;
-  } 
+  }
   if (worm[coord.ind(1,0)] || worm[coord.ind(1,coord.wlky-1)]) left = false;
   if (worm[coord.ind(coord.wlkx-2,0)] || worm[coord.ind(coord.wlkx-2,coord.wlky-1)]) right = false;
   assert(left == possible_moves.left);
@@ -5738,7 +5754,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
     }
     // check threats -- not good, it may be good to play in opp's territory to reduce it...
     //if ((threats[2-who].is_in_encl[i] > 0 || threats[2-who].is_in_terr[i] > 0) &&
-    //  threats[who-1].is_in_border[i] == 0) continue; 
+    //  threats[who-1].is_in_border[i] == 0) continue;
     tn.move.ind = i;
     tn.t.playouts = 30;  tn.t.value_sum = 15;
     // add prior values according to Pattern3
@@ -5832,7 +5848,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 #ifndef NDEBUG
       out << "intm=" << 4*w << " ";
 #endif
-     
+
     }
     // add prior values according to distance from last moves
     {
@@ -5842,7 +5858,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 #ifndef NDEBUG
 	out << "dist=" << 6-dist << " ";
 #endif
-	
+
       }
     }
     // add prior values because of threats2m (v118+)
@@ -5855,7 +5871,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 #ifndef NDEBUG
 	    out << "thr2m=" << num << " ";
 #endif
-	    
+
 	  }
 	  break;
 	}
@@ -5869,7 +5885,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 #ifndef NDEBUG
 	    out << "thr2mopp=" << num << " ";
 #endif
-	    
+
 	  }
 	  break;
 	}
@@ -5880,11 +5896,15 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 #ifndef NDEBUG
 	out << "miai=-15 ";
 #endif
-	
+
       }
     }
     // captures
     if (std::find(ml_special_moves.begin(), ml_special_moves.end(), i) == ml_special_moves.end()) {
+      tn.move.zobrist_key = coord.zobrist_dots[who-1][i] ^ ml_encl_zobrists[0] ^ neutral_encl_zobrists[0];
+      tn.move.enclosures.clear();
+      tn.move.enclosures.insert(tn.move.enclosures.end(), ml_encl_moves.begin(), ml_encl_moves.end());
+      tn.move.enclosures.insert(tn.move.enclosures.end(), neutral_encl_moves.begin(), neutral_encl_moves.end());
       if (is_in_opp_te) {
 	// note:  (threats[who-1].is_in_border[i] > 0) possible only for territory threats (i.e., we build a new territory)
 	int min_terr_size = std::numeric_limits<int>::max();
@@ -5907,7 +5927,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 #ifndef NDEBUG
 	  out << "isol=" << -(100 - std::min(min_terr_size, 20)) << " ";
 #endif
-	  
+
 	} else {
 	  // we touch our dot
 	  if (min_terr_size <= 2) {
@@ -5922,7 +5942,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 #endif
 	  }
 	}
-      } else {
+      } else {   // not in opp terr
 	if (threats[2-who].is_in_border[i] > 0) {
 	  // check the value of opp's threat
 	  int value = 0, terr_value = 0;
@@ -5937,13 +5957,13 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 #ifndef NDEBUG
 	    out << "oppv2m=" << num << " ";
 #endif
-	    
+
 	  } else if (terr_value >= 3) {
 	    tn.t.playouts += 4;  tn.t.value_sum += 4*0.9;  // add 0.9 won simulations
 #ifndef NDEBUG
 	    out << "oppter=0.9*4 ";
 #endif
-	    
+
 	  }
 	} else {  // not in the border of an opp's threat
 	  if (is_in_our_te) {
@@ -5966,18 +5986,31 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 		out << " andiso2=-30 ";
 #endif
 	      }
+	    } else {
+	      for (auto &t : threats[who-1].threats) {
+		if (t.where == i and t.terr_points == 0) {
+		    // simplifying enclosure: no territory anyway
+		    tn.move.enclosures.push_back(t.encl);
+		    tn.move.zobrist_key ^= t.zobrist_key;
+		}
+	      }
 	    }
 	    tn.t.playouts += 20;
 #ifndef NDEBUG
 	    out << "insidee=-20 ";
 #endif
-	    
+
 	  } else if (threats[who-1].is_in_border[i] > 0) {
 	    // check the value of our threat
 	  int value = 0, terr_value = 0;
 	  for (auto &t : threats[who-1].threats) {
 	    if (t.where == i) {
 	      value += t.opp_dots;   terr_value += t.terr_points;
+	      if (t.terr_points == 0) {
+		// simplifying enclosure: no territory anyway
+		tn.move.enclosures.push_back(t.encl);
+		tn.move.zobrist_key ^= t.zobrist_key;
+	      }
 	    }
 	  }
 	  if (value) {
@@ -5986,7 +6019,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 #ifndef NDEBUG
 	    out << "voft=" << num << " ";
 #endif
-	    
+
 	  } else if (terr_value >= 2) {
 	    int num = 2 + std::min(terr_value, 15);
 	    tn.t.playouts += num;  tn.t.value_sum += num;  // add won simulations
@@ -5997,10 +6030,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 	  }
 	}
       }
-      tn.move.zobrist_key = coord.zobrist_dots[who-1][i] ^ ml_encl_zobrists[0] ^ neutral_encl_zobrists[0];
-      tn.move.enclosures.clear();
-      tn.move.enclosures.insert(tn.move.enclosures.end(), ml_encl_moves.begin(), ml_encl_moves.end());
-      tn.move.enclosures.insert(tn.move.enclosures.end(), neutral_encl_moves.begin(), neutral_encl_moves.end());
+
       //tn.t.playouts *= 3;   tn.t.value_sum *= 3;   // take more virtual sims
       tn.prior = tn.t;
 #ifndef NDEBUG
@@ -6008,7 +6038,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
       if (parent->parent == parent) std::cerr << out.str() << std::endl;
       out.str("");  out.clear();
 #endif
-      
+
       //ml_list.push_back(tn);
       *alloc.getNext() = tn;
       assert(neutral_opt_encl_moves.size()+1 == neutral_encl_zobrists.size());
@@ -6059,9 +6089,9 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 #ifndef NDEBUG
       out << "special=" << num << " --> (" << tn.t.playouts << ", " << tn.t.value_sum << ") ";
       if (parent->parent == parent) std::cerr << out.str() << std::endl;
-      out.str("");  out.clear();    
+      out.str("");  out.clear();
 #endif
-      
+
       tn.prior = tn.t;
       *alloc.getNext() = tn;
       //ml_list.push_back(tn);
@@ -6081,17 +6111,17 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 #ifndef NDEBUG
 	  out << "bonus=" << num << "  --> (" << tn.t.playouts << ", " << tn.t.value_sum << ") ";
 #endif
-  
+
 	}
 #ifndef NDEBUG
 	if (parent->parent == parent) std::cerr << out.str() << std::endl;
-	out.str("");  out.clear();    
+	out.str("");  out.clear();
 #endif
 	//ml_list.push_back(tn);
 	tn.prior = tn.t;
 	*alloc.getNext() = tn;
       }
-      ml_encl_moves.erase(ml_encl_moves.begin()+em, ml_encl_moves.end());      
+      ml_encl_moves.erase(ml_encl_moves.begin()+em, ml_encl_moves.end());
     }
   }
 }
@@ -6246,7 +6276,7 @@ Game::choosePattern3Move(pti move0, pti move1, int who)
 	      std::cerr << "Punkt m = " << coord.showPt(m) << ", nb = " << coord.showPt(nb) << " v=" << v << " gp3v = " << getPattern3Value(nb, who) << std::endl;
 	      assert(v == getPattern3Value(nb, who));
 	    }
-	  
+
 	    if (v >= 0 &&  // here non-dame (>=0) is enough
 		((threats[2-who].is_in_encl[nb]==0 && threats[2-who].is_in_terr[nb]==0) || threats[who-1].is_in_border[nb])) {
 	      //	      v = std::min(80.0f, v+30);  // v will be in [50, 80]     // TODO! change type of pattern3_value to integer!
@@ -6288,7 +6318,7 @@ Game::choosePattern3Move(pti move0, pti move1, int who)
   move.ind = 0;
   return move;
 }
-	
+
 bool
 Game::isInfluential(pti i, bool edge) const
 {
@@ -6322,7 +6352,7 @@ Game::chooseInfluenceMove(int who)
   move.who = who;
   if (INFLUENCE_TURNED_OFF || influence.turned_off) {
     move.ind = 0;
-    return move;  
+    return move;
   }
   if (possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size()>=2) {
     std::vector<pti> infl_moves;
@@ -6424,7 +6454,7 @@ Game::getGoodTerrMoves(int who) const
   }
   return good_moves;
 }
-  
+
 /// Chooses any move using possible_moves.
 Move
 Game::chooseAnyMove_pm(int who)
@@ -6473,7 +6503,7 @@ Game::chooseAnyMove_pm(int who)
       }
   }
   */
-  
+
   // try neutral or good
   int n_or_g = possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size() + good_moves.size();
   if (n_or_g > 0) {
@@ -6552,7 +6582,7 @@ Game::choosePatt3extraMove(int who)
     }
   }
   assert(0);
-  return move;  
+  return move;
 }
 
 
@@ -6565,7 +6595,7 @@ Game::getLastMove()
   m.who = (nowMoves ^ 3);
   return m;
 }
-  
+
 
 real_t
 Game::randomPlayout()
@@ -6596,7 +6626,7 @@ Game::randomPlayout()
 	auto v = pattern3_value[m.who-1][m.ind];
 #endif
 	makeMove(m);
-#ifdef DEBUG_SGF	
+#ifdef DEBUG_SGF
 	sgf_tree.addComment(std::string("pa:") + std::to_string(v));
 #endif
 	//std::cerr << "p";
@@ -6608,7 +6638,7 @@ Game::randomPlayout()
       if (m.ind != 0) {
 	dame_moves_so_far = 0;
 	makeMove(m);
-#ifdef DEBUG_SGF	
+#ifdef DEBUG_SGF
 	sgf_tree.addComment(std::string("cut"));
 #endif
 	continue;
@@ -6619,7 +6649,7 @@ Game::randomPlayout()
       if (m.ind != 0) {
 	dame_moves_so_far = 0;
 	makeMove(m);
-#ifdef DEBUG_SGF	
+#ifdef DEBUG_SGF
 	sgf_tree.addComment(std::string("ext"));
 #endif
 	continue;
@@ -6631,7 +6661,7 @@ Game::randomPlayout()
       if (m.ind != 0) {
 	dame_moves_so_far = 0;
 	makeMove(m);
-#ifdef DEBUG_SGF	
+#ifdef DEBUG_SGF
 	sgf_tree.addComment(std::string("infl"));
 #endif
 	continue;
@@ -6641,9 +6671,9 @@ Game::randomPlayout()
     m = chooseAnyMove_pm(nowMoves);
     if (m.ind != 0) {
       makeMove(m);
-#ifdef DEBUG_SGF	
+#ifdef DEBUG_SGF
       sgf_tree.addComment(std::string(":") + std::to_string(dame_moves_so_far));
-#endif     
+#endif
       //std::cerr << ".";
     } else {
       break;
@@ -6895,7 +6925,7 @@ Game::checkWormCorrectness() const
 	test_descr.at(worm[coord.ind(coord.wlkx-2, y)]).safety++;
     }
   }
-  
+
   for (auto &d1 : descr) {
     // check keys
     if (test_descr.find(d1.first) == test_descr.end()) {
@@ -7019,7 +7049,7 @@ Game::checkThreatCorrectness()
 	std::cerr << thr.show() << std::endl;
       } else {
 	if (pos->second.type & ThreatConsts::TO_REMOVE) {
-	  if (!shown) { shown=true;  show();  }	  
+	  if (!shown) { shown=true;  show();  }
 	  std::cerr << "Powtórzone zagrożenie (gracz=" << pl+1 << "):" << std::endl;
 	} else {
 	  pos->second.type |= ThreatConsts::TO_REMOVE;
@@ -7079,7 +7109,7 @@ Game::checkThreatCorrectness()
 		  show();
 		  std::cerr << "Równoważne zagrożenia (oryg, nowe): " << std::endl;
 		  std::cerr << t.show() << std::endl;
-		  std::cerr << thr.second.show() << std::endl;	      
+		  std::cerr << thr.second.show() << std::endl;
 		  */
 		  is_boring = true;
 		  break;
@@ -7205,7 +7235,7 @@ Game::checkThreatCorrectness()
 
     }
   }
-	
+
   return !shown;
 }
 
@@ -7312,7 +7342,7 @@ Game::checkThreat2movesCorrectness()
   }
   return correct;
 }
-	
+
 
 
 bool
@@ -7327,7 +7357,7 @@ Game::checkConnectionsCorrectness()
       std::cerr << "Stara tab 1" << std::endl;
       std::cerr << coord.showBoard(tmp[0]);
       std::cerr << "Stara tab 2" << std::endl;
-      std::cerr << coord.showBoard(tmp[1]); 
+      std::cerr << coord.showBoard(tmp[1]);
       showConnections();
       //
       showGroupsId();
@@ -7340,13 +7370,13 @@ Game::checkConnectionsCorrectness()
 	for (int j=0; j<4; j++) std::cerr << int(connects[g][ind].groups_id[j]) << " ";
 	if (g==0) std::cerr << ","; else std::cerr << std::endl;
       }
-      
+
       return false;
     }
   }
   return true;
 }
-  
+
 
 bool
 Game::checkPattern3valuesCorrectness() const
@@ -7410,7 +7440,7 @@ Game::checkPattern3valuesCorrectness() const
       std::cerr << "[" << names[j] << "] Moves that are incorrecly contained: ";
       for (auto p : diff) std::cerr << coord.showPt(p) << " ";
       std::cerr << std::endl;
-      status = false;      
+      status = false;
     }
   }
   if (!status) show();
@@ -7429,7 +7459,7 @@ Game::checkInfluenceCorrectness()
       //  assert(influence.checkInfluenceFromAt(infl, i)); -- could be different inside enclosures (which is irrelevant)
     }
   auto is_equal = [](float a, float b) { return a > b - 0.00001 && a < b + 0.00001; };
-  for (int i=coord.first; i<=coord.last; ++i)  
+  for (int i=coord.first; i<=coord.last; ++i)
     if (whoseDotMarginAt(i) == 0) {
       for (int n=0; n<3; n++) {
 	if (!is_equal(influe.influence[n][i], influence.influence[n][i])) {
@@ -7469,7 +7499,7 @@ Game::checkPossibleMovesCorrectness(int who) const
       if (!possible_moves.lists[PossibleMovesConsts::LIST_DAME].empty()) {
 	std::cerr << "Possible dame moves has: " << coord.showPt(possible_moves.lists[PossibleMovesConsts::LIST_DAME][0]) << std::endl;
       }
-      
+
     }
     show();
     return false;
@@ -7594,7 +7624,7 @@ MonteCarlo::findBestMove(Game &pos, int iter_count)
 	}
       } else if (root.t.value_sum > root.t.playouts * (1-pos.decrease_komi_threshhold)) {  // red zone
 	int perspective = 2*root.move.who - 3;   // -1 if we are white, 1 if black (root.move.who is the opponent)
-	std::cerr << "Red zone; komi = " << pos.komi << ", perspective = " << perspective << ", ratchet = " << pos.komi_ratchet << std::endl;	
+	std::cerr << "Red zone; komi = " << pos.komi << ", perspective = " << perspective << ", ratchet = " << pos.komi_ratchet << std::endl;
 	if (pos.komi*perspective > 0) {
 	  pos.komi_ratchet = pos.komi*perspective;
 	}
@@ -7616,7 +7646,7 @@ MonteCarlo::findBestMove(Game &pos, int iter_count)
   }
   std::cerr << "Sort ends, root.children.size()==" << n << ", root value = " << root.t.value_sum/root.t.playouts << ", root playouts = " << root.t.playouts << std::endl;
   std::cerr << "root: " << root.show() << std::endl;
-  
+
   for (int i=0; /*i<15 &&*/ i<n; i++) {
     std::cerr << root.children[i].show() << " value=" << root.children[i].getValue() << std::endl;
     if (i==0) {
@@ -7773,7 +7803,7 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
     cv_finish_threads.wait(ul, [] { return MonteCarlo::threads_to_be_finished == 0; });
   }
 
-  
+
   std::cerr << "Descend ends" << std::endl;
   assert(pos.checkRootListOfMovesCorrectness(root.children));
   //std::sort(root.children.rbegin(), root.children.rend());  // note: reverse iterators to sort descending
@@ -7784,7 +7814,7 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
     root.children[n-1].markAsLast();
   }
   std::cerr << "Sort ends, root.children.size()==" << n << ", root value = " << root.t.value_sum/root.t.playouts << ", root playouts = " << root.t.playouts << std::endl;
-  
+
   for (int i=0; i<15 && i<n; i++) {
     std::cerr << root.children[i].show() << std::endl;
     if (i==0) {
@@ -7808,7 +7838,7 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
     }
     std::cerr << "Real saved playouts: " << real_playouts << std::endl;
   }
- 
+
   std::string res = "";
   if (root.children != nullptr) {
     res = root.children[0].getMoveSgf();
@@ -7844,7 +7874,7 @@ play_engine(Game &game, std::string &s, int threads_count, int iter_count)
       std::cerr << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() << " mikros" << std::endl;
       std::cout << s.substr(0, s.rfind(")")) << best_move << ")" << std::endl;
     }
-      
+
     std::string n(""), buf;
     do {
       std::getline(std::cin, buf);
@@ -7886,7 +7916,7 @@ findAndPrintBestMove(Game &game, int iter_count)
 	    << " mikros" << std::endl;
   std::cerr << "debug: " << debug_nanos/1000 << " mikros" << std::endl;
   std::cerr << "debug2: " << debug_nanos2/1000 << " mikros" << std::endl;
-  std::cerr << "debug3: " << debug_nanos3/1000 << " mikros" << std::endl;   
+  std::cerr << "debug3: " << debug_nanos3/1000 << " mikros" << std::endl;
   std::cerr << "All threats2m: " << debug_allt2m << ", skipped: " << debug_skippedt2m << ", small singular: " << debug_sing_smallt2m
             << ", large singular: " << debug_sing_larget2m
             << ", found before: " << debug_foundt2m << ". n= " << debug_n << ", N=" << debug_N <<  std::endl;
@@ -7933,13 +7963,13 @@ playInteractively(Game &game, int threads_count, int iter_count)
 						  std::cerr << "best move: " << best_move << std::endl;
 						  game.makeSgfMove(best_move, game.whoNowMoves());
 						  }
-	
+
 	} else if (commands[0] == "quit" || commands[0] ==  "bye") {
 	  break;
 	} else if (commands[0] == "back") {
-	
+
 	} else if (commands[0] == "show") {
-	  game.show();	
+	  game.show();
 	} else if (commands[0] == "_play") {
 	  // get coordinates, in [1] point to play, in [2...] points to enclose (if any)
 	  std::string s = commands[1];
@@ -7955,7 +7985,7 @@ playInteractively(Game &game, int threads_count, int iter_count)
 
     }
 }
-    
+
 /* sample sgf */
 
 std::string sgf185253("(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[30]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=15]EV[Wielki Turniej Pamięci Arosa 2013]RO[2 (faza grupowa)]PB[michals]PW[grzesiek2f]TM[180]OT[10]DT[2013-11-11]RE[W+11]BR[1505]WR[1334];B[oo];W[pm];B[nn];W[qp];B[pp];W[pn];B[pq];W[nl];B[qq];W[rp];B[rq];W[tp];B[sp];W[so];B[sq];W[rn];B[to];W[tn];B[uo];W[uq];B[un];W[tm];B[um];W[po];B[op];W[vq];B[ul];W[ts];B[rt];W[rs];B[qs];W[st];B[rr];W[ss];B[qt];W[sv];B[ru];W[tw];B[rv];W[rw];B[qw];W[rx];B[qx];W[wo];B[tk];W[xm];B[nm];W[ol];B[ml];W[nj];B[sj];W[mk];B[ll];W[kj];B[kk];W[lk];B[kl];W[jj];B[ri];W[ls];B[js];W[ku];B[kt];W[kp];B[ip];W[mu];B[lt];W[mt];B[lu];W[mv];B[lv];W[mw];B[ms];W[ns];B[mr];W[ot];B[nr];W[lx];B[os];W[nt];B[pt];W[jn];B[jo];W[il];B[kn];W[jm];B[km];W[ik];B[kw];W[kx];B[jw];W[iu];B[jx];W[kz];B[jy];W[lA];B[jz];W[jA];B[gu];W[hr];B[ht];W[is];B[it];W[hq];B[iq];W[ir];B[jr];W[fr];B[iA];W[ho];B[hp];W[gp];B[io];W[hn];B[ko];W[fo];B[ry];W[sy];B[sz];W[qy];B[rz];W[py];B[ty];W[sx];B[tx];W[sw];B[uz];W[ox];B[tr];W[vs];B[ur];W[vw];B[us];W[su];B[vr];W[wq];B[wr];W[xp];B[xr];W[qv];B[yq];W[zo];B[zp];W[yn];B[Ao];W[xk];B[qh];W[Ap];B[zn];W[yo];B[An];W[zq];B[yp];W[Bq];B[vt];W[At];B[ys];W[zu];B[zt];W[zs];B[yt];W[zr];B[yr];W[Bu];B[yu];W[zv];B[yv];W[yw];B[xw];W[yx];B[xx];W[xy];B[wy];W[pw.oxpyqyrxrwqvpwox];B[wv];W[ux];B[uy];W[wx];B[vy];W[vx];B[xi];W[yj];B[wj];W[wk];B[vk];W[Aj];B[Bm];W[Bk];B[Cl];W[Ck];B[yi];W[zi];B[xj];W[yl];B[pg];W[ne];B[of];W[nf];B[ng];W[ug];B[ue];W[wf];B[vf];W[wg];B[vg];W[wh];B[vh];W[wi];B[vi];W[mg];B[nh];W[li];B[oe];W[nd];B[od];W[nc];B[oc];W[yf];B[we];W[dc];B[dg];W[eg];B[eh];W[fh];B[ef];W[fg];B[di];W[ei];B[dh];W[ej];B[ff];W[gf];B[id];W[hc];B[jb];W[ic];B[jc];W[jd];B[kd];W[je];B[ke];W[jf];B[kf];W[kg];B[kc];W[lf];B[em];W[fm];B[el];W[fl];B[ek];W[fk];B[dj];W[gi];B[en];W[df];B[xe];W[zg];B[xf];W[xg];B[vj];W[zh];B[Al];W[zl];B[Bl];W[Ak];B[ey];W[fw];B[ev];W[fz];B[fy];W[gz];B[gy];W[hz];B[hy];W[iz];B[iB];W[jB];B[iC];W[jC];B[eB];W[eA];B[dA];W[gC];B[hC];W[gB];B[ez];W[fA];B[dC];W[fC];B[cv];W[cz];B[cA];W[by];B[cx];W[dz];B[du];W[et];B[fu];W[cs];B[bw];W[bx];B[cw];W[qB];B[xz];W[yy];B[tB];W[pC];B[qA];W[pA];B[rB];W[qz];B[rA];W[rC];B[sC];W[uC];B[uB];W[wB];B[vC];W[tC];B[xC];W[sD];B[wz];W[sB.rCsDtCsBrC];B[tz];W[vB];B[yz];W[wC];B[vD];W[xB];B[zz];W[Aw];B[Ay];W[Ax];B[By];W[Cw];B[Bp];W[Aq];B[Cp];W[Cq];B[ye];W[ze];B[zd];W[sc];B[sd];W[td];B[te];W[rd];B[se];W[qc];B[re];W[qe];B[qf];W[tb];B[ud];W[tc];B[uc];W[yc];B[yd];W[xc];B[wc];W[wb];B[vb];W[ub];B[xd];W[va];B[vc];W[Ae];B[Ad];W[Ce];B[xb];W[yb];B[wa.vbwcxbwavb];W[yC];B[xD];W[Cz];B[AB];W[BC];B[zC];W[yB];B[AC];W[AA];B[zA];W[BA];B[zB];W[zy];B[Az];W[cp];B[eo];W[ep];B[dt];W[ds];B[es];W[er];B[fs];W[gs];B[gt.dtduevfugtfsesdt];W[do];B[hs];W[gr];B[ck];W[cl];B[bk];W[de];B[bm];W[oi];B[pj];W[oh];B[og];W[qk];B[qj];W[rk];B[oj];W[nk];B[ni];W[mi];B[mh];W[lh];B[sl];W[rm];B[sm];W[sn];B[rl];W[ql];B[pd];W[qd];B[bh];W[tl];B[sk];W[vl];B[uk];W[vm];B[vn];W[wn];B[vp];W[wp];B[Dn];W[Do];B[Co];W[Dm];B[Cm];W[Dt];B[Ds];W[Cs];B[Dr];W[Cr];B[Du];W[Cu];B[Dv];W[Cv];B[vv];W[uw];B[uv];W[uu];B[vu];W[ut];B[pu];W[ou];B[pv];W[ov];B[mD];W[mC];B[lD];W[lC];B[ky];W[ly];B[nD];W[nC];B[oD];W[oC];B[kD];W[cn];B[cm];W[fn];B[fc];W[fd];B[ec];W[ed];B[gc];W[gd];B[hb];W[ib];B[ia];W[hd];B[gb];W[lb];B[ja];W[pb];B[nb];W[ob];B[mb];W[le];B[lc];W[lg];B[la];W[ka];B[kb.kblcmblakb];W[ld];B[mc];W[cg];B[ch];W[dm];B[dk];W[dn];B[dl];W[al];B[bl.blcmdlckbl];W[bg];B[be];W[ce];B[bd];W[cd];B[Dh];W[Ch];B[yh];W[yg];B[Di];W[Ci];B[Dj];W[Cj];B[Dg];W[Cg];B[Df];W[Cf];B[Bd];W[Be];B[zm];W[bt];B[bq];W[cq];B[br];W[bu];B[aw];W[cr];B[md];W[me];B[cy];W[bz];B[dy];W[iy];B[ix];W[aj];B[bj];W[ai];B[bi];W[ra];B[sa];W[sb];B[qa];W[qb];B[Bx];W[Bw];B[vA];W[sA];B[tA];W[eC];B[dB];W[on];B[pk];W[pl];B[kC];W[kB];B[tv];W[tu];B[qD];W[qC];B[in];W[im];B[bf];W[bc];B[cb];W[cc];B[pe];W[jq];B[kr];W[lq];B[lr];W[no];B[mp];W[mo];B[zb.ipiqjrkrlrmrnrosptqsrrqqppoonnnmmlllkmknjoip];W[ya];B[zc];W[Bb];B[Ab];W[Bc];B[Cd];W[ww];B[xv];W[hA];B[hB];W[fB];B[bo];W[co];B[lw];W[sr];B[tq];W[up];B[vo];W[rj];B[jk];W[ij];B[av];TB[.chbibjckdjdich.ducvcwcxdyeyfygyhyixjwkwlvluktjsithtgufuevdu.krjsktltmslrkr.ognhniojpjqjriqhpgog.peofpgqfpe.qfpgqhrisjtkukvjvivhvgvfuetesereqf.uztAuBvAuz.vcuduevfwexdwcvc.vrusvtvuwvxvyuytysxrwrvr.vyuzvAwzvy.AlzmAnBmAl.BmAnAoBpCoDnCmBm]TW[.dccddeeddc.docpcqcrdserfrgrhqgpfoepdo.eddedfegfgfheiejfkflfmfnfogphohnimilikijjjkjlilhkgjfjejdichdgdfded.gzfAgBhAgz.kzjAkBlAkz.likjlkmknjmili.lykzlAkBlCmCnCoCpCqBpAqzpyoxpwovountmumvmwlxly.melfmgnfme.qlpmpnpoqprpsornrmql.raqbqcrdscsbra.tssttuutts.wkvlvmwnxmylxkwk.xmwnwoxpyoynxm.yjxkylzlAkAjziyj.zeyfzgzhziAjBkCjCiChCgCfBeAeze.zvywyxzyAxAwzv.AqzrzsAtBuCuDtCsCrBqAq.AtzuzvAwBwCvBuAt])");
@@ -8009,7 +8039,7 @@ int main(int argc, char* argv[]) {
     ofs << s << std::endl;
   }
 #endif
-  
+
   SgfParser parser(s);
   auto seq = parser.parseMainVar();
   Game game(seq, (argc > 2 ? std::atoi(argv[2]) : 2000));
@@ -8022,7 +8052,7 @@ int main(int argc, char* argv[]) {
 
   int iter_count = (argc > 3) ? std::atoi(argv[3]) : 2000;
   int threads_count = (argc > 4) ?  std::atoi(argv[4]) : 3;
-  
+
   switch (mode) {
   case Mode::play:
     play_engine(game, s, threads_count, iter_count);
@@ -8034,13 +8064,13 @@ int main(int argc, char* argv[]) {
     playInteractively(game, threads_count, iter_count);
     break;
   }
-  
+
 #ifdef DEBUG_SGF
   std::cerr.flush();   std::cout.flush();
   std::cout << std::endl << "Sgf:" << std::endl << game.getSgf() << std::endl;
 #endif
 
- 
+
 #ifndef SPEED_TEST
   if (!game.checkCorrectness(seq)) {
     std::cerr << "Error" << std::endl;
