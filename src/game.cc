@@ -7861,14 +7861,14 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
 
 
 void
-play_engine(Game &game, std::string &s, int threads_count, int iter_count)
+play_engine(Game &game, std::string &s, int threads_count, int iter_count, int msec)
 {
   for (;;) {
     {
       MonteCarlo mc;
       start_time = std::chrono::high_resolution_clock::now();
       auto best_move = threads_count > 1 ?
-	mc.findBestMoveMT(game, threads_count, iter_count, 0) :
+	mc.findBestMoveMT(game, threads_count, iter_count, msec) :
 	mc.findBestMove(game, iter_count);
       auto end_time = std::chrono::high_resolution_clock::now();
       std::cerr << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() << " mikros" << std::endl;
@@ -8015,9 +8015,10 @@ int main(int argc, char* argv[]) {
      if iterations is present, runs that many Monte Carlo iterations,
       if threads is present, uses that many threads for Monte Carlo simulations.
 
-  kropla - [move_number [iterations [threads]]]
+  kropla - [move_number [iterations [threads [msec]]]]
     as above, but takes the sgf from stdin and does not quit after one move, but rather waits for
     the next moves in the game; this is for use with Kropki program.
+    If msec is present and threads>1, 'think' for at most (msec); msec==0 means no time limit.
 )raws";
       return 0;
     } else  {
@@ -8052,10 +8053,11 @@ int main(int argc, char* argv[]) {
 
   int iter_count = (argc > 3) ? std::atoi(argv[3]) : 2000;
   int threads_count = (argc > 4) ?  std::atoi(argv[4]) : 3;
+  int msec = (argc > 5) ?  std::atoi(argv[5]) : 0;
 
   switch (mode) {
   case Mode::play:
-    play_engine(game, s, threads_count, iter_count);
+    play_engine(game, s, threads_count, iter_count, msec);
     break;
   case Mode::sgf_move:
     findAndPrintBestMove(game, iter_count);
