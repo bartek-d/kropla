@@ -346,10 +346,11 @@ OneConnection::getUniqueGroups(std::array<pti,4> &unique_groups) const
 *********************************************************************************************************/
 
 struct Movestats {
-  int32_t playouts;
-  real_t value_sum;
+  std::atomic<int32_t> playouts;
+  std::atomic<real_t> value_sum;
   Movestats() { playouts = 0;   value_sum = 0; };
   const Movestats& operator+=(const Movestats& other);
+  Movestats& operator=(const Movestats&);
   bool operator<(const Movestats& other) const;
   std::string show() const;
 };
@@ -358,9 +359,18 @@ const Movestats&
 Movestats::operator+=(const Movestats& other)
 {
   playouts += other.playouts;
-  value_sum += other.value_sum;
+  auto other_sum = other.value_sum.load();
+  value_sum = value_sum.load() + other_sum;
   return *this;
 }
+
+Movestats& Movestats::operator=(const Movestats& other)
+{
+  playouts = other.playouts.load();
+  value_sum = other.value_sum.load();
+  return *this;
+}
+
 
 bool
 Movestats::operator<(const Movestats& other) const
@@ -384,7 +394,7 @@ Movestats::show() const
 struct Treenode {
   Treenode* parent;
   //std::vector<Treenode> children;
-  Treenode* children;
+  std::atomic<Treenode*> children;
   Movestats t;
   Movestats amaf;
   Movestats prior;
@@ -400,7 +410,22 @@ struct Treenode {
   std::string show() const;
   std::string getMoveSgf() const;
   Treenode() { flags=0;   children=nullptr;  parent=nullptr; };
+  Treenode& operator=(const Treenode&);
+  Treenode(const Treenode& other) { *this = other; };
 };
+
+Treenode&
+Treenode::operator=(const Treenode& other)
+{
+   parent = other.parent;
+   children = other.children.load();
+   t = other.t;
+   amaf = other.amaf;
+   prior = other.prior;
+   move = other.move;
+   flags = other.flags;
+   return *this;
+}
 
 real_t
 Treenode::getValue() const
@@ -3641,7 +3666,12 @@ Game::descend(TreenodeAllocator &alloc, Treenode *node, int depth, bool expand)
   if (node->children == nullptr && (expand || (node->t.playouts - node->prior.playouts) >= MC_EXPAND_THRESHOLD)) {
     //std::cerr << " expand: node->move = " << coord.showPt(node->move.ind) << std::endl;
     generateListOfMoves(alloc, node, depth, node->move.who ^ 3);
-    node->children = alloc.getLastBlock();
+    if (node->children == nullptr) {
+      node->children = alloc.getLastBlock();
+    }
+    else {
+      alloc.getLastBlock();
+    }
 #ifndef NDEBUG
     if (node == node->parent) {
       assert(checkRootListOfMovesCorrectness(node->children));
@@ -3732,7 +3762,7 @@ Game::descend(TreenodeAllocator &alloc, Treenode *node, int depth, bool expand)
       auto move_who = node->move.who;
       auto adjusted_value = (move_who == 1) ? v : 1-v;
       node->t.playouts += 1 - VIRTUAL_LOSS;  // add 1 new playout and undo virtual loss
-      node->t.value_sum += adjusted_value;
+      node->t.value_sum = node->t.value_sum.load() + adjusted_value;
       if (node == node->parent) {
 	// we are at root
 	node->t.playouts += VIRTUAL_LOSS;  // in root we do not add virtual loss, but we 'undid' it, so we have to add it again
@@ -3749,12 +3779,12 @@ Game::descend(TreenodeAllocator &alloc, Treenode *node, int depth, bool expand)
 	  } else if (amafboard[ch->move.ind] == -4) {
 	    // dame, add 1 playout (?)
 	    ch->amaf.playouts += 1;
-	    ch->amaf.value_sum += adjusted_value;
+	    ch->amaf.value_sum = ch->amaf.value_sum.load() + adjusted_value;
 	  }
 	} else if ((amafboard[ch->move.ind] & distance_rave_MASK) == ch->move.who) {
 	  int count = amafboard[ch->move.ind] >> distance_rave_SHIFT;
 	  ch->amaf.playouts += count;
-	  ch->amaf.value_sum += adjusted_value*count;
+	  ch->amaf.value_sum = ch->amaf.value_sum.load() + adjusted_value*count;
 	} else if (adjusted_value < 0.2 &&
 		   (amafboard[ch->move.ind] & distance_rave_MASK) == 3 - ch->move.who) {  // inside encl, == 0 possible when there was enclosure in the generateListOfMoves-playout phase
 	  // v114+: add also losses for playing inside opp's (reduced) territory -- sometimes
@@ -3763,7 +3793,7 @@ Game::descend(TreenodeAllocator &alloc, Treenode *node, int depth, bool expand)
 	  if (amafboard[ch->move.ind] & distance_rave_TERR) {
 	    int count = amafboard[ch->move.ind] >> distance_rave_SHIFT;
 	    ch->amaf.playouts += count;
-	    ch->amaf.value_sum += adjusted_value*count;
+	    ch->amaf.value_sum = ch->amaf.value_sum.load() + adjusted_value*count;
 	  }
 	}
 	if (ch->isLast()) break;
@@ -5783,7 +5813,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 #ifndef NDEBUG
 	out << "p3p=" << value << " ";
 #endif
-	tn.t.playouts += value;  tn.t.value_sum += value;  // add won simulations
+	tn.t.playouts += value;  tn.t.value_sum = tn.t.value_sum.load() + value;  // add won simulations
       }
     }
     // add prior values for edge moves
@@ -5794,7 +5824,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 #ifndef NDEBUG
 	out << "edge=" << 3*r << " ";
 #endif
-	tn.t.playouts += 3*r;  tn.t.value_sum += 3*r;  // add won simulations (3--12)
+	tn.t.playouts += 3*r;  tn.t.value_sum = tn.t.value_sum.load()+ 3*r;  // add won simulations (3--12)
       }
     }
     // save only 1 dame move
@@ -5844,7 +5874,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
     // add prior values according to InterestingMoves (cut/connect)
     {
       int w = interesting_moves.classOfMove(i);
-      tn.t.playouts += 4*w;  tn.t.value_sum += 4*w;  // add w=(0,1,2,3 times 3) won simulations
+      tn.t.playouts += 4*w;  tn.t.value_sum = tn.t.value_sum.load() + 4*w;  // add w=(0,1,2,3 times 3) won simulations
 #ifndef NDEBUG
       out << "intm=" << 4*w << " ";
 #endif
@@ -5854,7 +5884,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
     {
       int dist = std::min(coord.distBetweenPts_1(i, history.back() & ~HISTORY_TERR), coord.distBetweenPts_1(i, (*(history.end()-2))  & ~HISTORY_TERR));
       if (dist <= 4) {
-	tn.t.playouts += (6-dist);  tn.t.value_sum += (6-dist);  // add won simulations
+	tn.t.playouts += (6-dist);  tn.t.value_sum = tn.t.value_sum.load() + (6-dist);  // add won simulations
 #ifndef NDEBUG
 	out << "dist=" << 6-dist << " ";
 #endif
@@ -5867,7 +5897,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 	if (t.where0 == i) {
 	  if (t.min_win2 && t.isSafe()) {
 	    int num = 5 + std::min(int(t.min_win2), 15);
-	    tn.t.playouts += num;  tn.t.value_sum += num;  // add won simulations
+	    tn.t.playouts += num;  tn.t.value_sum = tn.t.value_sum.load() + num;  // add won simulations
 #ifndef NDEBUG
 	    out << "thr2m=" << num << " ";
 #endif
@@ -5881,7 +5911,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 	  if (t.min_win2 && t.isSafe()) { // && threats[2-who].is_in_terr[t.where0]==0 && threats[2-who].is_in_encl[t.where0]==0 -- this is above (!is_in_opp_te)
 	    int num = 5 + std::min(int(t.min_win2), 15);
 	    //tn.t.playouts += num;   // add lost simulations ???
-	    tn.t.playouts += num;  tn.t.value_sum += num;  // add won simulations
+	    tn.t.playouts += num;  tn.t.value_sum = tn.t.value_sum.load() + num;  // add won simulations
 #ifndef NDEBUG
 	    out << "thr2mopp=" << num << " ";
 #endif
@@ -5953,13 +5983,13 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 	  }
 	  if (value) {
 	    int num = 5 + 2*std::min(value, 15);
-	    tn.t.playouts += num;  tn.t.value_sum += num;  // add won simulations
+	    tn.t.playouts += num;  tn.t.value_sum = tn.t.value_sum.load() + num;  // add won simulations
 #ifndef NDEBUG
 	    out << "oppv2m=" << num << " ";
 #endif
 
 	  } else if (terr_value >= 3) {
-	    tn.t.playouts += 4;  tn.t.value_sum += 4*0.9;  // add 0.9 won simulations
+	    tn.t.playouts += 4;  tn.t.value_sum = tn.t.value_sum.load() + 4*0.9;  // add 0.9 won simulations
 #ifndef NDEBUG
 	    out << "oppter=0.9*4 ";
 #endif
@@ -6015,14 +6045,14 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 	  }
 	  if (value) {
 	    int num = 5 + 2*std::min(value, 15);
-	    tn.t.playouts += num;  tn.t.value_sum += num;  // add won simulations
+	    tn.t.playouts += num;  tn.t.value_sum = tn.t.value_sum.load() + num;  // add won simulations
 #ifndef NDEBUG
 	    out << "voft=" << num << " ";
 #endif
 
 	  } else if (terr_value >= 2) {
 	    int num = 2 + std::min(terr_value, 15);
-	    tn.t.playouts += num;  tn.t.value_sum += num;  // add won simulations
+	    tn.t.playouts += num;  tn.t.value_sum = tn.t.value_sum.load() + num;  // add won simulations
 #ifndef NDEBUG
 	    out << "voftT=" << num << " ";
 #endif
@@ -6051,8 +6081,8 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
     } else {
       // special move, canceling opp's threat or allowing for our enclosure
       int em = ml_encl_moves.size();
-      auto tplayouts = tn.t.playouts;
-      auto tvalue_sum = tn.t.value_sum;
+      auto tplayouts = tn.t.playouts.load();
+      auto tvalue_sum = tn.t.value_sum.load();
       int dots = 0, captured_dots = 0;
       if (threats[who-1].is_in_border[i]) {
 	for (auto &t : threats[who-1].threats) {
@@ -6085,7 +6115,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 	}
       }
       int num = 5 + 2*std::min(dots, 15) + 3*std::min(saved_dots, 15) + (captured_dots == 0 ? 0 : (4*std::min(captured_dots, 15) - 1));
-      tn.t.playouts += num;  tn.t.value_sum += num;  // add won simulations
+      tn.t.playouts += num;  tn.t.value_sum = tn.t.value_sum.load() + num;  // add won simulations
 #ifndef NDEBUG
       out << "special=" << num << " --> (" << tn.t.playouts << ", " << tn.t.value_sum << ") ";
       if (parent->parent == parent) std::cerr << out.str() << std::endl;
@@ -7641,7 +7671,7 @@ MonteCarlo::findBestMove(Game &pos, int iter_count)
   int n = alloc.getSize(root.children);
   if (n>1) {
     root.children[n-1].markAsNotLast();
-    std::sort(root.children, root.children + n, [](Treenode &t1, Treenode &t2) { return t1.t.playouts - t1.prior.playouts > t2.t.playouts - t2.prior.playouts; });
+    std::sort(root.children.load(), root.children.load() + n, [](Treenode &t1, Treenode &t2) { return t1.t.playouts - t1.prior.playouts > t2.t.playouts - t2.prior.playouts; });
     root.children[n-1].markAsLast();
   }
   std::cerr << "Sort ends, root.children.size()==" << n << ", root value = " << root.t.value_sum/root.t.playouts << ", root playouts = " << root.t.playouts << std::endl;
@@ -7654,7 +7684,7 @@ MonteCarlo::findBestMove(Game &pos, int iter_count)
       int nn = alloc.getSize(root.children[i].children);
       if (nn > 1) {
 	root.children[i].children[nn-1].markAsNotLast();
-	std::sort(root.children[i].children, root.children[i].children+nn, [](Treenode &t1, Treenode &t2) { return t1.t.playouts - t1.prior.playouts > t2.t.playouts - t2.prior.playouts; });
+	std::sort(root.children[i].children.load(), root.children[i].children.load()+nn, [](Treenode &t1, Treenode &t2) { return t1.t.playouts - t1.prior.playouts > t2.t.playouts - t2.prior.playouts; });
 	root.children[i].children[nn-1].markAsLast();
       }
       for (int j=0; /*j<15 &&*/ j<nn; j++) {
@@ -7791,7 +7821,7 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
 #ifndef SPEED_TEST
       if (5*iterations > 3*iter_count) {
 	const Treenode *ch = root.getBestChild();
-	int best = (ch != nullptr) ? ch->t.playouts : (iter_count + 21);
+	int best = (ch != nullptr) ? ch->t.playouts.load() : (iter_count + 21);
 	if (best > 20 + iter_count/2) {
 	  finish_sim = true;
 	  break;
@@ -7814,7 +7844,7 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
   int n = TreenodeAllocator::getSize(root.children);
   if (n>1) {
     root.children[n-1].markAsNotLast();
-    std::sort(root.children, root.children + n, [](Treenode &t1, Treenode &t2) { return t1.t.playouts - t1.prior.playouts > t2.t.playouts - t2.prior.playouts; });
+    std::sort(root.children.load(), root.children.load() + n, [](Treenode &t1, Treenode &t2) { return t1.t.playouts - t1.prior.playouts > t2.t.playouts - t2.prior.playouts; });
     root.children[n-1].markAsLast();
   }
   std::cerr << "Sort ends, root.children.size()==" << n << ", root value = " << root.t.value_sum/root.t.playouts << ", root playouts = " << root.t.playouts << std::endl;
@@ -7826,7 +7856,7 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
       int nn = TreenodeAllocator::getSize(root.children[i].children);
       if (nn > 1) {
 	root.children[i].children[nn-1].markAsNotLast();
-	std::sort(root.children[i].children, root.children[i].children+nn, [](Treenode &t1, Treenode &t2) { return t1.t.playouts > t2.t.playouts; });
+	std::sort(root.children[i].children.load(), root.children[i].children.load()+nn, [](Treenode &t1, Treenode &t2) { return t1.t.playouts > t2.t.playouts; });
 	root.children[i].children[nn-1].markAsLast();
       }
       for (int j=0; j<15 && j<nn; j++) {
