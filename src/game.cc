@@ -7775,6 +7775,10 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
 	    break;
 	  }
 	}
+	if (duration > msec) {
+	  finish_sim = true;
+	  break;
+	}
       }
       if (threads_to_be_finished == 0) {
 	finish_sim = true;
