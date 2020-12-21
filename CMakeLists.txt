@@ -4,6 +4,7 @@ project(kropla)
 #set(CMAKE_CXX_FLAGS "-g -Wall -std=c++14 -O3") # -DNDEBUG -msse3")  #-DSPEED_TEST
 #set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc  -Wall -std=c++14 -O3 -DNDEBUG -msse3 -DSPEED_TEST")
 set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc  -Wall -std=c++14 -O3 -DNDEBUG -msse3")
+#set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc  -Wall -std=c++14 -O3 -DNDEBUG -DDEBUG_SGF -msse3")
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
