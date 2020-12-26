@@ -998,8 +998,8 @@ public:
   Enclosure findEnclosure_notOptimised(pti point, pti mask, pti value);
   Enclosure findInterior(std::vector<pti> border) const;
   void makeEnclosure(const Enclosure& encl, bool remove_it_from_threats);
-  int countTerritory(int now_moves) const;
-  int countTerritory_simple(int now_moves) const;
+  std::pair<int, int> countTerritory(int now_moves) const;
+  std::pair<int, int> countTerritory_simple(int now_moves) const;
   std::pair<int16_t, int16_t> countDotsTerrInEncl(const Enclosure& encl, int who, bool optimise = true) const;
   void makeSgfMove(std::string m, int who);
   void makeMove(Move &m);
@@ -5313,7 +5313,7 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
 
 
 
-int
+std::pair<int, int>
 Game::countTerritory(int now_moves) const
 {
   const int ct_B = 1;
@@ -5404,9 +5404,10 @@ Game::countTerritory(int now_moves) const
       // if (must-surround)...
     }
   }
-  // calculate the score assuming last-dot-safe
+  // calculate the score assuming last-dot-safe==false
   delta_score[3] += komi;
   int delta = (delta_score[0] - delta_score[1]);
+  int small_score = 0;
   if ((delta_score[2]-delta_score[3]) % 2 == 0) {
     delta += (delta_score[2] - delta_score[3]) / 2;
   } else {
@@ -5415,20 +5416,25 @@ Game::countTerritory(int now_moves) const
       if (coord.dist[i]>=0) {
 	if ((marks[i] & (ct_B | ct_W)) == 0 && (marks[i] & (ct_NOT_TERR_B | ct_NOT_TERR_W)) == (ct_NOT_TERR_B | ct_NOT_TERR_W) ) dame++;
       }
-    if ((dame + now_moves) % 2)
-      delta += (delta_score[2] - delta_score[3] - 1) / 2;
-    else
-      delta += (delta_score[2] - delta_score[3] + 1) / 2;
+    int correction;
+    if ((dame + now_moves) % 2) {
+      correction = (delta_score[2] - delta_score[3] - 1) / 2;
+    }
+    else {
+      correction = (delta_score[2] - delta_score[3] + 1) / 2;
+    }
+    delta += correction;
+    small_score = delta_score[2] - delta_score[3] - 2*correction;
   }
   //
   //std::cerr << "Terr-delta-score: " << delta << std::endl;
-  return (score[0].dots - score[1].dots) + delta;
+  return {(score[0].dots - score[1].dots) + delta, small_score};
 }
 
 
 
 /// Simple function for counting territory, assuming pools of other players do not intersect.
-int
+std::pair<int, int>
 Game::countTerritory_simple(int now_moves) const
 {
   // count points ignoring pools that are included in bigger pools
@@ -5464,24 +5470,32 @@ Game::countTerritory_simple(int now_moves) const
       dame++;
     }
   }
-  // calculate the score assuming last-dot-safe
+  // calculate the score assuming last-dot-safe==false
   delta_score[3] += komi;
   int delta = (delta_score[0] - delta_score[1]);
+  int small_score = 0;
   if ((delta_score[2]-delta_score[3]) % 2 == 0) {
     delta += (delta_score[2] - delta_score[3]) / 2;
   } else {
-    if ((dame + now_moves) % 2)
-      delta += (delta_score[2] - delta_score[3] - 1) / 2;
-    else
-      delta += (delta_score[2] - delta_score[3] + 1) / 2;
+    int correction;
+    if ((dame + now_moves) % 2) {
+      correction = (delta_score[2] - delta_score[3] - 1) / 2;
+    }
+    else {
+      correction = (delta_score[2] - delta_score[3] + 1) / 2;
+    }
+    delta += correction;
+    small_score = delta_score[2] - delta_score[3] - 2*correction;
   }
   //
   //std::cerr << "Terr-delta-score: " << delta << std::endl;
 #ifndef NDEBUG
-  if ((score[0].dots - score[1].dots) + delta != countTerritory(now_moves)) {
+  auto ct_score = countTerritory(now_moves);
+  if ((score[0].dots - score[1].dots) + delta != ct_score.first or small_score != ct_score.second) {
     show();
-    std::cerr << "res = " << (score[0].dots - score[1].dots) + delta << ", should be = " << countTerritory(now_moves) << std::endl;
+    std::cerr << "res = " << (score[0].dots - score[1].dots) + delta << ", should be = " << ct_score.first << std::endl;
     std::cerr << "delta_score: " << delta_score[0] << ", " << delta_score[1] << ", " << delta_score[2] << ", " << delta_score[3] << ", komi=" << komi << std::endl;
+    std::cerr << "small_score: " << small_second << ", should be = " << ct_score.second << std::endl;
     //
     std::vector<pti> th(coord.getSize(), 0);
     for (int ind=coord.first; ind<=coord.last; ++ind) {
@@ -5496,7 +5510,7 @@ Game::countTerritory_simple(int now_moves) const
     //assert(0);
   }
 #endif
-  return (score[0].dots - score[1].dots) + delta;
+  return {(score[0].dots - score[1].dots) + delta, small_score};
 }
 
 
@@ -6719,14 +6733,15 @@ Game::randomPlayout()
     if (dame_moves_so_far >= 2) break;
   }
   //std::cerr << std::endl;
-  int res = countTerritory_simple(nowMoves);
+  auto [res, res_small] = countTerritory_simple(nowMoves);
   real_t win_value;
   if (res == 0) {
-    win_value = 0.5;
+    const real_t scale = 0.04;
+    win_value = 0.5 + scale * res_small;
   } else {
     int range = (coord.wlkx + coord.wlky)/2;
     const real_t scale = 0.04;
-    real_t scaled_score = scale*std::max( std::min( real_t(res)/range, real_t(1.0)), real_t(-1.0));
+    real_t scaled_score = scale*std::max( std::min( real_t(res + 0.5*res_small)/range, real_t(1.0)), real_t(-1.0));
     win_value = (res>0) * (1-2*scale) + scale + scaled_score;
   }
 #ifdef DEBUG_SGF
@@ -7572,12 +7587,12 @@ Game::checkCorrectness(SgfSequence seq)
   } else
     return false;
   auto saved_komi = komi;  komi = 0;
-  int ct = countTerritory_simple(nowMoves);
+  auto [ct, ct_small_score] = countTerritory_simple(nowMoves);
   if (ct==res) {
     komi = saved_komi;
     return true;
   }
-  int ct2 = countTerritory(nowMoves);
+  auto [ct2, ct2_small_score] = countTerritory(nowMoves);
   komi = saved_komi;
   std::cerr << "Blad, ct=" << ct << ", res=" << res << ", zwykle ct=" << ct2 << std::endl;
   return false;
