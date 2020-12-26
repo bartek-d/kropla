@@ -37,6 +37,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <memory>   // unique pointer
+#include <cmath>
 //#include <exception>
 #include <stdexcept>
 #include <random>
@@ -431,6 +432,13 @@ real_t
 Treenode::getValue() const
 {
   real_t value;
+  real_t ucb_term = 0.0;
+  if (parent != this) {  // not at root
+    uint32_t N = parent->t.playouts;
+    uint32_t n = t.playouts;
+    constexpr real_t C = 0.1;
+    ucb_term = C * std::sqrt(std::log(N+1) / (n + 0.1));
+  }
   if (t.playouts > 0 && amaf.playouts>0) {
     real_t beta = amaf.playouts / (amaf.playouts + t.playouts + t.playouts* MC_SIMS_EQUIV_RECIPR * amaf.playouts);
     value = beta * amaf.value_sum / amaf.playouts + (1-beta) * t.value_sum / t.playouts;
@@ -441,7 +449,7 @@ Treenode::getValue() const
       value = amaf.value_sum / amaf.playouts;
     }
   }
-  return value;
+  return value + ucb_term;
 }
 
 
