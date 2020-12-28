@@ -224,7 +224,7 @@ Move::toSgfString() const
 std::string
 Move::show() const
 {
-  return (who != -1) ? coord.showPt(ind) + " +" + std::to_string(enclosures.size()) + " encl(s), zobr=" + std::to_string(zobrist_key) : "(none)";
+  return (who != -1) ? coord.showPt(ind) + " +" + std::to_string(enclosures.size()) + " encl(s)" /*, zobr=" + std::to_string(zobrist_key)*/ : "(none)";
 }
 
 /********************************************************************************************************
@@ -5495,7 +5495,7 @@ Game::countTerritory_simple(int now_moves) const
     show();
     std::cerr << "res = " << (score[0].dots - score[1].dots) + delta << ", should be = " << ct_score.first << std::endl;
     std::cerr << "delta_score: " << delta_score[0] << ", " << delta_score[1] << ", " << delta_score[2] << ", " << delta_score[3] << ", komi=" << komi << std::endl;
-    std::cerr << "small_score: " << small_second << ", should be = " << ct_score.second << std::endl;
+    std::cerr << "small_score: " << small_score << ", should be = " << ct_score.second << std::endl;
     //
     std::vector<pti> th(coord.getSize(), 0);
     for (int ind=coord.first; ind<=coord.last; ++ind) {
@@ -7887,7 +7887,13 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
       }
     }
   }
-
+  if (n > 15) {
+    std::cerr << "Other moves: ";
+    for (int i=15; i<n; ++i) {
+      std::cerr << root.children[i].move.show() << "  ";
+    }
+    std::cerr << std::endl;
+  }
   {
     int real_playouts = 0;
     for (int i=0; i<n; i++) {
