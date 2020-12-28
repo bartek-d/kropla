@@ -56,7 +56,6 @@
 #include "sgf.h"
 #include "command.h"
 #include "patterns.h"
-#include "influence.h"
 #include "enclosure.h"
 #include "threats.h"
 
@@ -857,7 +856,6 @@ InterestingMoves::classOfMove(pti p) const
   return 3 - curr_list;
 }
 
-const bool INFLUENCE_TURNED_OFF = true;   // to turn off completely
 
 /********************************************************************************************************
   Game class
@@ -895,7 +893,6 @@ class Game {
   std::vector<std::shared_ptr<Enclosure> > ml_opt_encl_moves;
   std::vector<uint64_t> ml_encl_zobrists;
   int dame_moves_so_far {0};
-  Influence influence;
   // worm[] has worm-id if it is >= 4 && <= MASK_WORM_NO,
   // worm[] & MASK_DOT can have 4 values: 0=empty, 1,2 = dots, 3=point outside the board
   static const int MASK_DOT = 3;
@@ -952,9 +949,6 @@ private:
   void connectionsRecalculatePoint(pti ind, int who);
   void connectionsRecalculateNeighb(pti ind, int who);
   void connectionsRenameGroup(pti dst, pti src);
-  bool isInfluenceBarrierFor(pti ind, int who) const;
-  Influence::PointInfluence findPointInfluence(pti ind);
-  void updatePoint_Influence(pti ind);
   pattern3_t getPattern3_at(pti ind) const;
   bool isEmptyInDirection(pti ind, int direction) const;
   bool isEmptyInNeighbourhood(pti ind) const;
@@ -1013,8 +1007,6 @@ public:
   Move getRandomEncl(Move &m);
   Move chooseAtariMove(int who);
   Move choosePattern3Move(pti move0, pti move1, int who);
-  bool isInfluential(pti i, bool edge) const;
-  Move chooseInfluenceMove(int who);
   Move chooseAnyMove(int who);
   std::vector<pti> getGoodTerrMoves(int who) const;
   Move chooseAnyMove_pm(int who);
@@ -1034,13 +1026,9 @@ public:
   bool checkPossibleMovesCorrectness(int who) const;
   bool checkCorrectness(SgfSequence seq);
   bool checkPattern3valuesCorrectness() const;
-  bool checkInfluenceCorrectness();
 
   void seedRandomEngine(int newseed) { engine.seed(newseed); };
   void findConnections();
-
-  void calculateInfluence();
-  void calculateBorderInfluence();
 
   void Test();
   void show() const;
@@ -1108,14 +1096,12 @@ Game::Game(SgfSequence seq, int max_moves)
   pattern3_value[1] = std::vector<pattern3_val>(coord.getSize(), 0);
   pattern3_at = std::vector<pattern3_t>(coord.getSize(), 0);
   descr = std::map<pti, WormDescr>();
-  influence.allocMem(coord.getSize());
   connects[0] = std::vector<OneConnection>(coord.getSize(), OneConnection());
   connects[1] = std::vector<OneConnection>(coord.getSize(), OneConnection());
   threats[0] = AllThreats();
   threats[1] = AllThreats();
   lastWormNo[0]=1; lastWormNo[1]=2;
   initWorm();
-  calculateBorderInfluence();
   history.push_back(0);
   history.push_back(0);
   possible_moves.generate();
@@ -3163,122 +3149,6 @@ Game::connectionsRecalculateNeighb(pti ind, int who)
   connectionsRecalculatePoint(ind, 2);
 }
 
-
-/// Barrier is any point between two dots or a dot and a border,
-/// or near an opponent dot (or any dot for who==0, i.e., edge influence).
-/// This is a barrier for spreading influence further.
-bool
-Game::isInfluenceBarrierFor(pti ind, int who) const
-{
-  assert(who == 1 || who == 2 || who == 0);
-  assert(ind>=0 && ind<=coord.last && coord.dist[ind] >= 0);
-  if (who != 0) {
-    for (int i=0; i<4; i++) {
-      pti nb = ind + coord.nb4[i];
-      if (whoseDotMarginAt(nb) == 3-who) return true;
-    }
-  } else {
-    for (int i=0; i<4; i++) {
-      pti nb = ind + coord.nb4[i];
-      if (whoseDotAt(nb) != 0) return true;
-    }
-  }
-  // Now check if between, we take i up to 5, because by symmetry the rest is already checked.
-  for (int i=0; i<=5; i++) {
-    pti nb = ind + coord.nb8[i];
-    if (whoseDotAt(nb) != 0) {
-      for (int j=i+3; j<=i+5; j++) {
-	pti nb2 = ind + coord.nb8[j];  // [j & 7];
-	if (whoseDotAt(nb2) != 0) return true;
-      }
-    }
-  }
-  return false;
-}
-
-
-Influence::PointInfluence
-Game::findPointInfluence(pti ind)
-{
-  Influence::PointInfluence ret;
-  ret.size = 0;
-  ret.sum = 0.0;
-  // corners make no influence
-  if ((coord.x[ind] == 0 || coord.x[ind] == coord.wlkx-1) && (coord.y[ind] == 0 || coord.y[ind] == coord.wlky-1))
-    return ret;
-  const float DECAY = 0.333;
-  const float DECAY_DIAG = 0.1665;
-  const int32_t DIST_THRESHOLD = 4;
-  const int32_t DIST_THRESHOLD_PUSH = 3;
-  int who = whoseDotMarginAt(ind);
-  ret.table_no = who ? who-1 : 2;
-  influence.working[ind] = 1.0;
-  int dir_count = 8;  // at the source we visit in all directions
-  influence.queue.push({ind, 0, 0});
-  // Removing dot at [ind]:
-  //    CleanupOneVar<pti> worm_where_cleanup(&worm[ind], 0);   //  worm[ind] = 0;  with restored old value by destructor
-  // makes problems, see testowe-sgf/zagram153375.sgf  move 295
-  while (!influence.queue.empty()) {
-    auto cur = influence.queue.top();      influence.queue.pop();
-    pti p = cur.p;
-    pti direction = cur.dir;
-    direction = (direction + 7) & 7;
-    for (int counter=0; counter<dir_count; ++counter, direction = (direction + 1) & 7) {
-      pti nb = p + coord.nb8[direction];
-      int32_t new_dist =  cur.dist + ((direction & 1) ? 1 : 2);
-      if (whoseDotMarginAt(nb) == 0 && new_dist <= DIST_THRESHOLD &&
-	  ((direction & 1) != 0 ||                                        // horizontal/vertical direction,
-	   whoseDotMarginAt(p + coord.nb8[(direction + 7) & 7]) == 0 ||   // or in the case of diagonal direction, we do not want to spread
-	   whoseDotMarginAt(p + coord.nb8[(direction + 1) & 7]) == 0)) {  // influence in between 2 dots connected diagonally
-	float value = influence.working[p] * ((direction & 1) ? DECAY : DECAY_DIAG);
-	if (influence.working[nb] == 0) {
-	  influence.working[nb] = value;
-	  assert(ret.size < POINT_INFLUENCE_SIZE);
-	  ret.list[ret.size++] = { value, nb };   // value will be changed later anyway
-	  if (new_dist <= DIST_THRESHOLD_PUSH &&
-	      !isInfluenceBarrierFor(nb, who)) {
-	    influence.queue.push( { nb, direction, new_dist } );
-	  }
-	} else {
-	  influence.working[nb] += value;
-	}
-      }
-    }
-    dir_count = 3;  // outside source, take only 3 directions, the one that led us to the visited point and two similar
-  }
-  influence.working[ind] = 0.0;
-  for (int i=0; i<ret.size; i++) {
-    ret.list[i].v = influence.working[ret.list[i].p];
-    ret.sum += influence.working[ret.list[i].p];
-    influence.working[ret.list[i].p] = 0.0;
-  }
-  return ret;
-}
-
-// at [ind] someone placed a dot, update influence at [ind] and its neighbours
-void
-Game::updatePoint_Influence(pti ind)
-{
-  if (INFLUENCE_TURNED_OFF || influence.turned_off) return;
-  auto infl = findPointInfluence(ind);
-  influence.changePointInfluence(infl, ind);
-  int x = coord.x[ind], y=coord.y[ind];
-  int from[9] = {1, 2, 3, 4, 4, 4, 3, 2, 1};
-  int from_x = std::min(x, 4);
-  int to_x = std::min((coord.wlkx-1-x), 4);
-  for (int i=-from_x; i<=to_x; i++) {  // -4...4 at most
-    pti nb = coord.ind(x+i, y);
-    for (int j = -from[i+4]; j <= from[i+4]; j++)
-      if (y+j >=0 && y+j < coord.wlky) {
-	assert(nb+j>=coord.first && nb+j<=coord.last && whoseDotMarginAt(nb+j) != 3);
-	if (whoseDotMarginAt(nb+j) != 0 || coord.dist[nb+j]==0) {
-	  auto infl = findPointInfluence(nb+j);
-	  influence.changePointInfluence(infl, nb+j);
-	}
-      }
-  }
-}
-
 pattern3_t
 Game::getPattern3_at(pti ind) const
 {
@@ -3722,7 +3592,6 @@ Game::descend(TreenodeAllocator &alloc, Treenode *node, int depth, bool expand)
     }
     // we are at leaf, playout...
     auto nmoves = history.size();
-    influence.turned_off = true;
     real_t v = randomPlayout();
     auto lastWho = node->move.who;
     //auto endmoves = std::min(history.size(), nmoves + 50);
@@ -4124,39 +3993,6 @@ Game::placeDot(int x, int y, int who)
       recalculate_list.push_back(nb);
     }
   }
-  updatePoint_Influence(ind);
-}
-
-void
-Game::calculateInfluence()
-{
-  for (int i=coord.first; i<=coord.last; ++i)
-    if ((coord.dist[i] >= 0) && (coord.dist[i] == 0 || whoseDotMarginAt(i) != 0)) {
-      auto infl = findPointInfluence(i);
-      influence.changePointInfluence(infl, i);
-    }
-}
-
-void
-Game::calculateBorderInfluence()
-{
-  assert(whoseDotMarginAt(0) == 3);
-  for (int y : {0, coord.wlky-1})
-    for (int i=1; i<coord.wlkx-1; ++i) {
-      pti ind = coord.ind(i, y);
-      if (whoseDotMarginAt(ind) == 0) {
-	auto infl = findPointInfluence(ind);
-	influence.changePointInfluence(infl, ind);
-      }
-    }
-  for (int x : {0, coord.wlkx-1})
-    for (int j=1; j<coord.wlky-1; ++j) {
-      pti ind = coord.ind(x, j);
-      if (whoseDotMarginAt(ind) == 0) {
-	auto infl = findPointInfluence(ind);
-	influence.changePointInfluence(infl, ind);
-      }
-    }
 }
 
 void
@@ -4180,42 +4016,6 @@ Game::show() const
 void
 Game::showSvg()
 {
-  calculateInfluence();
-  Svg svg(coord.wlkx, coord.wlky);
-  float max_infl = 0.0;
-  for (int i=coord.first; i<=coord.last; ++i)
-    if (whoseDotMarginAt(i) == 0) {
-      if (influence.influence[0][i] > max_infl) max_infl = influence.influence[0][i];
-      if (influence.influence[1][i] > max_infl) max_infl = influence.influence[1][i];
-      if (influence.influence[2][i] > max_infl) max_infl = influence.influence[2][i];
-      /*
-      float inf[3];
-      inf[0] = std::max(influence.influence[0][i], std::max(influence.influence[1][i], influence.influence[2][i]));
-      inf[2] = std::min(influence.influence[0][i], std::min(influence.influence[1][i], influence.influence[2][i]));
-      inf[1] = influence.influence[0][i] + influence.influence[1][i] + influence.influence[2][i] - inf[0] - inf[2];
-      if (inf[1] > 0.00001) {
-	if (inf[0] < 2.0 * inf[1] || inf[1] < 1.5 * inf[2])
-	  svg.drawDot(coord.x[i], coord.y[i], 3);
-      }
-      */
-      if (isInfluential(i, true))
-	svg.drawDot(coord.x[i], coord.y[i], 3);
-    }
-
-  for (int i=coord.first; i<=coord.last; ++i) {
-    if (whoseDotAt(i))
-      svg.drawDot(coord.x[i], coord.y[i], whoseDotAt(i));
-    else if (whoseDotMarginAt(i)==0) {
-      float total = influence.influence[0][i] + influence.influence[1][i] + influence.influence[2][i];
-      if (total > 0.005) {
-	//svg.drawBkgrd(coord.x[i], coord.y[i], influence.influence[1][i] / total, influence.influence[2][i] / total, influence.influence[0][i] / total);
-      }
-    }
-  }
-  std::fstream fs;
-  fs.open("infl.svg", std::fstream::out);
-  fs << svg.to_str();
-  fs.close();
 }
 
 
@@ -5610,7 +5410,6 @@ Game::makeSgfMove(std::string m, int who)
   assert(checkWormCorrectness());
   assert(checkConnectionsCorrectness());
   assert(checkPattern3valuesCorrectness());
-  assert(checkInfluenceCorrectness());
 
   //#ifndef NDEBUG
   {
@@ -6371,63 +6170,6 @@ Game::choosePattern3Move(pti move0, pti move1, int who)
   return move;
 }
 
-bool
-Game::isInfluential(pti i, bool edge) const
-{
-  if (INFLUENCE_TURNED_OFF || influence.turned_off) return false;
-  int wins = 0;
-  if (influence.influence[0][i] > 0.0001 &&
-      influence.influence[1][i] > 0.0001) {
-    for (int n=0; n<4; n++) {
-      pti nb = i + coord.nb4[n];
-      if (whoseDotMarginAt(nb)==0) {
-	if (influence.influence[0][nb] > 2*influence.influence[1][nb] + 0.0001)
-	  wins |= 1;
-	else if (influence.influence[1][nb] > 2*influence.influence[0][nb] + 0.0001)
-	  wins |= 2;
-      }
-    }
-  }
-  if (wins == 3)
-    return true;
-  else if (edge && (influence.influence[2][i] > 0.8*(influence.influence[0][i] + influence.influence[1][i]) + 0.001 && influence.influence[0][i] > 0.005 && influence.influence[1][i] > 0.005
-		    && influence.influence[0][i] < 0.3 && influence.influence[1][i] < 0.3)) {
-    return true;
-  }
-  return false;
-}
-
-Move
-Game::chooseInfluenceMove(int who)
-{
-  Move move;
-  move.who = who;
-  if (INFLUENCE_TURNED_OFF || influence.turned_off) {
-    move.ind = 0;
-    return move;
-  }
-  if (possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size()>=2) {
-    std::vector<pti> infl_moves;
-    infl_moves.reserve(possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size());
-    for (auto i : possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL]) {
-      if (isInfluential(i, true)) {
-	infl_moves.push_back(i);
-      }
-    }
-    if (infl_moves.size() >= 1) {
-      if (infl_moves.size()==1) {
-	move.ind = infl_moves[0];
-      } else {
-	std::uniform_int_distribution<int> di(0, infl_moves.size()-1);
-	int number = di(engine);
-	move.ind = infl_moves[number];
-      }
-      return getRandomEncl(move);
-    }
-  }
-  move.ind = 0;
-  return move;
-}
 
 Move
 Game::chooseAnyMove(int who)
@@ -7498,32 +7240,6 @@ Game::checkPattern3valuesCorrectness() const
   }
   if (!status) show();
   return status;
-}
-
-bool
-Game::checkInfluenceCorrectness()
-{
-  if (INFLUENCE_TURNED_OFF || influence.turned_off) return true;
-  Influence influe(coord.getSize());
-  for (int i=coord.first; i<=coord.last; ++i)
-    if ((coord.dist[i] >= 0) && (coord.dist[i] == 0 || whoseDotMarginAt(i) != 0)) {
-      auto infl = findPointInfluence(i);
-      influe.changePointInfluence(infl, i);
-      //  assert(influence.checkInfluenceFromAt(infl, i)); -- could be different inside enclosures (which is irrelevant)
-    }
-  auto is_equal = [](float a, float b) { return a > b - 0.00001 && a < b + 0.00001; };
-  for (int i=coord.first; i<=coord.last; ++i)
-    if (whoseDotMarginAt(i) == 0) {
-      for (int n=0; n<3; n++) {
-	if (!is_equal(influe.influence[n][i], influence.influence[n][i])) {
-	  std::cerr << "Influence[" << n << "] at " << coord.showPt(i) << " is " << influence.influence[n][i]
-		    << ", should be: " << influe.influence[n][i] << "." << std::endl;
-	  show();
-	  return false;
-	}
-      }
-    }
-  return true;
 }
 
 bool
