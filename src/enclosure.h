@@ -22,8 +22,10 @@
 #pragma once
 
 #include "board.h"
+#include "sgf.h"
 #include <vector>
 #include <string>
+#include <memory>
 
 /********************************************************************************************************
   Enclosure class
@@ -58,3 +60,17 @@ struct Enclosure {
 };
 
 extern Enclosure empty_enclosure;
+
+/********************************************************************************************************
+  Move class
+*********************************************************************************************************/
+struct Move {
+  std::vector<std::shared_ptr<Enclosure> > enclosures;
+  uint64_t zobrist_key;
+  pti ind;
+  pti who {-1};
+  bool operator==(const Move& other) const { return zobrist_key == other.zobrist_key; };
+  SgfProperty toSgfString() const;
+  std::string show() const;
+};
+

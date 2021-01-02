@@ -19,8 +19,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
 
-#if !defined(__SGF_H)
-#define __SGF_H
+#pragma once
+
+#include <vector>
+#include <list>
+#include <memory>   // unique pointer
+#include <utility>   // std::pair
 
 /********************************************************************************************************
   SgfParser class and classes for keeping the sgf.
@@ -79,4 +83,4 @@ public:
   std::string toString_debug(bool mainVar=false);
 };
 
-#endif
+

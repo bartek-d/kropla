@@ -20,11 +20,7 @@
 *********************************************************************************************************/
 
 
-#include <utility>   // std::pair
-#include <vector>
 #include <string>
-#include <memory>   // unique pointer
-#include <list>
 #include <sstream>
 #include <algorithm>
 #include <cassert>

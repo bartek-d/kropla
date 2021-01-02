@@ -40,15 +40,8 @@
 #include <cmath>
 //#include <exception>
 #include <stdexcept>
-#include <random>
 #include <cctype>  // iswhite()
 #include <chrono>  // chrono::high_resolution_clock, only to measure elapsed time
-//#include <typeinfo>
-#include <atomic>
-#include <future>
-
-#include <condition_variable>
-#include <mutex>
 
 #include <boost/container/small_vector.hpp>
 
@@ -58,16 +51,28 @@
 #include "patterns.h"
 #include "enclosure.h"
 #include "threats.h"
+#include "game.h"
+#include "montecarlo.h"
 
 Coord coord(15,15);
 
-typedef std::set<pti, std::greater<pti>> PointsSet;
-
-auto start_time = std::chrono::high_resolution_clock::now();   // to measure time, value only to use auto
+std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();   // to measure time, value only to use auto
 long long debug_nanos = 0;
 long long debug_nanos2 = 0;
 long long debug_nanos3 = 0;
+int debug_previous_count = 0;
+thread_local std::default_random_engine Game::engine;
 
+namespace global {
+Pattern3 patt3;
+Pattern3 patt3_symm;
+Pattern3 patt3_cost;
+Pattern3extra_array patt3_extra;
+Pattern52 patt52_edge({});
+Pattern52 patt52_inner({});
+int komi;
+int komi_ratchet;
+}
 
 /********************************************************************************************************
   Monte Carlo constants.
@@ -75,174 +80,10 @@ long long debug_nanos3 = 0;
 const constexpr real_t MC_SIMS_EQUIV_RECIPR = 1.0 / 400.0;  // originally 2500!
 
 
-/********************************************************************************************************
-  Cleanup class
-*********************************************************************************************************/
-template <typename Container, typename T>
-class Cleanup {
-  Container c;
-  T andMask;
-public:
-  Cleanup(Container &cont, T am) : c(cont), andMask(am) { };
-  ~Cleanup() { for (auto &e : c) e&=andMask; };
-};
-
-template <typename Container, typename T>
-class CleanupUsingList {
-  Container c;
-  T andMask;
-public:
-  std::array<pti, Coord::maxSize> list;
-  int count {0};
-  CleanupUsingList(Container &cont, T am) : c(cont), andMask(am) {};
-  void push(pti p) { list[count++] = p; };
-  ~CleanupUsingList() { for (int i=0; i<count; i++) c[list[i]]&=andMask; };
-};
-
-template <typename Container, typename T>
-class CleanupUsingListOfValues {
-  Container c;
-public:
-  std::array<pti, Coord::maxSize> point;
-  std::array<T, Coord::maxSize> values;
-  int count {0};
-  CleanupUsingListOfValues(Container &cont) : c(cont) {};
-  void push(pti p, T val) { point[count] = p;  values[count] = val;  ++count;  };
-  ~CleanupUsingListOfValues() { for (int i=count-1; i>=0; --i) c[point[i]] = values[i]; };
-};
-
-template <typename T>
-class CleanupOneVar {
-  T* ref_value;
-  T saved_value;
-public:
-  CleanupOneVar(T* ref, T new_val) : ref_value(ref), saved_value(*ref) { *ref = new_val; }
-  ~CleanupOneVar() { *ref_value = saved_value; }
-};
-
-
-/********************************************************************************************************
-  SmallMultiset class
-*********************************************************************************************************/
-template <class T, int N>
-class SmallMultiset {
-  std::array<T, N> data;
-  int count {0};
-public:
-  void insert(T x);
-  int remove_one(T x);
-  bool contains(T x) const;
-  int size() { return count; };
-  bool empty() { return (count==0); };
-  void clear() { count=0; };
-  std::string show();
-};
-
-template <class T, int N>
-int getCapacity(const SmallMultiset<T, N>&)
-{
-  return N;
-};
-
-template <class T, int N>
-void SmallMultiset<T, N>::insert(T x)
-{
-  assert(count < N);
-  data[count++] = x;
-}
-
-template <class T, int N>
-int SmallMultiset<T, N>::remove_one(T x)
-{
-  for (int i=0; i<count; ++i) {
-    if (data[i] == x) {
-      data[i] = data[--count];
-      return 1;
-    }
-  }
-  return 0;
-}
-
-template <class T, int N>
-bool SmallMultiset<T, N>::contains(T x) const
-{
-  for (int i=0; i<count; ++i)
-    if (data[i] == x) return true;
-  return false;
-}
-
-template <class T, int N>
-std::string SmallMultiset<T, N>::show()
-{
-  std::stringstream out;
-  out << "{ ";
-  std::string separator = "";
-  for (auto &i : data) {
-    out << separator;
-    if (std::is_same<T, pti>::value) {
-      out << coord.showPt(i);
-    } else {
-      out << i;
-    }
-    separator = ", ";
-  }
-  out << "}";
-  return out.str();
-}
-
-template class SmallMultiset<pti, 4>;
-
-
-/********************************************************************************************************
-  Move class
-*********************************************************************************************************/
-struct Move {
-  std::vector<std::shared_ptr<Enclosure> > enclosures;
-  uint64_t zobrist_key;
-  pti ind;
-  pti who {-1};
-  bool operator==(const Move& other) const { return zobrist_key == other.zobrist_key; };
-  SgfProperty toSgfString() const;
-  std::string show() const;
-};
-
-SgfProperty
-Move::toSgfString() const
-{
-  std::string prop_name(who == 1 ? "B":"W");
-  std::stringstream out;
-  out << coord.indToSgf(ind);
-  if (!enclosures.empty()) {
-    for (auto &e : enclosures) {
-      out << e->toSgfString();
-    }
-  }
-  return {prop_name, {out.str()}};
-}
-
-std::string
-Move::show() const
-{
-  return (who != -1) ? coord.showPt(ind) + " +" + std::to_string(enclosures.size()) + " encl(s)" /*, zobr=" + std::to_string(zobrist_key)*/ : "(none)";
-}
 
 /********************************************************************************************************
   Worm description class
 *********************************************************************************************************/
-struct WormDescr {
-  pti dots[2];  // number of dots of players
-  pti leftmost; // the dot of the worm with the smallest index (the top one from the leftmost)
-  pti group_id; // some positive number which is common for worms in the same group (i.e., connected) and different otherwise
-  int32_t safety;  // safety info, ==0 not safe, ==1 partially safe, >=2 safe
-  bool isSafe() const { return safety >= 2; };
-  const static int32_t SAFE_VALUE = 20000;        // safety := SAFE_VALUE when the worm touches the edge
-  const static int32_t SAFE_THRESHOLD = 10000;
-  std::vector<pti> neighb;   // numbers of other worms that touch this one
-  std::vector<uint64_t> opp_threats;  // zobrist keys of opp's threats that include this worm
-  //  void addOppThreatZobrist(uint64_t z);
-  //void removeOppThreatZobrist(uint64_t z);
-  std::string show() const;
-};
 
 std::string
 WormDescr::show() const
@@ -300,18 +141,6 @@ class Connections {
 /********************************************************************************************************
   Connections class
 *********************************************************************************************************/
-struct OneConnection {
-  std::array<pti,4> groups_id {0,0,0,0};    // id's of connected groups, the same may appear more than once,
-                                  // 0-filled at the end if necessary
-  int code {0};       // code of the neighbourhood used by coord.connections_tab
-  // int() and != are mainly for debugging, to print and check connections
-  operator int() const { return (groups_id[0]!=0) + (groups_id[1]!=0) + (groups_id[2]!=0) + (groups_id[3]!=0); };
-  bool operator!=(const OneConnection& other) const;
-  // returns the number of groups in the neighbourhood
-  int count() { int count=0; while (count<4 && groups_id[count]!=0) count++; return count; };
-  int getUniqueGroups(std::array<pti,4> &ug) const;
-};
-
 bool
 OneConnection::operator!=(const OneConnection& other) const
 {
@@ -344,16 +173,6 @@ OneConnection::getUniqueGroups(std::array<pti,4> &unique_groups) const
 /********************************************************************************************************
   Movestats class for handling Monte Carlo tree.
 *********************************************************************************************************/
-
-struct Movestats {
-  std::atomic<int32_t> playouts;
-  std::atomic<real_t> value_sum;
-  Movestats() { playouts = 0;   value_sum = 0; };
-  const Movestats& operator+=(const Movestats& other);
-  Movestats& operator=(const Movestats&);
-  bool operator<(const Movestats& other) const;
-  std::string show() const;
-};
 
 const Movestats&
 Movestats::operator+=(const Movestats& other)
@@ -391,28 +210,6 @@ Movestats::show() const
 /********************************************************************************************************
   Treenode class for handling Monte Carlo tree.
 *********************************************************************************************************/
-struct Treenode {
-  Treenode* parent;
-  //std::vector<Treenode> children;
-  std::atomic<Treenode*> children;
-  Movestats t;
-  Movestats amaf;
-  Movestats prior;
-  Move move;
-  uint32_t flags;
-  static const uint32_t LAST_CHILD = 1;
-  real_t getValue() const;
-  bool operator<(const Treenode& other) const;
-  void markAsLast() { flags |= LAST_CHILD; };
-  void markAsNotLast() { flags &= ~LAST_CHILD; };
-  bool isLast() { return (flags & LAST_CHILD) !=0; };
-  const Treenode* getBestChild() const;
-  std::string show() const;
-  std::string getMoveSgf() const;
-  Treenode() { flags=0;   children=nullptr;  parent=nullptr; };
-  Treenode& operator=(const Treenode&);
-  Treenode(const Treenode& other) { *this = other; };
-};
 
 Treenode&
 Treenode::operator=(const Treenode& other)
@@ -491,21 +288,6 @@ Treenode::getMoveSgf() const
 /********************************************************************************************************
   TreenodeAllocator class for thread-safe memory allocation in Monte Carlo.
 *********************************************************************************************************/
-class TreenodeAllocator {
-  std::list< Treenode* > pools;
-  const int pool_size = 100000;
-  int min_block_size;
-  int last_block_start;
-  int cursor;
-public:
-  TreenodeAllocator();
-  ~TreenodeAllocator();
-  Treenode* getNext();
-  Treenode* getLastBlock();
-  void copyPrevious();
-  static int getSize(Treenode *ch);
-};
-
 TreenodeAllocator::TreenodeAllocator()
 {
   pools.push_back( new Treenode[pool_size] );
@@ -632,35 +414,6 @@ ListOfPlaces::isOnList(pti p) const
 /********************************************************************************************************
   PossibleMoves class for keeping track of possible moves
 *********************************************************************************************************/
-namespace PossibleMovesConsts
-{
-  constexpr int LIST_NEUTRAL{0};
-  constexpr int LIST_DAME    = 1;
-  constexpr int LIST_TERRM   = 2;
-  constexpr int LIST_REMOVED = 3;  // although there's no list for that
-  constexpr int MASK_SHIFT  = 12;
-  constexpr int INDEX_MASK = (1 << MASK_SHIFT) - 1;  // 0xfff
-  //
-  constexpr int NEUTRAL = LIST_NEUTRAL << MASK_SHIFT;  // 0x0000;
-  constexpr int DAME    = LIST_DAME << MASK_SHIFT;     // 0x1000;
-  constexpr int TERRM   = LIST_TERRM << MASK_SHIFT;      // 0x2000;
-  constexpr int REMOVED = LIST_REMOVED << MASK_SHIFT;  // 0x3000;
-  constexpr int TYPE_MASK = (NEUTRAL | DAME | TERRM | REMOVED);   // 0x3000;
-};
-
-class PossibleMoves {
-  std::vector<pti> mtype;   // type of move OR-ed with its index on the list (neutral, dame or bad)
-  void removeFromList(pti p);
-  enum class EdgeType { LEFT, TOP, RIGHT, BOTTOM };
-  void newDotOnEdge(pti p, EdgeType edge);
-public:
-  std::vector<pti> lists[3];  // neutral, dame, bad;
-  bool left, top, right, bottom;  // are margins empty?
-
-  void generate();
-  void changeMove(pti p, int new_type);
-};
-
 
 /// This function removes move p from 'lists', but does not update mtype[p].
 void
@@ -776,34 +529,6 @@ PossibleMoves::changeMove(pti p, int new_type)
 /********************************************************************************************************
   InterestingMoves -- class for keeping track of 3 lists of interesting moves, very similar to PossibleMoves
 *********************************************************************************************************/
-namespace InterestingMovesConsts
-{
-  constexpr int LIST_0 = 0;
-  constexpr int LIST_1 = 1;
-  constexpr int LIST_2 = 2;
-  constexpr int LIST_REMOVED = 3;  // although there's no list for that
-  constexpr int MASK_SHIFT  = 12;
-  constexpr int INDEX_MASK = (1 << MASK_SHIFT) - 1;  // 0xfff
-  //
-  constexpr int MOVE_0 = LIST_0 << MASK_SHIFT;  // 0x0000;
-  constexpr int MOVE_1 = LIST_1 << MASK_SHIFT;     // 0x1000;
-  constexpr int MOVE_2 = LIST_2 << MASK_SHIFT;      // 0x2000;
-  constexpr int REMOVED = LIST_REMOVED << MASK_SHIFT;  // 0x3000;
-  constexpr int TYPE_MASK = (MOVE_0 | MOVE_1 | MOVE_2 | REMOVED);   // 0x3000;
-};
-
-class InterestingMoves {
-  std::vector<pti> mtype;   // type of move OR-ed with its index on the list (0, 1 or 2)
-  void removeFromList(pti p);
-public:
-  std::vector<pti> lists[3];  // list0, list1, list2
-
-  void generate();
-  void changeMove(pti p, int new_type);
-  int classOfMove(pti p) const;
-};
-
-
 /// This function removes move p from 'lists', but does not update mtype[p].
 void
 InterestingMoves::removeFromList(pti p)
@@ -860,203 +585,6 @@ InterestingMoves::classOfMove(pti p) const
 /********************************************************************************************************
   Game class
 *********************************************************************************************************/
-class Game {
-  std::vector<pti> worm;
-  std::vector<pti> nextDot;
-  std::map<pti, WormDescr> descr;
-  AllThreats threats[2];
-  std::vector<OneConnection> connects[2];
-  Score score[2];
-  int lastWormNo[2];  // lastWormNo used in worm, for players 1,2
-  int nowMoves; // =1 or 2
-  std::vector<pti> history;
-  static const pti HISTORY_TERR = 0x4000;  // this is OR-ed with history[...] to denote that someone played inside own terr or encl
-  //
-  std::vector<pti> recalculate_list;
-  PossibleMoves possible_moves;
-  InterestingMoves interesting_moves;
-  std::vector<pattern3_val> pattern3_value[2];
-  std::vector<pattern3_t> pattern3_at;
-  //
-  static Pattern3 patt3;
-  static Pattern3 patt3_symm;
-  static Pattern3 patt3_cost;
-  static Pattern52 patt52_edge, patt52_inner;
-  static Pattern3extra_array patt3_extra;
-  static thread_local std::default_random_engine engine;
-  // fields for functions generating list of moves (ml prefix, 'move list')
-  std::vector<ThrInfo> ml_priorities;
-  std::vector<uint64_t> ml_deleted_opp_thr;
-  std::vector<ThrInfo> ml_priority_vect;
-  std::vector<pti> ml_special_moves;
-  std::vector<std::shared_ptr<Enclosure> > ml_encl_moves;
-  std::vector<std::shared_ptr<Enclosure> > ml_opt_encl_moves;
-  std::vector<uint64_t> ml_encl_zobrists;
-  int dame_moves_so_far {0};
-  // worm[] has worm-id if it is >= 4 && <= MASK_WORM_NO,
-  // worm[] & MASK_DOT can have 4 values: 0=empty, 1,2 = dots, 3=point outside the board
-  static const int MASK_DOT = 3;
-  static const int CONST_WORM_INCR = 4;  // =MASK_DOT+1
-  static const int MASK_WORM_NO = 0xfff;
-  static const int MASK_MARK = 0x2000;   // used by some functions
-  static const int MASK_BORDER = 0x4000; //
-  //
-  static const int COEFF_URGENT = 4;
-  static const int COEFF_NONURGENT = 1;
-  //
-  static const int MC_EXPAND_THRESHOLD = 8;
-  static const int VIRTUAL_LOSS = 1;
-#ifdef DEBUG_SGF
-public:
-  static SgfTree sgf_tree;
-  std::string getSgf() { return sgf_tree.toString(); };
-  std::string getSgf_debug() { return sgf_tree.toString_debug(true); };
-private:
-#endif
-  //
-  void initWorm();
-  void wormMergeAny(pti dst, pti src);
-  void wormMergeOther(pti dst, pti src);
-  void wormMergeSame(pti dst, pti src);
-  void wormMerge_common(pti dst, pti src);
-  int floodFillExterior(std::vector<pti> &tab, pti mark_by, pti stop_at) const;
-  static const constexpr float COST_INFTY = 1000.0;
-  std::vector<pti> findImportantMoves(pti who);
-  float costOfPoint(pti p, int who) const;
-  float floodFillCost(int who) const;
-  std::vector<pti> findThreats_preDot(pti ind, int who);
-  std::array<int,2> findThreats2moves_preDot__getRange(pti ind, pti nb, int i, int who) const;
-  std::array<int,5> findClosableNeighbours(pti ind, pti forbidden1, pti forbidden2, int who) const;
-  void addClosableNeighbours(std::vector<pti> &tab, pti p0, pti p1, pti p2, int who) const;
-  bool haveConnection(pti p1, pti p2, int who) const;
-  std::vector<pti> findThreats2moves_preDot(pti ind, int who);
-  void checkThreat_encl(Threat* thr, int who);
-  std::shared_ptr<Enclosure> checkThreat_terr(Threat* thr, pti p, int who);
-  void checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who);
-  void checkThreat2moves_encl(Threat* thr, pti where0, int who);
-  int addThreat2moves(pti ind0, pti ind1, int who, std::shared_ptr<Enclosure> &encl);
-  void checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who);
-  void addThreat(Threat&& t, int who);
-  void removeMarked(int who);
-  void removeMarkedAndAtPoint(pti ind, int who);
-  bool removeAtPoint(pti ind, int who);
-  void subtractThreat(const Threat& t, int who);
-  void pointNowInDanger2moves(pti ind, int who);
-  void pointNowSafe2moves(pti ind, int who);
-  bool isSafeFor(pti ind, int who) const;
-  void connectionsRecalculateCode(pti ind, int who);
-  void connectionsRecalculateConnect(pti ind, int who);
-  void connectionsRecalculatePoint(pti ind, int who);
-  void connectionsRecalculateNeighb(pti ind, int who);
-  void connectionsRenameGroup(pti dst, pti src);
-  pattern3_t getPattern3_at(pti ind) const;
-  bool isEmptyInDirection(pti ind, int direction) const;
-  bool isEmptyInNeighbourhood(pti ind) const;
-  pattern3_val getPattern3Value(pti ind, int who) const;
-  void showPattern3Values(int who) const;
-  real_t getPattern52Value(pti ind, int who) const;
-  void showPattern52Values(int who) const;
-  void pattern3recalculatePoint(pti ind);
-  void recalculatePatt3Values();
-  int checkLadderStep(pti x, PointsSet &ladder_breakers, pti v1, pti v2, pti escaping_group, bool ladder_ext, int escapes, int iteration=0);
-  void getEnclMoves(std::vector<std::shared_ptr<Enclosure> > &encl_moves, std::vector<std::shared_ptr<Enclosure> > &opt_encl_moves,
-		    std::vector<uint64_t> &encl_zobrists,
-		    pti move, int who);
-  bool appendSimplifyingEncl(std::vector<std::shared_ptr<Enclosure>> &encl_moves, uint64_t &zobrists, int who);
-  void getSimplifyingEnclAndPriorities(int who);
-  int checkBorderMove(pti ind, int who) const;
-  int checkBorderOneSide(pti ind, pti viter, pti vnorm, int who) const;
-  void possibleMoves_updateSafety(pti p);
-  void possibleMoves_updateSafetyDame();
-  int checkInterestingMove(pti p) const;
-  int checkDame(pti p) const;
-  std::vector<pti> getPatt3extraValues() const;
-public:
-  static int komi;     // added to terr points of white (i.e. > 0 -> good for white), komi=2 -> 1 dot
-  static int komi_ratchet;
-  static const constexpr real_t increase_komi_threshhold = 0.75;
-  static const constexpr real_t decrease_komi_threshhold = 0.15;
-  static const int start_increasing = 200;
-  Game() = delete;
-  Game(SgfSequence seq, int max_moves);
-  int whoNowMoves() { return nowMoves; };
-  void replaySgfSequence(SgfSequence seq, int max_moves);
-  void placeDot(int x, int y, int who);
-  Enclosure findNonSimpleEnclosure(std::vector<pti> &tab, pti point, pti mask, pti value) const;
-  Enclosure findNonSimpleEnclosure(pti point, pti mask, pti value);
-  Enclosure findSimpleEnclosure(std::vector<pti> &tab, pti point, pti mask, pti value) const;
-  Enclosure findSimpleEnclosure(pti point, pti mask, pti value);
-  Enclosure findEnclosure(std::vector<pti> &tab, pti point, pti mask, pti value) const;
-  Enclosure findEnclosure(pti point, pti mask, pti value);
-  Enclosure findEnclosure_notOptimised(std::vector<pti> &tab, pti point, pti mask, pti value) const;
-  Enclosure findEnclosure_notOptimised(pti point, pti mask, pti value);
-  Enclosure findInterior(std::vector<pti> border) const;
-  void makeEnclosure(const Enclosure& encl, bool remove_it_from_threats);
-  std::pair<int, int> countTerritory(int now_moves) const;
-  std::pair<int, int> countTerritory_simple(int now_moves) const;
-  std::pair<int16_t, int16_t> countDotsTerrInEncl(const Enclosure& encl, int who, bool optimise = true) const;
-  void makeSgfMove(std::string m, int who);
-  void makeMove(Move &m);
-  void makeMoveWithPointsToEnclose(Move &m, std::vector<std::string> to_enclose);
-
-  bool isDotAt(pti ind) const { assert(worm[ind] >= 0 && worm[ind] <= MASK_WORM_NO);  return (worm[ind] >= CONST_WORM_INCR); };
-  int whoseDotMarginAt(pti ind) const { return (worm[ind] & MASK_DOT); };
-  int whoseDotAt(pti ind) const { int v[4]={0,1,2,0};  return v[worm[ind] & MASK_DOT]; };
-
-  void generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth, int who);
-  Move getRandomEncl(Move &m);
-  Move chooseAtariMove(int who);
-  Move choosePattern3Move(pti move0, pti move1, int who);
-  Move chooseAnyMove(int who);
-  std::vector<pti> getGoodTerrMoves(int who) const;
-  Move chooseAnyMove_pm(int who);
-  Move chooseInterestingMove(int who);
-  Move choosePatt3extraMove(int who);
-  Move getLastMove();
-  real_t randomPlayout();
-  void descend(TreenodeAllocator &alloc, Treenode *node, int depth, bool expand);
-
-  bool isDame_directCheck(pti p, int who) const;
-  bool isDame_directCheck_symm(pti p) const;
-  bool checkRootListOfMovesCorrectness(Treenode *children) const;
-  bool checkWormCorrectness() const;
-  bool checkThreatCorrectness();
-  bool checkThreat2movesCorrectness();
-  bool checkConnectionsCorrectness();
-  bool checkPossibleMovesCorrectness(int who) const;
-  bool checkCorrectness(SgfSequence seq);
-  bool checkPattern3valuesCorrectness() const;
-
-  void seedRandomEngine(int newseed) { engine.seed(newseed); };
-  void findConnections();
-
-  void Test();
-  void show() const;
-  void showSvg();
-  void showConnections();
-  void showGroupsId();
-  void showThreats2m();
-  void showPattern3extra();
-
-  std::string showDescr(pti p) const { return descr.at(p).show();  };
-};
-
-Pattern3 Game::patt3;
-Pattern3 Game::patt3_symm;
-Pattern3 Game::patt3_cost;
-Pattern3extra_array Game::patt3_extra;
-Pattern52 Game::patt52_edge({});
-Pattern52 Game::patt52_inner({});
-int Game::komi;
-int Game::komi_ratchet;
-
-//#include "pattern52_edge_tab.cc"
-//#include "pattern52_inner_tab.cc"
-
-thread_local std::default_random_engine Game::engine;
-#ifdef DEBUG_SGF
-SgfTree Game::sgf_tree;
-#endif
 
 void
 Game::initWorm()
@@ -1070,8 +598,8 @@ Game::initWorm()
 Game::Game(SgfSequence seq, int max_moves)
 {
   assert(Pattern3extra::MASK_DOT == MASK_DOT);
-  komi = 0;
-  komi_ratchet = 10000;
+  global::komi = 0;
+  global::komi_ratchet = 10000;
   auto sz_pos = seq[0].findProp("SZ");
   std::string sz = (sz_pos != seq[0].props.end()) ? sz_pos->second[0] : "";
   if (sz.find(':') == std::string::npos) {
@@ -1109,7 +637,7 @@ Game::Game(SgfSequence seq, int max_moves)
 
   // prepare patterns, taken from Pachi (playout/moggy.c)
   // (these may be pre-calculated)
-  patt3.generate({
+  global::patt3.generate({
         // hane pattern - enclosing hane
         "XOX"
         ".H."
@@ -1187,10 +715,10 @@ Game::Game(SgfSequence seq, int max_moves)
 	"#H?"
 	"###",  "-2000",
 	});
-  // patt3.showCode();  <-- to precalculate
+  // global::patt3.showCode();  <-- to precalculate
 
 
-  patt3_symm.generate({
+  global::patt3_symm.generate({
       // hane pattern - enclosing hane
       "XOX"
         ".H."
@@ -1300,7 +828,7 @@ Game::Game(SgfSequence seq, int max_moves)
 	});
 
 
-  patt3_cost.generate({
+  global::patt3_cost.generate({
       // our bambus
       "X.X"
         "XHX"
@@ -1374,7 +902,7 @@ Game::Game(SgfSequence seq, int max_moves)
     Pattern3::TYPE_MAX);
 
 
-  patt52_inner.generate({
+  global::patt52_inner.generate({
         // locally bad moves (WARNING: they may be actually good, if there are X above)
         "?OH.O"
 	"?x..x" "X", "-0.1",
@@ -1434,8 +962,8 @@ Game::Game(SgfSequence seq, int max_moves)
 	"??..?" "X", "0.7"
 	});
 
-  //  patt52_inner.showCode(); // <-- to precalculate
-  patt52_edge.generate({
+  //  global::patt52_inner.showCode(); // <-- to precalculate
+  global::patt52_edge.generate({
         // locally good moves (usually reductions)
         "?X.X?"
 	"?xHx?", "0.2",
@@ -1456,9 +984,9 @@ Game::Game(SgfSequence seq, int max_moves)
 	"??H??", "0.6"
 	//
 	});
-  //  patt52_edge.showCode(); // <-- to precalculate
+  //  global::patt52_edge.showCode(); // <-- to precalculate
 
-  patt3_extra.generate({
+  global::patt3_extra.generate({
       // bamboo -- first move
       "Y.."
 	"Y.."
@@ -3202,7 +2730,7 @@ Game::isEmptyInNeighbourhood(pti ind) const
 pattern3_val
 Game::getPattern3Value(pti ind, int who) const
 {
-  return patt3.getValue(getPattern3_at(ind), who);
+  return global::patt3.getValue(getPattern3_at(ind), who);
 }
 
 void
@@ -3222,11 +2750,11 @@ void Game::pattern3recalculatePoint(pti ind)
 {
   pattern3_at[ind] = getPattern3_at(ind);
   auto oldv = pattern3_value[0][ind];
-  pattern3_value[0][ind] = patt3.getValue(pattern3_at[ind], 1);
+  pattern3_value[0][ind] = global::patt3.getValue(pattern3_at[ind], 1);
   if ((oldv < 0 && pattern3_value[0][ind] >= 0) || (oldv >= 0 && pattern3_value[0][ind] < 0)) {
     possible_moves.changeMove(ind, checkDame(ind));
   }
-  pattern3_value[1][ind] = patt3.getValue(pattern3_at[ind], 2);
+  pattern3_value[1][ind] = global::patt3.getValue(pattern3_at[ind], 2);
   interesting_moves.changeMove(ind, checkInterestingMove(ind));
 }
 
@@ -3289,7 +2817,7 @@ Game::getPattern52Value(pti ind, int who) const
 	auto dot = whoseDotMarginAt(nb);
 	p |= dot;
       }
-      value += (type == EDGE) ? patt52_edge.getValue(p, who) : patt52_inner.getValue(p, who);
+      value += (type == EDGE) ? global::patt52_edge.getValue(p, who) : global::patt52_inner.getValue(p, who);
     }
   }
   return value;
@@ -4062,8 +3590,8 @@ Game::getPatt3extraValues() const
   std::vector<pti> values(coord.getSize(), 0);
   for (int i=coord.first; i<=coord.last; ++i) {
     if (whoseDotMarginAt(i) == 0) {
-      patt3_extra.setValues(values, worm, pattern3_at[i], i, nowMoves);
-      //auto symm_value = patt3_symm.getValue(pattern3_at[i], 1);
+      global::patt3_extra.setValues(values, worm, pattern3_at[i], i, nowMoves);
+      //auto symm_value = global::patt3_symm.getValue(pattern3_at[i], 1);
       //if (values[i] < symm_value) values[i] = symm_value;
     }
   }
@@ -4414,7 +3942,7 @@ Game::costOfPoint(pti p, int who) const
   if (whoseDotMarginAt(p) == who) return COST_INFTY;
   if (whoseDotMarginAt(p) == 3-who) return 0.00001;
   // here it should depend on the pattern...
-  return 0.0001 + patt3_cost.getValue(pattern3_at[p], 3-who) * 0.001;
+  return 0.0001 + global::patt3_cost.getValue(pattern3_at[p], 3-who) * 0.001;
 }
 
 std::vector<pti>
@@ -5205,7 +4733,7 @@ Game::countTerritory(int now_moves) const
     }
   }
   // calculate the score assuming last-dot-safe==false
-  delta_score[3] += komi;
+  delta_score[3] += global::komi;
   int delta = (delta_score[0] - delta_score[1]);
   int small_score = 0;
   if ((delta_score[2]-delta_score[3]) % 2 == 0) {
@@ -5271,7 +4799,7 @@ Game::countTerritory_simple(int now_moves) const
     }
   }
   // calculate the score assuming last-dot-safe==false
-  delta_score[3] += komi;
+  delta_score[3] += global::komi;
   int delta = (delta_score[0] - delta_score[1]);
   int small_score = 0;
   if ((delta_score[2]-delta_score[3]) % 2 == 0) {
@@ -5294,7 +4822,7 @@ Game::countTerritory_simple(int now_moves) const
   if ((score[0].dots - score[1].dots) + delta != ct_score.first or small_score != ct_score.second) {
     show();
     std::cerr << "res = " << (score[0].dots - score[1].dots) + delta << ", should be = " << ct_score.first << std::endl;
-    std::cerr << "delta_score: " << delta_score[0] << ", " << delta_score[1] << ", " << delta_score[2] << ", " << delta_score[3] << ", komi=" << komi << std::endl;
+    std::cerr << "delta_score: " << delta_score[0] << ", " << delta_score[1] << ", " << delta_score[2] << ", " << delta_score[3] << ", komi=" << global::komi << std::endl;
     std::cerr << "small_score: " << small_score << ", should be = " << ct_score.second << std::endl;
     //
     std::vector<pti> th(coord.getSize(), 0);
@@ -6498,7 +6026,7 @@ int
 Game::checkInterestingMove(pti p) const
 {
   if (threats[0].is_in_encl[p]==0 && threats[0].is_in_terr[p]==0 && threats[1].is_in_encl[p]==0 && threats[1].is_in_terr[p]==0) {
-    auto v = patt3_symm.getValue(pattern3_at[p], 1);
+    auto v = global::patt3_symm.getValue(pattern3_at[p], 1);
     assert(v>=0 && v<8);
     int lists[8] = {InterestingMovesConsts::REMOVED, InterestingMovesConsts::REMOVED,
 		    InterestingMovesConsts::MOVE_2, InterestingMovesConsts::MOVE_2,
@@ -6620,8 +6148,6 @@ Game::isDame_directCheck_symm(pti p) const
       && pattern3_value[0][p] < 0) return true;
   return false;
 }
-
-int debug_previous_count = 0;
 
 bool
 Game::checkRootListOfMovesCorrectness(Treenode *children) const
@@ -7302,14 +6828,14 @@ Game::checkCorrectness(SgfSequence seq)
     res = 0;
   } else
     return false;
-  auto saved_komi = komi;  komi = 0;
+  auto saved_komi = global::komi;  global::komi = 0;
   auto [ct, ct_small_score] = countTerritory_simple(nowMoves);
   if (ct==res) {
-    komi = saved_komi;
+    global::komi = saved_komi;
     return true;
   }
   auto [ct2, ct2_small_score] = countTerritory(nowMoves);
-  komi = saved_komi;
+  global::komi = saved_komi;
   std::cerr << "Blad, ct=" << ct << ", res=" << res << ", zwykle ct=" << ct2 << std::endl;
   return false;
 }
@@ -7328,442 +6854,6 @@ Game::findConnections()
   }
 }
 
-/********************************************************************************************************
-  Montecarlo class for Monte Carlo search.
-*********************************************************************************************************/
-class MonteCarlo {
-  static Treenode root;
-  static std::atomic<bool> finish_sim;
-  static bool finish_threads;
-  static std::atomic<int> threads_to_be_finished;
-  static std::atomic<int64_t> iterations;
-public:
-  MonteCarlo();
-  std::string findBestMove(Game &pos, int iter_count);
-  int runSimulations(Game pos, int max_iter_count, int thread_no);
-  std::string findBestMoveMT(Game &pos, int threads, int iter_count, int msec);
-} mc;
-
-Treenode MonteCarlo::root;
-std::atomic<bool> MonteCarlo::finish_sim(false);
-std::atomic<int> MonteCarlo::threads_to_be_finished{0};
-
-std::atomic<int64_t> MonteCarlo::iterations(0);
-
-bool MonteCarlo::finish_threads(false);
-
-std::mutex mutex_finish_threads;
-std::condition_variable cv_finish_threads;
-
-MonteCarlo::MonteCarlo() //: finish_sim(false), finish_threads(false), finished_threads(0), iterations(0)
-{
-  root.parent = &root;
-}
-
-std::string
-MonteCarlo::findBestMove(Game &pos, int iter_count)
-{
-  debug_previous_count = -1;
-  root = Treenode();
-  root.move = pos.getLastMove();
-  root.parent = &root;
-  std::cerr << "Descend starts, komi==" << pos.komi << std::endl;
-#ifdef DEBUG_SGF
-  pos.sgf_tree.saveCursor();
-#endif
-
-  int komi_change_at = pos.start_increasing;
-  TreenodeAllocator alloc;
-
-  for (int i=0; i<iter_count; i++) {
-#ifdef DEBUG_SGF
-    pos.sgf_tree.restoreCursor();
-#endif
-    Game tmp = pos;
-    if ((i & 0x7f) == 0) std::cerr << "iteration = " << i << std::endl;
-    if (i >= komi_change_at) {
-      komi_change_at *= 4;
-      if (root.t.value_sum < root.t.playouts * (1-pos.increase_komi_threshhold)) {  // green zone
-	int perspective = 2*root.move.who - 3;   // -1 if we are white, 1 if black (root.move.who is the opponent)
-	std::cerr << "Green zone; komi = " << pos.komi << ", perspective = " << perspective << ", ratchet = " << pos.komi_ratchet << std::endl;
-	if (pos.komi*perspective < pos.komi_ratchet) {
-	  std::cerr << "Changing komi from " << pos.komi << " to ";
-	  pos.komi += (root.move.who == 1) ? -1 : 1;
-	  std::cerr << pos.komi << std::endl;
-	}
-      } else if (root.t.value_sum > root.t.playouts * (1-pos.decrease_komi_threshhold)) {  // red zone
-	int perspective = 2*root.move.who - 3;   // -1 if we are white, 1 if black (root.move.who is the opponent)
-	std::cerr << "Red zone; komi = " << pos.komi << ", perspective = " << perspective << ", ratchet = " << pos.komi_ratchet << std::endl;
-	if (pos.komi*perspective > 0) {
-	  pos.komi_ratchet = pos.komi*perspective;
-	}
-	std::cerr << "New ratchet: " << pos.komi_ratchet << ". Changing komi from " << pos.komi << " to ";
-	pos.komi -= (root.move.who == 1) ? -1 : 1;
-	std::cerr << pos.komi << std::endl;
-      }
-    }
-    tmp.descend(alloc, &root, 1, true);
-  }
-  std::cerr << "Descend ends" << std::endl;
-  assert(pos.checkRootListOfMovesCorrectness(root.children));
-  //std::sort(root.children.rbegin(), root.children.rend());  // note: reverse iterators to sort descending
-  int n = alloc.getSize(root.children);
-  if (n>1) {
-    root.children[n-1].markAsNotLast();
-    std::sort(root.children.load(), root.children.load() + n, [](Treenode &t1, Treenode &t2) { return t1.t.playouts - t1.prior.playouts > t2.t.playouts - t2.prior.playouts; });
-    root.children[n-1].markAsLast();
-  }
-  std::cerr << "Sort ends, root.children.size()==" << n << ", root value = " << root.t.value_sum/root.t.playouts << ", root playouts = " << root.t.playouts << std::endl;
-  std::cerr << "root: " << root.show() << std::endl;
-
-  for (int i=0; /*i<15 &&*/ i<n; i++) {
-    std::cerr << root.children[i].show() << " value=" << root.children[i].getValue() << std::endl;
-    if (i==0) {
-      //std::sort(root.children[i].children.rbegin(), root.children[i].children.rend());  // note: reverse iterators to sort descending
-      int nn = alloc.getSize(root.children[i].children);
-      if (nn > 1) {
-	root.children[i].children[nn-1].markAsNotLast();
-	std::sort(root.children[i].children.load(), root.children[i].children.load()+nn, [](Treenode &t1, Treenode &t2) { return t1.t.playouts - t1.prior.playouts > t2.t.playouts - t2.prior.playouts; });
-	root.children[i].children[nn-1].markAsLast();
-      }
-      for (int j=0; /*j<15 &&*/ j<nn; j++) {
-	std::cerr << "   " << root.children[i].children[j].show() <<  " value=" << root.children[i].children[j].getValue() << std::endl;
-      }
-    }
-  }
-  if (root.children != nullptr) {
-    return root.children[0].getMoveSgf();
-  } else {
-    return "";
-  }
-}
-
-int
-MonteCarlo::runSimulations(Game pos, int max_iter_count, int thread_no)
-{
-  int komi_change_at = pos.start_increasing;
-  TreenodeAllocator alloc;
-  pos.seedRandomEngine(thread_no);
-  int i=0;
-  std::cerr << "*** Starting ratchet: " << pos.komi_ratchet << std::endl;
-  for (;;) {
-    Game tmp = pos;
-    if ((i & 0x7f) == 0) std::cerr << "thr " << thread_no << ", iteration = " << i << std::endl;
-    if (thread_no == 0) {
-      if (iterations >= komi_change_at) {
-	komi_change_at *= 4;
-	if (root.t.value_sum < root.t.playouts * (1-pos.increase_komi_threshhold)) {  // green zone
-	  int perspective = 2*root.move.who - 3;   // -1 if we are white, 1 if black (root.move.who is the opponent)
-	  std::cerr << "Green zone; komi = " << pos.komi << ", perspective = " << perspective << ", ratchet = " << pos.komi_ratchet << std::endl;
-	  if (pos.komi*perspective < pos.komi_ratchet) {
-	    std::cerr << "Changing komi from " << pos.komi << " to ";
-	    pos.komi += (root.move.who == 1) ? -1 : 1;
-	    std::cerr << pos.komi << std::endl;
-	  }
-	} else if (root.t.value_sum > root.t.playouts * (1-pos.decrease_komi_threshhold)) {  // red zone
-	  int perspective = 2*root.move.who - 3;   // -1 if we are white, 1 if black (root.move.who is the opponent)
-	  std::cerr << "Red zone; komi = " << pos.komi << ", perspective = " << perspective << ", ratchet = " << pos.komi_ratchet << std::endl;
-	  if (pos.komi*perspective > 0) {
-	    pos.komi_ratchet = pos.komi*perspective;
-	  }
-	  std::cerr << "New ratchet: " << pos.komi_ratchet << ". Changing komi from " << pos.komi << " to ";
-	  pos.komi -= (root.move.who == 1) ? -1 : 1;
-	  std::cerr << pos.komi << std::endl;
-	}
-      }
-
-    /*
-      if (iterations >= komi_change_at) {
-	komi_change_at *= 4;
-	if (root.t.value_sum < root.t.playouts * (1-pos.increase_komi_threshhold)) {
-	  std::cerr << "Changing komi from " << pos.komi << " to ";
-	  pos.komi += (root.move.who == 1) ? -1 : 1;
-	  std::cerr << pos.komi << std::endl;
-	}
-      }
-    */
-    }
-    tmp.descend(alloc, &root, 1, true);
-    i++;  iterations++;
-    if (iterations >= max_iter_count || finish_sim) {
-      break;
-    }
-  }
-  threads_to_be_finished--;
-  if (threads_to_be_finished == 0) {
-    cv_finish_threads.notify_all();
-  } else
-  {
-    // wait for other threads to finish their work
-    std::unique_lock<std::mutex> ul(mutex_finish_threads);
-    cv_finish_threads.wait(ul, [] { return MonteCarlo::threads_to_be_finished == 0; });
-  }
-
-  // now the main function may read data, and the threads must wait (not to release memory in TreenodeAllocator)
-  {
-    std::unique_lock<std::mutex> ul(mutex_finish_threads);
-    cv_finish_threads.wait(ul, [] { return MonteCarlo::finish_threads; });
-  }
-  // the main function is done, we may exit
-  return i;
-}
-
-std::string
-MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
-{
-  debug_previous_count = -1;
-  root = Treenode();
-  root.move = pos.getLastMove();
-  root.parent = &root;
-  std::cerr << "Descend starts, komi==" << pos.komi << std::endl;
-#ifdef DEBUG_SGF
-  assert(0);  // SGF write is not thread-safe
-#endif
-
-  iterations = 0;  finish_sim = false;  finish_threads = false;
-  threads_to_be_finished = threads;
-  std::vector< std::future<int> > concurrent;
-  concurrent.reserve(threads);
-  for (int t=0; t<threads; t++) {
-    concurrent.push_back( std::async(std::launch::async,  [=] { return runSimulations(pos, iter_count, t); }) );
-  }
-  if (msec > 0) {
-    auto time_begin = std::chrono::high_resolution_clock::now();
-    for (;;) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
-      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - time_begin).count();
-      if (iterations >= 100) {
-	if (root.children == nullptr || root.children[0].isLast()) {
-	  finish_sim = true;
-	  break;
-	}
-	if (4*duration > 3*msec) {
-	  int best = root.getBestChild()->t.playouts;
-	  if (best > iterations * (msec / (1.95 * duration))) {
-	    finish_sim = true;
-	    break;
-	  }
-	}
-	if (duration > msec) {
-	  finish_sim = true;
-	  break;
-	}
-      }
-      if (threads_to_be_finished == 0) {
-	finish_sim = true;
-	break;
-      }
-    }
-  } else {
-    while (threads_to_be_finished > 0) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
-#ifndef SPEED_TEST
-      if (5*iterations > 3*iter_count) {
-	const Treenode *ch = root.getBestChild();
-	int best = (ch != nullptr) ? ch->t.playouts.load() : (iter_count + 21);
-	if (best > 20 + iter_count/2) {
-	  finish_sim = true;
-	  break;
-	}
-      }
-#endif
-    }
-  }
-  // wait for threads to finish their work (we cannot kill them before reading best move,
-  // because that would release the memory in TreenodeAllocators)
-  {
-    std::unique_lock<std::mutex> ul(mutex_finish_threads);
-    cv_finish_threads.wait(ul, [] { return MonteCarlo::threads_to_be_finished == 0; });
-  }
-
-
-  std::cerr << "Descend ends" << std::endl;
-  assert(pos.checkRootListOfMovesCorrectness(root.children));
-  //std::sort(root.children.rbegin(), root.children.rend());  // note: reverse iterators to sort descending
-  int n = TreenodeAllocator::getSize(root.children);
-  if (n>1) {
-    root.children[n-1].markAsNotLast();
-    std::sort(root.children.load(), root.children.load() + n, [](Treenode &t1, Treenode &t2) { return t1.t.playouts - t1.prior.playouts > t2.t.playouts - t2.prior.playouts; });
-    root.children[n-1].markAsLast();
-  }
-  std::cerr << "Sort ends, root.children.size()==" << n << ", root value = " << root.t.value_sum/root.t.playouts << ", root playouts = " << root.t.playouts << std::endl;
-
-  for (int i=0; i<15 && i<n; i++) {
-    std::cerr << root.children[i].show() << std::endl;
-    if (i==0) {
-      //std::sort(root.children[i].children.rbegin(), root.children[i].children.rend());  // note: reverse iterators to sort descending
-      int nn = TreenodeAllocator::getSize(root.children[i].children);
-      if (nn > 1) {
-	root.children[i].children[nn-1].markAsNotLast();
-	std::sort(root.children[i].children.load(), root.children[i].children.load()+nn, [](Treenode &t1, Treenode &t2) { return t1.t.playouts > t2.t.playouts; });
-	root.children[i].children[nn-1].markAsLast();
-      }
-      for (int j=0; j<15 && j<nn; j++) {
-	std::cerr << "   " << root.children[i].children[j].show() << std::endl;
-      }
-    }
-  }
-  if (n > 15) {
-    std::cerr << "Other moves: ";
-    for (int i=15; i<n; ++i) {
-      std::cerr << root.children[i].move.show() << "  ";
-    }
-    std::cerr << std::endl;
-  }
-  {
-    int real_playouts = 0;
-    for (int i=0; i<n; i++) {
-      real_playouts += root.children[i].t.playouts - root.children[i].prior.playouts;
-    }
-    std::cerr << "Real saved playouts: " << real_playouts << std::endl;
-  }
-
-  std::string res = "";
-  if (root.children != nullptr) {
-    res = root.children[0].getMoveSgf();
-  }
-
-  // let the threads go to the end
-  {
-    std::lock_guard<std::mutex> lg(mutex_finish_threads);
-    finish_threads = true;
-  }
-  cv_finish_threads.notify_all();
-  // and finish them completely
-  for (int t=0; t<threads; t++) {
-    int num = concurrent[t].get();
-    std::cerr << "Thread " << t << ": sims = " << num << std::endl;
-  }
-
-  return res;
-}
-
-
-void
-play_engine(Game &game, std::string &s, int threads_count, int iter_count, int msec)
-{
-  for (;;) {
-    {
-      MonteCarlo mc;
-      start_time = std::chrono::high_resolution_clock::now();
-      auto best_move = threads_count > 1 ?
-	mc.findBestMoveMT(game, threads_count, iter_count, msec) :
-	mc.findBestMove(game, iter_count);
-      auto end_time = std::chrono::high_resolution_clock::now();
-      std::cerr << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() << " mikros" << std::endl;
-      std::cout << s.substr(0, s.rfind(")")) << best_move << ")" << std::endl;
-    }
-
-    std::string n(""), buf;
-    do {
-      std::getline(std::cin, buf);
-      if (buf.length()>=3 && buf.substr(0,3) == std::string("END")) {
-	return;
-      }
-      n += buf;
-    } while (n.find(")") == std::string::npos);
-    if (s.substr(0, s.length()-1) == n.substr(0, s.length()-1) and n.find(";", s.length()-1) != std::string::npos) {
-      // the same beginning, add new moves
-      game.show();
-      std::string added = std::string("(") + n.substr(s.length()-1);
-      std::cerr << "To sgf: " << s << std::endl;
-      std::cerr << "I add moves: " << added << std::endl;
-      SgfParser parser(added);
-      auto seq = parser.parseMainVar();
-      game.replaySgfSequence(seq, std::numeric_limits<int>::max());
-    } else {
-      std::cerr << "NEW GAME STARTED." << std::endl;
-      SgfParser parser(n);
-      auto seq = parser.parseMainVar();
-      game = Game(seq, std::numeric_limits<int>::max());
-    }
-    s = n;
-    //      while (s.back() == '\n') s.pop_back();
-  }
-}
-
-
-void
-findAndPrintBestMove(Game &game, int iter_count)
-{
-  MonteCarlo mc;
-  start_time = std::chrono::high_resolution_clock::now();
-  auto best_move = mc.findBestMove(game, iter_count);
-  //auto best_move = mc.findBestMoveMT(game, threads_count, iter_count, 0);
-  auto end_time = std::chrono::high_resolution_clock::now();
-  std::cerr << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count()
-	    << " mikros" << std::endl;
-  std::cerr << "debug: " << debug_nanos/1000 << " mikros" << std::endl;
-  std::cerr << "debug2: " << debug_nanos2/1000 << " mikros" << std::endl;
-  std::cerr << "debug3: " << debug_nanos3/1000 << " mikros" << std::endl;
-  std::cerr << "All threats2m: " << debug_allt2m << ", skipped: " << debug_skippedt2m << ", small singular: " << debug_sing_smallt2m
-            << ", large singular: " << debug_sing_larget2m
-            << ", found before: " << debug_foundt2m << ". n= " << debug_n << ", N=" << debug_N <<  std::endl;
-}
-
-void
-playInteractively(Game &game, int threads_count, int iter_count)
-{
-  for (;;) {
-    // get input
-    std::string buf, error_info = "";
-    std::getline(std::cin, buf);
-    CommandParser comm_parser;
-    try {
-      auto commands = comm_parser.parse(buf);
-      if (commands[0] == "threads") {
-	threads_count = std::stoi(commands[1]);
-	if (threads_count <= 0) threads_count = 1;
-	std::cerr << "set threads to " << threads_count << std::endl;
-      } else if (commands[0] == "iters") {
-	iter_count = std::stoi(commands[1]);
-	if (iter_count <= 0) iter_count = 1;
-	std::cerr << "set iterations to " << iter_count << std::endl;
-      } else if (commands[0] == "first") {
-      } else if (commands[0] == "second") {
-      } else if (commands[0] == "help" or commands[0] == "?") {
-	std::cerr << "Type 'show', 'quit' or 'bye', coordinate(s) to play at given point (and enclose next points)" << std::endl
-		  << "'move' to make a move by AI, 'threads', 'iters' to change AI settings" << std::endl;
-      } else if (commands[0] == "new") {
-      } else if (commands[0] == "move") {
-	{
-	  MonteCarlo mc;
-	  start_time = std::chrono::high_resolution_clock::now();
-	  auto best_move = threads_count > 1 ?
-	    mc.findBestMoveMT(game, threads_count, iter_count, 0) :
-	    mc.findBestMove(game, iter_count);
-	  auto end_time = std::chrono::high_resolution_clock::now();
-	  std::cerr << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() << " mikros" << std::endl;
-						  auto l = best_move.find_first_of('[');
-						  auto r = best_move.find_last_of(']');
-						  if (l < r) {
-						    best_move = best_move.substr(l+1, r-l-1);
-						  }
-						  std::cerr << "best move: " << best_move << std::endl;
-						  game.makeSgfMove(best_move, game.whoNowMoves());
-						  }
-
-	} else if (commands[0] == "quit" || commands[0] ==  "bye") {
-	  break;
-	} else if (commands[0] == "back") {
-
-	} else if (commands[0] == "show") {
-	  game.show();
-	} else if (commands[0] == "_play") {
-	  // get coordinates, in [1] point to play, in [2...] points to enclose (if any)
-	  std::string s = commands[1];
-	  for (unsigned i=2; i<commands.size(); ++i) {
-	    s += "!" + commands[i];
-	  }
-	  game.makeSgfMove(s, game.whoNowMoves());
-
-	}
-      } catch (const std::runtime_error& e) {
-	std::cerr << e.what() << std::endl;
-      }
-
-    }
-}
 
 /* sample sgf */
 

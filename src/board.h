@@ -24,6 +24,8 @@
 
 #include <cstdint>    // intXX_t types
 #include <array>
+#include <sstream>
+#include <iomanip>
 
 typedef int16_t  pti;  // point int, i.e., int suitable for coordinates
 typedef float real_t;
@@ -130,8 +132,6 @@ extern class Coord coord;
 /********************************************************************************************************
   Define template functions here to avoid linking problems
 *********************************************************************************************************/
-#include <sstream>
-#include <iomanip>
 
 template <typename Container>
 std::string

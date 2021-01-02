@@ -146,3 +146,23 @@ Enclosure::toSgfString() const
     return "." + es.substr(2) + es.substr(2,2);  // could be always "."+es, but we want to save in a zagram.org's style
 }
 
+
+SgfProperty
+Move::toSgfString() const
+{
+  std::string prop_name(who == 1 ? "B":"W");
+  std::stringstream out;
+  out << coord.indToSgf(ind);
+  if (!enclosures.empty()) {
+    for (auto &e : enclosures) {
+      out << e->toSgfString();
+    }
+  }
+  return {prop_name, {out.str()}};
+}
+
+std::string
+Move::show() const
+{
+  return (who != -1) ? coord.showPt(ind) + " +" + std::to_string(enclosures.size()) + " encl(s)" /*, zobr=" + std::to_string(zobrist_key)*/ : "(none)";
+}
