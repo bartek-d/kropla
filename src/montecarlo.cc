@@ -76,13 +76,13 @@ MonteCarlo::findBestMove(Game &pos, int iter_count)
     Game tmp = pos;
     if ((i & 0x7f) == 0) std::cerr << "iteration = " << i << std::endl;
     if (i >= komi_change_at) {
-      komi_change_at *= 4;
+      komi_change_at *= 6;
       if (montec::root.t.value_sum < montec::root.t.playouts * (1-pos.increase_komi_threshhold)) {  // green zone
 	int perspective = 2*montec::root.move.who - 3;   // -1 if we are white, 1 if black (montec::root.move.who is the opponent)
 	std::cerr << "Green zone; komi = " << global::komi << ", perspective = " << perspective << ", ratchet = " << global::komi_ratchet << std::endl;
 	if (global::komi*perspective < global::komi_ratchet) {
 	  std::cerr << "Changing komi from " << global::komi << " to ";
-	  global::komi += (montec::root.move.who == 1) ? -1 : 1;
+	  global::komi += (montec::root.move.who == 1) ? -2 : 2;
 	  std::cerr << global::komi << std::endl;
 	}
       } else if (montec::root.t.value_sum > montec::root.t.playouts * (1-pos.decrease_komi_threshhold)) {  // red zone
@@ -92,7 +92,7 @@ MonteCarlo::findBestMove(Game &pos, int iter_count)
 	  global::komi_ratchet = global::komi*perspective;
 	}
 	std::cerr << "New ratchet: " << global::komi_ratchet << ". Changing komi from " << global::komi << " to ";
-	global::komi -= (montec::root.move.who == 1) ? -1 : 1;
+	global::komi -= (montec::root.move.who == 1) ? -2 : 2;
 	std::cerr << global::komi << std::endl;
       }
     }
@@ -145,13 +145,13 @@ MonteCarlo::runSimulations(Game pos, int max_iter_count, int thread_no)
     if ((i & 0x7f) == 0) std::cerr << "thr " << thread_no << ", iteration = " << i << std::endl;
     if (thread_no == 0) {
       if (montec::iterations >= komi_change_at) {
-	komi_change_at *= 4;
+	komi_change_at *= 6;
 	if (montec::root.t.value_sum < montec::root.t.playouts * (1-pos.increase_komi_threshhold)) {  // green zone
 	  int perspective = 2*montec::root.move.who - 3;   // -1 if we are white, 1 if black (root.move.who is the opponent)
 	  std::cerr << "Green zone; komi = " << global::komi << ", perspective = " << perspective << ", ratchet = " << global::komi_ratchet << std::endl;
 	  if (global::komi*perspective < global::komi_ratchet) {
 	    std::cerr << "Changing komi from " << global::komi << " to ";
-	    global::komi += (montec::root.move.who == 1) ? -1 : 1;
+	    global::komi += (montec::root.move.who == 1) ? -2 : 2;
 	    std::cerr << global::komi << std::endl;
 	  }
 	} else if (montec::root.t.value_sum > montec::root.t.playouts * (1-pos.decrease_komi_threshhold)) {  // red zone
@@ -161,7 +161,7 @@ MonteCarlo::runSimulations(Game pos, int max_iter_count, int thread_no)
 	    global::komi_ratchet = global::komi*perspective;
 	  }
 	  std::cerr << "New ratchet: " << global::komi_ratchet << ". Changing komi from " << global::komi << " to ";
-	  global::komi -= (montec::root.move.who == 1) ? -1 : 1;
+	  global::komi -= (montec::root.move.who == 1) ? -2 : 2;
 	  std::cerr << global::komi << std::endl;
 	}
       }
