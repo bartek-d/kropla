@@ -3029,13 +3029,16 @@ Game::checkBorderMove(pti ind, int who) const
     }
   } else {
     assert(neighb_whose == 3-who);
-    if (descr.at(neighb_worm).isSafe())
+    if (descr.at(neighb_worm).isSafe()) {
       return -1;  // dame
+    }
     else {
       // half-safe, first check if it might be possible to reduce/secure territory (v103+)
-      if (threats[0].is_in_terr[ind-vnorm+viter[0]] > 0 || threats[0].is_in_encl[ind-vnorm+viter[0]] > 0 ||
-	  threats[1].is_in_terr[ind-vnorm+viter[1]] > 0 || threats[1].is_in_encl[ind-vnorm+viter[1]] > 0)
-	return 1;
+      for (int point : {ind-vnorm+viter[0], ind-vnorm+viter[1]}) {
+	if (threats[0].is_in_terr[point] > 0 || threats[0].is_in_encl[point] > 0 ||
+	    threats[1].is_in_terr[point] > 0 || threats[1].is_in_encl[point] > 0)
+	  return 1;
+      }
       // then check if opp can escape
       auto safe0 = checkBorderOneSide(ind-vnorm, viter[0], vnorm, who);
       if (safe0 == -1) return -1;
@@ -5168,7 +5171,9 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
     // add prior values for edge moves
     if (!is_dame && coord.dist[i] == 0) {
       int r = checkBorderMove(i, who);
-      if (r < 0) is_dame = true;
+      if (r < 0) {
+	is_dame = true;
+      }
       else if (r > 0) {
 #ifndef NDEBUG
 	out << "edge=" << 3*r << " ";
@@ -5185,7 +5190,12 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
     }
 #endif
     if (is_dame) {
-      if (dame_already) continue;
+      if (dame_already) {
+#ifndef NDEBUG
+	if (parent->parent == parent) std::cerr << out.str() << " --dame already!" << std::endl;	
+#endif
+	continue;
+      }
       dame_already = true;
 #ifndef NDEBUG
       out << "dame=true,-5 ";

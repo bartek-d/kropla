@@ -58,10 +58,11 @@ int main(int argc, char* argv[]) {
      if iterations is present, runs that many Monte Carlo iterations,
       if threads is present, uses that many threads for Monte Carlo simulations.
 
-  kropla - [move_number [iterations [threads [msec]]]]
+  kropla - [move_number [iterations [threads [msec [komi]]]]]
     as above, but takes the sgf from stdin and does not quit after one move, but rather waits for
     the next moves in the game; this is for use with Kropki program.
     If msec is present and threads>1, 'think' for at most (msec); msec==0 means no time limit.
+    If komi is present, sets initial komi to that value. Otherwise leaves default 0 value.
 )raws";
       return 0;
     } else  {
@@ -97,7 +98,9 @@ int main(int argc, char* argv[]) {
   int iter_count = (argc > 3) ? std::atoi(argv[3]) : 2000;
   int threads_count = (argc > 4) ?  std::atoi(argv[4]) : 3;
   int msec = (argc > 5) ?  std::atoi(argv[5]) : 0;
-
+  int komi = (argc > 6) ?  std::atoi(argv[6]) : 0;
+  global::komi = komi;
+  
   switch (mode) {
   case Mode::play:
     play_engine(game, s, threads_count, iter_count, msec);
