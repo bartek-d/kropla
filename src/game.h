@@ -335,6 +335,7 @@ public:
   Move getRandomEncl(Move &m);
   Move chooseAtariMove(int who);
   Move choosePattern3Move(pti move0, pti move1, int who);
+  Move chooseSafetyMove(int who);
   Move chooseAnyMove(int who);
   std::vector<pti> getGoodTerrMoves(int who) const;
   Move chooseAnyMove_pm(int who);

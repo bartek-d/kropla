@@ -5710,6 +5710,58 @@ Game::choosePattern3Move(pti move0, pti move1, int who)
 
 
 Move
+Game::chooseSafetyMove(int who)
+{
+  Move move;
+  move.who = who;
+  std::vector<pti> stack;
+  std::set<pti> already_saved;
+  using Tup = std::tuple<int, pti, pti>;
+  const std::array<Tup, 4>
+    p_vnorm_vside {
+      Tup{coord.ind(1, 1), coord.N, coord.E},
+	Tup{coord.ind(1, 1), coord.W, coord.S},
+	  Tup{coord.ind(coord.wlkx - 2, 1), coord.E, coord.S},
+      Tup{coord.ind(1, coord.wlky - 2), coord.S, coord.E} };
+  // top margin
+  for (auto [p, vnorm, vside] : p_vnorm_vside) {
+    for (; coord.dist[p] == 1; p+=vside) {
+      if (whoseDotMarginAt(p) != 0 and descr.at(worm[p]).safety == 1) {
+	if (whoseDotMarginAt(p + vnorm) == 0) {
+	  stack.push_back(p + vnorm);
+	  continue;
+	}
+	if (whoseDotMarginAt(p + vside) == 0 and coord.dist[p+vside] == 1 and
+	    whoseDotMarginAt(p + vside + vnorm) != whoseDotMarginAt(p) and
+	    already_saved.find(p + vside + vnorm) == already_saved.end()) {
+	  // x ?
+	  // o .   ? = .o but not 'x'
+	  stack.push_back(p + vside);
+	  already_saved.insert(p + vside);
+	}
+	if (whoseDotMarginAt(p - vside) == 0 and coord.dist[p-vside] == 1 and
+	    whoseDotMarginAt(p - vside + vnorm) != whoseDotMarginAt(p) and
+	    already_saved.find(p - vside + vnorm) == already_saved.end()) {
+	  // x ?
+	  // o .   ? = .o but not 'x'
+	  stack.push_back(p - vside);
+	  already_saved.insert(p - vside);
+	}
+      }
+    }
+  }
+  if (!stack.empty()) {
+    std::uniform_int_distribution<int> di(0, stack.size()-1);
+    int number = di(engine);
+    move.ind = stack[number];
+    return getRandomEncl(move);   // TODO: do we have to set zobrist?
+  }
+  move.ind = 0;
+  return move;
+}
+
+
+Move
 Game::chooseAnyMove(int who)
 {
   Move move;
@@ -5945,6 +5997,17 @@ Game::randomPlayout()
 	sgf_tree.addComment("at");
 #endif
 	//std::cerr << "A";
+	continue;
+      }
+    }
+    if ((number & 0x1) != 0) {  // probability 1/2
+      m = chooseSafetyMove(nowMoves);
+      if (m.ind != 0) {
+	dame_moves_so_far = 0;
+	makeMove(m);
+#ifdef DEBUG_SGF
+	sgf_tree.addComment(std::string("saf"));
+#endif
 	continue;
       }
     }
