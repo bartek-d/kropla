@@ -48,7 +48,7 @@ TEST(Isometry, applyIsometryWorks)
   EXPECT_EQ("Ca.yf", applyIsometry("ab.ff", 6, coord));
   EXPECT_EQ("CD.yy", applyIsometry("ab.ff", 7, coord));
 }
-  
+
 Game constructGameFromSgfWithIsometry(const std::string& sgf, unsigned isometry)
 {
   SgfParser parser(sgf);
@@ -78,7 +78,7 @@ Game constructGameFromSgfWithIsometry(const std::string& sgf, unsigned isometry)
   Game game(seq, 1000);
   return game;
 }
-  
+
 class IsometryFixture :public ::testing::TestWithParam<unsigned> {
 };
 
@@ -101,6 +101,25 @@ TEST_P(IsometryFixture, chooseSafetyMove) {
 INSTANTIATE_TEST_CASE_P(
         Par,
         IsometryFixture,
+        ::testing::Values(0,1,2,3,4,5,6,7));
+
+
+class IsometryFixture2 :public ::testing::TestWithParam<unsigned> {
+};
+
+TEST_P(IsometryFixture2, chooseSafetyMoveReturnsNoMoveBecauseEverythingIsSafe) {
+  unsigned isometry = GetParam();
+  //  http://eidokropki.reaktywni.pl/#33vc3yXjZ:0,0
+  Game game = constructGameFromSgfWithIsometry("(;GM[40]FF[4]CA[UTF-8]SZ[9];B[bc];W[eb];B[bd];W[fb])", isometry);
+  const int whoMoves = 1;
+  auto move = game.chooseSafetyMove(whoMoves);
+  EXPECT_EQ(0, move.ind);
+}
+
+
+INSTANTIATE_TEST_CASE_P(
+        Par,
+        IsometryFixture2,
         ::testing::Values(0,1,2,3,4,5,6,7));
 
 }
