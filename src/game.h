@@ -327,10 +327,10 @@ public:
   void makeMove(Move &m);
   void makeMoveWithPointsToEnclose(Move &m, std::vector<std::string> to_enclose);
 
-  bool isDotAt(pti ind) const { assert(worm[ind] >= 0 && worm[ind] <= MASK_WORM_NO);  return (worm[ind] >= CONST_WORM_INCR); };
-  int whoseDotMarginAt(pti ind) const { return (worm[ind] & MASK_DOT); };
-  int whoseDotAt(pti ind) const { int v[4]={0,1,2,0};  return v[worm[ind] & MASK_DOT]; };
-
+  bool isDotAt(pti ind) const { assert(worm[ind] >= 0 && worm[ind] <= MASK_WORM_NO);  return (worm[ind] >= CONST_WORM_INCR); }
+  int whoseDotMarginAt(pti ind) const { return (worm[ind] & MASK_DOT); }
+  int whoseDotAt(pti ind) const { int v[4]={0,1,2,0};  return v[worm[ind] & MASK_DOT]; }
+  int getSafetyOf(pti ind) const { return descr.at(worm[ind]).safety; }
   void generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth, int who);
   Move getRandomEncl(Move &m);
   Move chooseAtariMove(int who);
@@ -368,6 +368,8 @@ public:
   void showPattern3extra();
 
   std::string showDescr(pti p) const { return descr.at(p).show();  };
+
+  friend class Safety;
 };
 
 namespace global {
