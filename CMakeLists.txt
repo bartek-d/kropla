@@ -19,7 +19,33 @@ target_link_libraries(gather Threads::Threads)
 add_subdirectory(gtest)
 enable_testing()
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-add_executable(runUnitTests unittest/board-test.cc unittest/game-test.cc unittest/utils-test.cc unittest/utils.cc unittest/utils.h  src/game.cc src/game.h src/game_utils.h src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h)
+add_executable(runUnitTests
+  unittest/board-test.cc
+  unittest/game-test.cc
+  unittest/utils-test.cc
+  unittest/safety-test.cc
+  unittest/utils.cc
+  unittest/utils.h
+  src/game.cc
+  src/game.h
+  src/game_utils.h
+  src/board.h
+  src/board.cc
+  src/sgf.cc
+  src/board.h
+  src/sgf.h
+  src/command.cc
+  src/patterns.cc
+  src/command.h
+  src/patterns.h
+  src/enclosure.cc
+  src/enclosure.h
+  src/threats.cc
+  src/threats.h
+  src/safety.cc
+  src/safety.h)
+  
+
 target_link_libraries(runUnitTests gtest gtest_main)
 add_test(runUnitTests runUnitTests )
 
