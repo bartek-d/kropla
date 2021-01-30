@@ -207,6 +207,8 @@ class Game {
   int nowMoves; // =1 or 2
   std::vector<pti> history;
   static const pti HISTORY_TERR = 0x4000;  // this is OR-ed with history[...] to denote that someone played inside own terr or encl
+  static const pti HISTORY_ENCL_BORDER = 0x2000; // this is OR-ed with history[...] to denote that someone played on the border of their encl, possibly enclosing sth
+  static const pti history_move_MASK = ~(HISTORY_ENCL_BORDER | HISTORY_TERR);
   //
   std::vector<pti> recalculate_list;
   PossibleMoves possible_moves;

@@ -78,6 +78,7 @@ int komi_ratchet;
   Monte Carlo constants.
 *********************************************************************************************************/
 const constexpr real_t MC_SIMS_EQUIV_RECIPR = 1.0 / 400.0;  // originally 2500!
+const constexpr real_t MC_SIMS_ENCL_EQUIV_RECIPR = 1.0 / 20.0;
 
 
 
@@ -236,7 +237,8 @@ Treenode::getValue() const
     ucb_term = C * std::sqrt(std::log(N+1) / (n + 0.1));
   }
   if (t.playouts > 0 && amaf.playouts>0) {
-    real_t beta = amaf.playouts / (amaf.playouts + t.playouts + t.playouts* MC_SIMS_EQUIV_RECIPR * amaf.playouts);
+    const real_t mc_sims_equiv = move.enclosures.empty() ? MC_SIMS_EQUIV_RECIPR : MC_SIMS_ENCL_EQUIV_RECIPR;
+    real_t beta = amaf.playouts / (amaf.playouts + t.playouts + t.playouts* mc_sims_equiv * amaf.playouts);
     value = beta * amaf.value_sum / amaf.playouts + (1-beta) * t.value_sum / t.playouts;
   } else {
     if (t.playouts > 0) {
@@ -3129,22 +3131,23 @@ Game::descend(TreenodeAllocator &alloc, Treenode *node, int depth, bool expand)
     auto endmoves = history.size();
     const int distance_rave = 3;
     const int distance_rave_TERR =  8;
-    const int distance_rave_SHIFT = 4;
+    const int amaf_ENCL_BORDER = 16;
+    const int distance_rave_SHIFT = 5;
     const int distance_rave_MASK  = 7;
-
     {
       int distance_rave_threshhold = (endmoves - nmoves + 2) / distance_rave;
       int distance_rave_current = distance_rave_threshhold / 2;
       int distance_rave_weight = distance_rave + 1;
       for (auto i=nmoves; i<endmoves; i++) {
 	lastWho ^= 3;
-	amafboard[history[i] & ~HISTORY_TERR] = lastWho | (distance_rave_weight << distance_rave_SHIFT) |
-	  ( (history[i] & HISTORY_TERR) ? distance_rave_TERR : 0 );
+	amafboard[history[i] & history_move_MASK] = lastWho | (distance_rave_weight << distance_rave_SHIFT) |
+	  ( (history[i] & HISTORY_TERR) ? distance_rave_TERR : 0 ) |
+	  ( (history[i] & HISTORY_ENCL_BORDER) ? amaf_ENCL_BORDER : 0);
 	if (--distance_rave_current == 0) {
 	  distance_rave_current = distance_rave_threshhold;
 	  if (distance_rave_weight > 1) --distance_rave_weight;
 	}
-	assert(coord.dist[history[i] & ~HISTORY_TERR] >= 1 || (whoseDotMarginAt(history[i] & ~HISTORY_TERR) == lastWho));
+	assert(coord.dist[history[i] & history_move_MASK] >= 1 || (whoseDotMarginAt(history[i] & history_move_MASK) == lastWho));
       }
       // experiment: add loses to amaf inside opp enclosures
       for (auto i=coord.first; i<=coord.last; i++) {
@@ -3190,9 +3193,11 @@ Game::descend(TreenodeAllocator &alloc, Treenode *node, int depth, bool expand)
 	    ch->amaf.value_sum = ch->amaf.value_sum.load() + adjusted_value;
 	  }
 	} else if ((amafboard[ch->move.ind] & distance_rave_MASK) == ch->move.who) {
-	  int count = amafboard[ch->move.ind] >> distance_rave_SHIFT;
-	  ch->amaf.playouts += count;
-	  ch->amaf.value_sum = ch->amaf.value_sum.load() + adjusted_value*count;
+	  if (ch->move.enclosures.empty() or (amafboard[ch->move.ind] & amaf_ENCL_BORDER)) {  // we want to avoid situation when in ch there is enclosure, but in amaf not (anymore?)
+	    int count = amafboard[ch->move.ind] >> distance_rave_SHIFT;
+	    ch->amaf.playouts += count;
+	    ch->amaf.value_sum = ch->amaf.value_sum.load() + adjusted_value*count;
+	  }
 	} else if (adjusted_value < 0.2 &&
 		   (amafboard[ch->move.ind] & distance_rave_MASK) == 3 - ch->move.who) {  // inside encl, == 0 possible when there was enclosure in the generateListOfMoves-playout phase
 	  // v114+: add also losses for playing inside opp's (reduced) territory -- sometimes
@@ -3364,7 +3369,7 @@ Game::placeDot(int x, int y, int who)
   assert(worm[ind] == 0);
   recalculate_list.clear();
   if (threats[who-1].is_in_terr[ind] == 0 && threats[who-1].is_in_encl[ind] == 0) {
-    history.push_back(ind);
+    history.push_back(threats[who-1].is_in_border[ind] ? (ind | HISTORY_ENCL_BORDER) : ind);
   } else {
     // check for an anti-reduction move, which would be bad for the opponent
     // Move would be bad, if all neighbours are 'who' dots, or all but one empty point
@@ -4991,7 +4996,7 @@ Game::makeSgfMove(std::string m, int who)
     //generateListOfMoves(nullptr, who);
     //auto it = history.end();
     //--it;
-    //Move m = choosePattern3Move((*it) & ~HISTORY_TERR, (*(it-1)) & ~HISTORY_TERR, 3-who);
+    //Move m = choosePattern3Move((*it) & history_move_MASK, (*(it-1)) & history_move_MASK, 3-who);
     //Move m = chooseAnyMove(3-who);
 #ifndef NDEBUG
     /*
@@ -5241,7 +5246,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
     }
     // add prior values according to distance from last moves
     {
-      int dist = std::min(coord.distBetweenPts_1(i, history.back() & ~HISTORY_TERR), coord.distBetweenPts_1(i, (*(history.end()-2))  & ~HISTORY_TERR));
+      int dist = std::min(coord.distBetweenPts_1(i, history.back() & history_move_MASK), coord.distBetweenPts_1(i, (*(history.end()-2))  & history_move_MASK));
       if (dist <= 4) {
 	tn.t.playouts += (6-dist);  tn.t.value_sum = tn.t.value_sum.load() + (6-dist);  // add won simulations
 #ifndef NDEBUG
@@ -5975,7 +5980,7 @@ Game::getLastMove()
 {
   // we do not get last enclosure, but this does not matter
   Move m;
-  m.ind = history.back() & ~HISTORY_TERR;
+  m.ind = history.back() & history_move_MASK;
   m.who = (nowMoves ^ 3);
   return m;
 }
@@ -6014,7 +6019,7 @@ Game::randomPlayout()
     if ((number & 0x300) != 0) {
       auto it = history.end();
       --it;
-      m = choosePattern3Move((*it)  & ~HISTORY_TERR, (*(it-1)) & ~HISTORY_TERR, nowMoves);
+      m = choosePattern3Move((*it)  & history_move_MASK, (*(it-1)) & history_move_MASK, nowMoves);
       if (m.ind != 0) {
 	dame_moves_so_far = 0;
 #ifdef DEBUG_SGF

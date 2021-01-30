@@ -281,8 +281,8 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
     montec::root.children[n-1].markAsLast();
   }
   std::cerr << "Sort ends, root.children.size()==" << n << ", root value = " << montec::root.t.value_sum/montec::root.t.playouts << ", root playouts = " << montec::root.t.playouts << std::endl;
-
-  for (int i=0; i<15 && i<n; i++) {
+  constexpr int max_moves = 100;
+  for (int i=0; i<max_moves && i<n; i++) {
     std::cerr << montec::root.children[i].show() << std::endl;
     if (i==0) {
       //std::sort(montec::root.children[i].children.rbegin(), montec::root.children[i].children.rend());  // note: reverse iterators to sort descending
@@ -292,14 +292,14 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
 	std::sort(montec::root.children[i].children.load(), montec::root.children[i].children.load()+nn, [](Treenode &t1, Treenode &t2) { return t1.t.playouts > t2.t.playouts; });
 	montec::root.children[i].children[nn-1].markAsLast();
       }
-      for (int j=0; j<15 && j<nn; j++) {
+      for (int j=0; j<max_moves && j<nn; j++) {
 	std::cerr << "   " << montec::root.children[i].children[j].show() << std::endl;
       }
     }
   }
-  if (n > 15) {
+  if (n > max_moves) {
     std::cerr << "Other moves: ";
-    for (int i=15; i<n; ++i) {
+    for (int i=max_moves; i<n; ++i) {
       std::cerr << montec::root.children[i].move.show() << "  ";
     }
     std::cerr << std::endl;
