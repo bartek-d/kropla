@@ -677,7 +677,7 @@ Game::Game(SgfSequence seq, int max_moves)
 	// cut keima (not in Mogo) 		// 0.82
 	"OX?"
 	"oHO"   // original was: "?.O", but if ?=O, then it's not a cut
-	"?o?",  "82",  // oo? has some pathological tsumego cases
+	"?o?",  "52",  // oo? has some pathological tsumego cases
 	// side pattern - block side cut 	// 0.20
 	"OX?"
 	"XHO"
@@ -5473,7 +5473,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 	  saved_dots += ml_priority_vect[j-em].saved_dots;
 	}
       }
-      int num = 5 + 2*std::min(dots, 15) + 3*std::min(saved_dots, 15) + (captured_dots == 0 ? 0 : (4*std::min(captured_dots, 15) - 1));
+      int num = 7 + 2*std::min(dots, 15) + 3*std::min(saved_dots, 15) + std::min(7*saved_dots*(dots + captured_dots), 30) + (captured_dots == 0 ? 0 : (4*std::min(captured_dots, 15) - 1));
       tn.t.playouts += num;  tn.t.value_sum = tn.t.value_sum.load() + num;  // add won simulations
 #ifndef NDEBUG
       out << "special=" << num << " --> (" << tn.t.playouts << ", " << tn.t.value_sum << ") ";
