@@ -221,8 +221,8 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
   for (int t=0; t<threads; t++) {
     concurrent.push_back( std::async(std::launch::async,  [=] { return runSimulations(pos, iter_count, t); }) );
   }
+  auto time_begin = std::chrono::high_resolution_clock::now();
   if (msec > 0) {
-    auto time_begin = std::chrono::high_resolution_clock::now();
     for (;;) {
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
       auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - time_begin).count();
@@ -247,6 +247,11 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
 	montec::finish_sim = true;
 	break;
       }
+      // print performance
+      if (duration > 0) {
+	double speed = 1000.0 * montec::iterations / static_cast<double>(duration);
+	std::cerr << "Speed: " << static_cast<unsigned>(speed) << " iter/s, for thread: " << static_cast<unsigned>(speed / threads) << std::endl;
+      }
     }
   } else {
     while (montec::threads_to_be_finished > 0) {
@@ -259,6 +264,12 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
 	  montec::finish_sim = true;
 	  break;
 	}
+      }
+      // print performance
+      double duration = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - time_begin).count();
+      if (duration > 0) {
+	double speed =  montec::iterations / duration;
+	std::cerr << "Speed: " << static_cast<unsigned>(speed) << " iter/s, for thread: " << static_cast<unsigned>(speed / threads) << std::endl;
       }
 #endif
     }
