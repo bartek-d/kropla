@@ -336,6 +336,7 @@ public:
   void generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth, int who);
   Move getRandomEncl(Move &m);
   Move chooseAtariMove(int who);
+  Move chooseAtariResponse(pti lastMove, int who);
   Move choosePattern3Move(pti move0, pti move1, int who);
   Move chooseSafetyMove(int who);
   Move chooseAnyMove(int who);
@@ -384,10 +385,6 @@ extern  Pattern52 patt52_inner;
 extern int komi;     // added to terr points of white (i.e. > 0 -> good for white), komi=2 -> 1 dot
 extern int komi_ratchet;
 }
-
-#ifdef DEBUG_SGF
-SgfTree Game::sgf_tree;
-#endif
 
 extern int debug_allt2m, debug_sing_smallt2m, debug_sing_larget2m, debug_skippedt2m;
 extern int debug_n, debug_N;

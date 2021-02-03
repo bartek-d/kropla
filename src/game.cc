@@ -588,6 +588,10 @@ InterestingMoves::classOfMove(pti p) const
   Game class
 *********************************************************************************************************/
 
+#ifdef DEBUG_SGF
+SgfTree Game::sgf_tree;
+#endif
+
 void
 Game::initWorm()
 {
@@ -5632,6 +5636,80 @@ Game::chooseAtariMove(int who)
   return getRandomEncl(m);
 }
 
+/// This function selects enclosures using Game:::chooseRandomEncl().
+Move
+Game::chooseAtariResponse(pti lastMove, int who)
+{
+  boost::container::small_vector<pti, 16> urgent;
+  for (auto &t : threats[2-who].threats) {
+    if (t.singular_dots && (t.type & ThreatConsts::ENCL) && std::find(t.encl->border.begin(), t.encl->border.end(), lastMove) != t.encl->border.end()) {
+      // TODO: check also the ladder
+      if (threats[2-who].is_in_encl[t.where]==0 && threats[2-who].is_in_2m_miai[t.where]==0 && threats[2-who].is_in_2m_miai[t.where]==0) {
+	urgent.push_back(t.where);
+	int count = t.singular_dots +  (t.terr_points >= 3);
+	while (count >= 3) {
+	  urgent.push_back(t.where);
+	  count -= 4;
+	}
+      }
+      if (t.border_dots_in_danger) {
+	for (auto &ourt : threats[who-1].threats) {
+	  if ((ourt.type & ThreatConsts::ENCL) && ourt.opp_dots && (std::find(t.opp_thr.begin(), t.opp_thr.end(), ourt.zobrist_key) != t.opp_thr.end())) {
+	    urgent.push_back(ourt.where);
+	    urgent.push_back(ourt.where);
+	    int count = t.singular_dots +  (t.terr_points >= 3);
+	    while (count >= 2) {
+	      urgent.push_back(ourt.where);
+	      count -= 3;
+	    }
+	  }
+	}
+      }
+    }
+  }
+  // check opp threats in 2 moves
+  for (auto &t : threats[2-who].threats2m) {
+    if (t.min_win2 && t.isSafe() && threats[2-who].is_in_terr[t.where0]==0 && threats[2-who].is_in_encl[t.where0]==0
+	&& threats[who-1].is_in_terr[t.where0]==0 && threats[who-1].is_in_encl[t.where0]==0
+	&& (coord.distBetweenPts_infty(t.where0, lastMove) <= 1 or
+	    std::any_of(t.thr_list.begin(), t.thr_list.end(),
+			[lastMove](const Threat& thr)
+			{
+			  return std::find(thr.encl->border.begin(), thr.encl->border.end(), lastMove) != thr.encl->border.end();
+			}))) {
+      urgent.push_back(t.where0);
+      int count = t.min_win2;
+      while (count >= 3) {
+	urgent.push_back(t.where0);
+	count -= 4;
+      }
+    }
+  }
+  // select randomly one of the moves
+  int total = urgent.size();
+  Move m;
+  m.who = who;
+  // for debug, save all choices
+#ifdef DEBUG_SGF
+  /*
+  for (pti p : urgent) {
+    m.ind = p;
+    sgf_tree.addChild({getRandomEncl(m).toSgfString(), {"C", {"chooseAtariMove:urgent,total==" + std::to_string(total)}}});
+  }
+  */
+#endif
+  //
+  if (total) {
+    std::uniform_int_distribution<int> di(0, total-1);
+    int number = di(engine);
+    m.ind = urgent[number];
+  } else {
+    m.ind = 0;
+    return m;
+  }
+  return getRandomEncl(m);
+}
+
 
 /// Note: if move0 and move1 have common neighbours, then they have
 ///  the probability of being chosen doubled.
@@ -5994,12 +6072,12 @@ Game::randomPlayout()
   for (;;) {
     int number = di(engine);
     if ((number & 0xc00) != 0) {
-      m = chooseAtariMove(nowMoves);
+      m = chooseAtariResponse(history.back() & history_move_MASK, nowMoves);
       if (m.ind != 0) {
 	dame_moves_so_far = 0;
 	makeMove(m);
 #ifdef DEBUG_SGF
-	sgf_tree.addComment("at");
+	sgf_tree.addComment("ar");
 #endif
 	//std::cerr << "A";
 	continue;
@@ -6030,6 +6108,18 @@ Game::randomPlayout()
 	sgf_tree.addComment(std::string("pa:") + std::to_string(v));
 #endif
 	//std::cerr << "p";
+	continue;
+      }
+    }
+    if ((number & 0x2) != 0) {
+      m = chooseAtariMove(nowMoves);
+      if (m.ind != 0) {
+	dame_moves_so_far = 0;
+	makeMove(m);
+#ifdef DEBUG_SGF
+	sgf_tree.addComment("at");
+#endif
+	//std::cerr << "A";
 	continue;
       }
     }
