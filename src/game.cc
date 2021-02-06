@@ -6029,7 +6029,14 @@ Game::choosePatt3extraMove(int who)
   move.who = who;
   std::vector<pti> patt3extrav = getPatt3extraValues();
   int sum = 0;
-  for (int i=coord.first; i<=coord.last; ++i) sum += patt3extrav[i];
+  for (int i=coord.first; i<=coord.last; ++i)
+    if (patt3extrav[i]) {
+      if (threats[0].is_in_encl[i]==0 && threats[0].is_in_terr[i]==0 && threats[1].is_in_encl[i]==0 && threats[1].is_in_terr[i]==0) {
+	sum += patt3extrav[i];
+      } else {
+	patt3extrav[i] = 0;
+      }
+    }
   if (sum == 0) {
     move.ind = 0;
     return move;
