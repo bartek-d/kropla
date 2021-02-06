@@ -5742,12 +5742,7 @@ Game::choosePattern3Move(pti move0, pti move1, int who)
 	    pti nb = m + 2*coord.nb4[i];
 	    assert(coord.dist[nb] >= 0);
 	    auto v = pattern3_value[who-1][nb];
-
-	    if (v !=  getPattern3Value(nb, who)) {
-	      show();
-	      std::cerr << "Punkt m = " << coord.showPt(m) << ", nb = " << coord.showPt(nb) << " v=" << v << " gp3v = " << getPattern3Value(nb, who) << std::endl;
-	      assert(v == getPattern3Value(nb, who));
-	    }
+	    assert(v == getPattern3Value(nb, who));
 
 	    if (v >= 0 &&  // here non-dame (>=0) is enough
 		((threats[2-who].is_in_encl[nb]==0 && threats[2-who].is_in_terr[nb]==0) || threats[who-1].is_in_border[nb])) {
