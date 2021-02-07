@@ -4888,8 +4888,8 @@ Game::countDotsTerrInEncl(const Enclosure& encl, int who, bool optimise) const
 
 int sgf_move_no = 0;
 
-void
-Game::makeSgfMove(std::string m, int who)
+std::pair<Move, std::vector<std::string>>
+Game::extractSgfMove(std::string m, int who) const
 {
   // TODO: in must-surround, this must be done simultanously
   Move move;
@@ -4898,9 +4898,7 @@ Game::makeSgfMove(std::string m, int who)
     throw std::runtime_error("makeSgfMove error: trying to play at an occupied point");
   }
 #ifndef NDEBUG
-  //show();  showPattern3Values(1);    showPattern3Values(2);
   std::cerr << "[" << ++sgf_move_no << "] Make move " << who << " : " << m << " = " << coord.showPt(coord.sgfToPti(m)) << std::endl;
-
 #endif
 
   move.who = who;
@@ -4928,7 +4926,13 @@ Game::makeSgfMove(std::string m, int who)
       pos+=2;
     }
   }
+  return {move, points_to_enclose};
+}
 
+void
+Game::makeSgfMove(std::string m, int who)
+{
+  auto [move, points_to_enclose] = extractSgfMove(m, who);
   if (points_to_enclose.empty()) {
     makeMove(move);
   } else {

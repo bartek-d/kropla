@@ -325,6 +325,7 @@ public:
   std::pair<int, int> countTerritory(int now_moves) const;
   std::pair<int, int> countTerritory_simple(int now_moves) const;
   std::pair<int16_t, int16_t> countDotsTerrInEncl(const Enclosure& encl, int who, bool optimise = true) const;
+  std::pair<Move, std::vector<std::string>> extractSgfMove(std::string m, int who) const;
   void makeSgfMove(std::string m, int who);
   void makeMove(Move &m);
   void makeMoveWithPointsToEnclose(Move &m, std::vector<std::string> to_enclose);

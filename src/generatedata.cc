@@ -30,10 +30,29 @@
 #include <string>
 
 
-void gatherDataFromPosition(Game& game)
+void gatherDataFromPosition(Game& game, Move& move)
 {
   std::cerr << "Gather data from position: " << std::endl;
   game.show();
+  std::cerr << "Move " << move.show() << " was about to play." << std::endl;
+}
+
+std::pair<Move, std::vector<std::string>>
+getMoveFromSgfNode(const Game& game, SgfNode node)
+{
+  if (node.findProp("B") != node.props.end()) {
+    const auto& value = node.findProp("B")->second;
+    if (not value.empty()) {
+      return game.extractSgfMove(value.front(), 1);
+    }
+  }
+  if (node.findProp("W") != node.props.end()) {
+    const auto& value = node.findProp("W")->second;
+    if (not value.empty()) {
+      return game.extractSgfMove(value.front(), 2);
+    }
+  }
+  return {Move{}, {}};
 }
 
 void gatherDataFromSgfSequence(const SgfSequence &seq, const std::map<int, bool> &whichSide)
@@ -43,7 +62,10 @@ void gatherDataFromSgfSequence(const SgfSequence &seq, const std::map<int, bool>
   Game game(SgfSequence(seq.begin(), seq.begin() + start_from), infinity);
   for (int i = start_from; i < seq.size() - 1; ++i) {
     if (whichSide.at(game.whoNowMoves())) {
-      gatherDataFromPosition(game);
+      auto [move, points_to_enclose] = getMoveFromSgfNode(game, seq[i]);
+      if (points_to_enclose.empty() and move.ind != 0 and move.who == game.whoNowMoves()) {
+	gatherDataFromPosition(game, move);
+      }
     }
     std::cerr << "Trying to play at: " << seq[i].toString() << std::endl;
     game.replaySgfSequence({seq[i]}, 1);

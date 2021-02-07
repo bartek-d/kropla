@@ -37,7 +37,7 @@ struct SgfNode {
   std::weak_ptr<SgfNode> parent;
   SgfNode() : props(), children(), parent() {};
   std::string toString(bool mainVar=false) const;
-  std::vector<SgfProperty>::iterator findProp(const std::string pr);
+  std::vector<SgfProperty>::iterator findProp(const std::string& pr);
 };
 
 typedef std::vector<SgfNode>  SgfSequence;
