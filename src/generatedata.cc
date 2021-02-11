@@ -24,17 +24,105 @@
 
 #include "game.h"
 #include "sgf.h"
+#include "patterns.h"
 
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <queue>
 
+class PatternStats {
+  pattern3_t findSmallestPatt(pattern3_t p) const;
+  struct Stats {
+    uint32_t present{0};
+    uint32_t played{0};
+    double getFrequency() const
+    {
+      return static_cast<double>(played) / present;
+    }
+    bool operator<(const Stats& other) const
+    {
+      if (0 == present && 0 < other.present) return true;
+      if (0 == other.present) return false;
+      return getFrequency() < other.getFrequency();
+    }
+  };
+  std::array<Stats, PATTERN3_SIZE> stats;
+public:
+  void storeStatsForPattern(pattern3_t p, bool wasMoveHere, int whoPlays);
+  void show() const;
+};
+
+pattern3_t
+PatternStats::findSmallestPatt(pattern3_t p) const
+{
+  if (p >= PATTERN3_SIZE) return p;
+  pattern3_t smallest = p;
+  for (int i=0; i<3; ++i) {
+    p = Pattern3::rotate(p);
+    if (p < smallest) smallest = p;
+  }
+  p = Pattern3::reflect(p);
+  if (p < smallest) smallest = p;
+  for (int i=0; i<3; ++i) {
+    p = Pattern3::rotate(p);
+    if (p < smallest) smallest = p;
+  }
+  return smallest;
+}
+
+void
+PatternStats::storeStatsForPattern(pattern3_t p, bool wasMoveHere, int whoPlays)
+{
+  if (whoPlays == 2) {
+    p = Pattern3::reverseColour(p);
+  }
+  const pattern3_t smallest = findSmallestPatt(p);
+  if (smallest >= PATTERN3_SIZE) return;
+  ++stats[smallest].present;
+  if (wasMoveHere) ++stats[smallest].played;
+}
+
+void
+PatternStats::show() const
+{
+  struct StatsAndPatt {
+    pattern3_t patt;
+    Stats stats;
+    bool operator<(const StatsAndPatt& other) const
+    {
+      return stats < other.stats;
+    }
+  };
+  std::priority_queue<StatsAndPatt, std::vector<StatsAndPatt>> queue;
+  for (pattern3_t p = 0; p < PATTERN3_SIZE; ++p) {
+    if (stats[p].played > 0) {
+      queue.push(StatsAndPatt{p, stats[p]});
+    }
+  }
+  while (not queue.empty()) {
+    auto sp = queue.top();
+    std::cout << "Frequency " << sp.stats.getFrequency() << " ("
+	      << sp.stats.played << " / " << sp.stats.present << ") --> pattern:\n"
+	      << Pattern3::show(sp.patt) << std::endl;
+    queue.pop();
+  }
+}
+
+
+
+PatternStats patt_stats{};
 
 void gatherDataFromPosition(Game& game, Move& move)
 {
   std::cerr << "Gather data from position: " << std::endl;
   game.show();
   std::cerr << "Move " << move.show() << " was about to play." << std::endl;
+  for (int i=coord.first; i<=coord.last; ++i) {
+    if (game.whoseDotMarginAt(i) == 0) {
+      patt_stats.storeStatsForPattern(game.readPattern3_at(i), i == move.ind, move.who);
+    }
+  }
 }
 
 std::pair<Move, std::vector<std::string>>
@@ -57,10 +145,10 @@ getMoveFromSgfNode(const Game& game, SgfNode node)
 
 void gatherDataFromSgfSequence(const SgfSequence &seq, const std::map<int, bool> &whichSide)
 {
-  const int start_from = 5;
-  const int infinity = 10000;
+  const unsigned start_from = 5;
+  const unsigned infinity = 10000;
   Game game(SgfSequence(seq.begin(), seq.begin() + start_from), infinity);
-  for (int i = start_from; i < seq.size() - 1; ++i) {
+  for (unsigned i = start_from; i < seq.size() - 1; ++i) {
     if (whichSide.at(game.whoNowMoves())) {
       auto [move, points_to_enclose] = getMoveFromSgfNode(game, seq[i]);
       if (points_to_enclose.empty() and move.ind != 0 and move.who == game.whoNowMoves()) {
@@ -94,5 +182,6 @@ int main(int argc, char* argv[]) {
     gatherDataFromSgfSequence(seq, {{1, true}, {2, true}});
   }
 
-      
+  patt_stats.show();
+
 }

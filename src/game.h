@@ -334,6 +334,7 @@ public:
   int whoseDotMarginAt(pti ind) const { return (worm[ind] & MASK_DOT); }
   int whoseDotAt(pti ind) const { int v[4]={0,1,2,0};  return v[worm[ind] & MASK_DOT]; }
   int getSafetyOf(pti ind) const { return descr.at(worm[ind]).safety; }
+  pattern3_t readPattern3_at(pti ind) const { return pattern3_at[ind]; }
   void generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth, int who);
   Move getRandomEncl(Move &m);
   Move chooseAtariMove(int who);

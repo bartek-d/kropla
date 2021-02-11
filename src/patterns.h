@@ -69,9 +69,6 @@ const pattern3_t PATTERN3_IMPOSSIBLE = PATTERN3_SIZE + 2;
 class Pattern3 {
   std::array<pattern3_val, PATTERN3_SIZE> values;
   int add_type;
-  static pattern3_t rotate(pattern3_t p);
-  static pattern3_t reflect(pattern3_t p);
-  static pattern3_t reverseColour(pattern3_t p);
   void addPatterns(pattern3_t p, pattern3_val value);
   void generateFromStr(std::string sarg, pattern3_val value, int depth);
   friend struct Pattern3full;
@@ -79,6 +76,9 @@ class Pattern3 {
 public:
   pattern3_val getValue(pattern3_t p, int who) const;
   void generate(std::vector<std::string> vs, int type = TYPE_REPLACE);
+  static pattern3_t rotate(pattern3_t p);
+  static pattern3_t reflect(pattern3_t p);
+  static pattern3_t reverseColour(pattern3_t p);
   static std::string show(pattern3_t p);
   void showCode() const;
   //  static const constexpr T RECALCULATE = 10000.0;  // this constant should be greater than any possible pattern value
