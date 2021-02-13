@@ -30,6 +30,7 @@
 #include <fstream>
 #include <string>
 #include <queue>
+#include <set>
 
 class PatternStats {
   pattern3_t findSmallestPatt(pattern3_t p) const;
@@ -115,9 +116,11 @@ PatternStats patt_stats{};
 
 void gatherDataFromPosition(Game& game, Move& move)
 {
+  /*
   std::cerr << "Gather data from position: " << std::endl;
   game.show();
   std::cerr << "Move " << move.show() << " was about to play." << std::endl;
+  */
   for (int i=coord.first; i<=coord.last; ++i) {
     if (game.whoseDotMarginAt(i) == 0) {
       patt_stats.storeStatsForPattern(game.readPattern3_at(i), i == move.ind, move.who);
@@ -143,12 +146,32 @@ getMoveFromSgfNode(const Game& game, SgfNode node)
   return {Move{}, {}};
 }
 
-void gatherDataFromSgfSequence(const SgfSequence &seq, const std::map<int, bool> &whichSide)
+std::pair<unsigned, unsigned> getSize(SgfNode& node)
+{
+  auto sz_pos = node.findProp("SZ");
+  std::string sz = (sz_pos != node.props.end()) ? sz_pos->second[0] : "";
+  if (sz.find(':') == std::string::npos) {
+    if (sz != "") {
+      int x = stoi(sz);
+      return {x, x};
+    }
+  } else {
+    std::string::size_type i = sz.find(':');
+    int x = stoi(sz.substr(0, i));
+    int y = stoi(sz.substr(i+1));
+    return {x, y};
+  }
+  return {0,0};
+}
+
+void gatherDataFromSgfSequence(SgfSequence &seq, const std::map<int, bool> &whichSide)
 {
   const unsigned start_from = 5;
-  const unsigned infinity = 10000;
-  Game game(SgfSequence(seq.begin(), seq.begin() + start_from), infinity);
-  for (unsigned i = start_from; i < seq.size() - 1; ++i) {
+  const auto [x, y] = getSize(seq[0]);
+  const unsigned go_to = std::min<unsigned>((x*y*3) / 5,     // use moves until 60% of board is full
+					    seq.size() - 1);
+  Game game(SgfSequence(seq.begin(), seq.begin() + start_from), go_to);
+  for (unsigned i = start_from; i < go_to; ++i) {
     if (whichSide.at(game.whoNowMoves())) {
       auto [move, points_to_enclose] = getMoveFromSgfNode(game, seq[i]);
       if (points_to_enclose.empty() and move.ind != 0 and move.who == game.whoNowMoves()) {
@@ -160,6 +183,17 @@ void gatherDataFromSgfSequence(const SgfSequence &seq, const std::map<int, bool>
   }
 }
 
+std::set<std::string> readLines(const std::string& filename)
+{
+  std::ifstream t(filename);
+  std::set<std::string> output;
+  for (std::string line; std::getline(t, line); ) {
+    if (not line.empty())
+      output.emplace(line);
+  }
+  return output;
+}
+
 
 int main(int argc, char* argv[]) {
   if (argc < 4) {
@@ -167,7 +201,12 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  std::string players_file{argv[1]};
+  auto players = readLines(argv[1]);
+  for (auto& p : players) {
+    std::cout << "PLAYER: " << p << std::endl;
+  }
+
+  
   std::string out_file{argv[2]};
 
   for (int nfile = 3; nfile < argc; ++nfile) {
@@ -179,7 +218,13 @@ int main(int argc, char* argv[]) {
 
     SgfParser parser(s);
     auto seq = parser.parseMainVar();
-    gatherDataFromSgfSequence(seq, {{1, true}, {2, true}});
+    auto blue = seq[0].findProp("PB")->second[0];
+    auto red = seq[0].findProp("PW")->second[0];
+    std::cout << "Game: " << blue << " -- " << red << std::endl;
+    gatherDataFromSgfSequence(seq, {
+				    {1, players.find(blue) != players.end()},
+				    {2, players.find(red) != players.end()}
+      });
   }
 
   patt_stats.show();

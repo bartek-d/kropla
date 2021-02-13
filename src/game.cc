@@ -4485,13 +4485,13 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
     possibleMoves_updateSafetyDame();
   }
   // remove our threats
-  for (auto &t: threats[who-1].threats)
+  for (auto &t: threats[who-1].threats) {
     if ((t.type & ThreatConsts::TO_REMOVE)==0 && stack[t.where] == 0) {
-      for (auto &p : t.encl->border) {
-	if (stack[p]) {
-	  t.type |= ThreatConsts::TO_REMOVE;
-	  break;
-	}
+      if (std::any_of(t.encl->border.begin(), t.encl->border.end(),
+		      [&stack](auto p) { return stack[p]; }) or
+	  std::all_of(t.encl->interior.begin(), t.encl->interior.end(),
+		      [&stack](auto p) { return stack[p]; })) {
+	t.type |= ThreatConsts::TO_REMOVE;
       }
       if ((t.type & ThreatConsts::TO_REMOVE) == 0 && is_in_our_terr_or_encl) {
 	// update t, if it happens to include made enclosure
@@ -4515,6 +4515,7 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
     } else {
       t.type |= ThreatConsts::TO_REMOVE;
     }
+  }
   // remove our threats in 2 moves
   for (auto &t2: threats[who-1].threats2m) {
     for (auto &t : t2.thr_list) {
