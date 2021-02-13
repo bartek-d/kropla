@@ -4392,9 +4392,21 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
   sgf_tree.makePartialMove_addEncl(encl.toSgfString());
 #endif
   bool update_safety_dame = false;
+  std::set<std::pair<pti,pti>> singular_worms{};
+  bool some_worms_were_not_singular = false;
+  auto updateSingInfo = [&](pti leftmost) {
+			  if (threats[2-who].is_in_encl[leftmost] + threats[2-who].is_in_terr[leftmost] == 1) {
+			    // this worm was singular
+			    singular_worms.insert({leftmost, descr.at(worm[leftmost]).dots[who-1]});
+			  } else {
+			    some_worms_were_not_singular = true;
+			  }
+			};
+  updateSingInfo(descr.at(worm_no).leftmost);
   for (auto &p : encl.border) {
     if (worm[p] != worm_no) {
       // new worm on the border, merge it
+      updateSingInfo(descr.at(worm[p]).leftmost);
       if ((descr.at(worm[p]).safety <= 1 || descr.at(worm_no).safety <= 1) && (descr.at(worm[p]).safety + descr.at(worm_no).safety >= 2)) {
 	update_safety_dame = true;
       }
@@ -4407,6 +4419,14 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
     if (threats[2-who].is_in_encl[p]) is_inside_some_encl = true;
     if (threats[who-1].is_in_encl[p]==0 && threats[who-1].is_in_terr[p]==0) is_in_our_terr_or_encl = false;
   }
+  // if some worms were singular, and some not, it means that the enclosure removed some of the opp's threats,
+  // to make this removal calculate singular dots correctly, we need to remove current singular, see game szkrab6492 (last red move)
+  if (some_worms_were_not_singular and not singular_worms.empty()) {
+    for (auto [leftmost, dots] : singular_worms) {
+      threats[2-who].findThreatWhichContains(leftmost)->singular_dots -= dots;
+    }
+  }
+  //
   bool check_encl = (is_inside_terr_or_encl && is_inside_some_encl);
   pti first=0, last=0;  // of the list of empty interior points
   int empty_count = 0;  // number of empty interior points
