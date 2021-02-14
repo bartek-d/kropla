@@ -178,7 +178,7 @@ void gatherDataFromSgfSequence(SgfSequence &seq, const std::map<int, bool> &whic
 	gatherDataFromPosition(game, move);
       }
     }
-    std::cerr << "Trying to play at: " << seq[i].toString() << std::endl;
+    // std::cerr << "Trying to play at: " << seq[i].toString() << std::endl;
     game.replaySgfSequence({seq[i]}, 1);
   }
 }

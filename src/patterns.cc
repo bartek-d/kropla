@@ -584,7 +584,6 @@ Pattern3extra_array::generate(std::vector<std::string> vs)
   for (unsigned i=0; i<vs.size()-1; i+=2) {
     generateFromStr(vs[i], stoi(vs[i+1]), 0);
   }
-  std::cerr << "max_occupied == " << max_occupied << std::endl;
 }
 
 void
