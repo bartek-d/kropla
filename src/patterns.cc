@@ -265,6 +265,8 @@ Pattern3::readFromFile(const std::string &filename)
 {
   std::ifstream file(filename, std::ifstream::binary);
   file.read(reinterpret_cast<char *>(values.data()), sizeof(values));
+  if (not file)
+    throw std::runtime_error("Reading patterns from " + filename + " failed");
 }
 
 
