@@ -6081,12 +6081,22 @@ Game::choosePatt3extraMove(int who)
 
 
 Move
-Game::getLastMove()
+Game::getLastMove() const
 {
   // we do not get last enclosure, but this does not matter
   Move m;
   m.ind = history.back() & history_move_MASK;
   m.who = (nowMoves ^ 3);
+  return m;
+}
+
+Move
+Game::getLastButOneMove() const
+{
+  // we do not get last enclosure, but this does not matter
+  Move m;
+  m.ind = history.at(history.size()-2) & history_move_MASK;
+  m.who = nowMoves;
   return m;
 }
 

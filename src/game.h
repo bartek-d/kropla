@@ -346,7 +346,8 @@ public:
   Move chooseAnyMove_pm(int who);
   Move chooseInterestingMove(int who);
   Move choosePatt3extraMove(int who);
-  Move getLastMove();
+  Move getLastMove() const;
+  Move getLastButOneMove() const;
   real_t randomPlayout();
   void descend(TreenodeAllocator &alloc, Treenode *node, int depth, bool expand);
 
