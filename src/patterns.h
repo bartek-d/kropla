@@ -76,6 +76,7 @@ class Pattern3 {
 public:
   pattern3_val getValue(pattern3_t p, int who) const;
   void generate(std::vector<std::string> vs, int type = TYPE_REPLACE);
+  void readFromFile(const std::string &filename);
   static pattern3_t rotate(pattern3_t p);
   static pattern3_t reflect(pattern3_t p);
   static pattern3_t reverseColour(pattern3_t p);

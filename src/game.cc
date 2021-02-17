@@ -643,6 +643,7 @@ Game::Game(SgfSequence seq, int max_moves)
 
   // prepare patterns, taken from Pachi (playout/moggy.c)
   // (these may be pre-calculated)
+  /*
   global::patt3.generate({
         // hane pattern - enclosing hane
         "XOX"
@@ -721,8 +722,9 @@ Game::Game(SgfSequence seq, int max_moves)
 	"#H?"
 	"###",  "-2000",
 	});
+  */
   // global::patt3.showCode();  <-- to precalculate
-
+  global::patt3.readFromFile("patterns.bin");
 
   global::patt3_symm.generate({
       // hane pattern - enclosing hane

@@ -21,6 +21,8 @@
 
 #include "patterns.h"
 
+#include <fstream>
+
 /********************************************************************************************************
   Wildcards replacer -- class for substituting wildcards in patterns
 *********************************************************************************************************/
@@ -256,6 +258,13 @@ Pattern3::generate(std::vector<std::string> vs, int type)
   for (unsigned i=0; i<vs.size()-1; i+=2) {
     generateFromStr(vs[i], stoi(vs[i+1]), 0);
   }
+}
+
+void
+Pattern3::readFromFile(const std::string &filename)
+{
+  std::ifstream file(filename, std::ifstream::binary);
+  file.read(reinterpret_cast<char *>(values.data()), sizeof(values));
 }
 
 
