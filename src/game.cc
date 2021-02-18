@@ -5194,7 +5194,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
       if (v < 0) {            // dame
 	is_dame = true;
       } else {
-	int value = v + (v > 0);   //(v > 0) ? ((v+ 15) >> 2) : 0;
+	int value = (v > 0) ? ((v+ 15) >> 3) : 0;
 #ifndef NDEBUG
 	out << "p3p=" << value << " ";
 #endif
