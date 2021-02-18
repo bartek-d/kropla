@@ -5146,7 +5146,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
   }
   */
   // get patt3extra boni
-  std::vector<pti> patt3extrav = getPatt3extraValues();
+  //  std::vector<pti> patt3extrav = getPatt3extraValues();
   // debug:
   encl_count += ml_encl_moves.size();  opt_encl_count += ml_opt_encl_moves.size();  priority_count += ml_priorities.size();  moves_count++;
   //
@@ -5194,10 +5194,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
       if (v < 0) {            // dame
 	is_dame = true;
       } else {
-	int value = patt3extrav[i] * 3;  	// add prior values according to patt3extrav
-	if (v > 0) {
-	  value += (v + 7) >> 3;
-	}
+	int value = v + (v > 0);   //(v > 0) ? ((v+ 15) >> 2) : 0;
 #ifndef NDEBUG
 	out << "p3p=" << value << " ";
 #endif
@@ -6136,7 +6133,7 @@ Game::randomPlayout()
     if ((number & 0x300) != 0) {
       auto it = history.end();
       --it;
-      m = choosePattern3Move((*it)  & history_move_MASK, (*(it-1)) & history_move_MASK, nowMoves);
+      m = choosePattern3Move((*it)  & history_move_MASK, 0, nowMoves);
       if (m.ind != 0) {
 	dame_moves_so_far = 0;
 #ifdef DEBUG_SGF
@@ -6145,6 +6142,23 @@ Game::randomPlayout()
 	makeMove(m);
 #ifdef DEBUG_SGF
 	sgf_tree.addComment(std::string("pa:") + std::to_string(v));
+#endif
+	//std::cerr << "p";
+	continue;
+      }
+    }
+    if ((number & 0x4) != 0) {
+      auto it = history.end();
+      --it;
+      m = choosePattern3Move(0, (*(it-1)) & history_move_MASK, nowMoves);
+      if (m.ind != 0) {
+	dame_moves_so_far = 0;
+#ifdef DEBUG_SGF
+	auto v = pattern3_value[m.who-1][m.ind];
+#endif
+	makeMove(m);
+#ifdef DEBUG_SGF
+	sgf_tree.addComment(std::string("pe:") + std::to_string(v));
 #endif
 	//std::cerr << "p";
 	continue;
@@ -6173,6 +6187,7 @@ Game::randomPlayout()
 	continue;
       }
     }
+    /*
     if ((number & 0x10) != 0) {  // probability 1/2, could be 3/4 by changing 0x10 to 0x30
       m = choosePatt3extraMove(nowMoves);
       if (m.ind != 0) {
@@ -6184,6 +6199,7 @@ Game::randomPlayout()
 	continue;
       }
     }
+    */
     /*
     if ((number & 0xc) != 0) {
       m = chooseInfluenceMove(nowMoves);
