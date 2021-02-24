@@ -626,9 +626,10 @@ Game::Game(SgfSequence seq, int max_moves)
   worm = std::vector<pti>(coord.getSize(), 0);
   nextDot = std::vector<pti>(coord.getSize(), 0);
   recalculate_list.reserve(coord.wlkx * coord.wlky);
+  const pattern3_t empty_point = 0;
   pattern3_value[0] = std::vector<pattern3_val>(coord.getSize(), 0);
   pattern3_value[1] = std::vector<pattern3_val>(coord.getSize(), 0);
-  pattern3_at = std::vector<pattern3_t>(coord.getSize(), 0);
+  pattern3_at = std::vector<pattern3_t>(coord.getSize(), empty_point);
   descr = std::map<pti, WormDescr>();
   connects[0] = std::vector<OneConnection>(coord.getSize(), OneConnection());
   connects[1] = std::vector<OneConnection>(coord.getSize(), OneConnection());
@@ -1173,6 +1174,8 @@ Game::Game(SgfSequence seq, int max_moves)
 	"###"  "H", "4"  // this could be a usual 3x3 pattern!
 	});
 
+
+  global::patt3.setEmptyValue(0);
   for (int i=coord.first; i<=coord.last; ++i) {
     if (coord.dist[i] == 0) {
       pattern3recalculatePoint(i);
@@ -2448,6 +2451,12 @@ Game::addThreat(Threat&& t, int who)
 	}
       }
     }
+  }
+  if (t.where and Pattern3::isPatternPossible(pattern3_at[t.where])) {
+    // add current move to recalculate list, because its neighbours could become in danger now,
+    // and that means that curr move should change its pattern3_at
+    pattern3_at[t.where] = PATTERN3_IMPOSSIBLE;
+    recalculate_list.push_back(t.where);
   }
   threats[who-1].threats.push_back(std::move(t));
 }
