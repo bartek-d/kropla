@@ -25,8 +25,14 @@
 #include "game.h"
 
 class Safety {
-
 public:
+  struct MoveSuggestions {
+    pti move;
+    pti who;
+    pti value;
+    bool operator==(const MoveSuggestions& other) const
+    { return move == other.move and who == other.who and value == other.value; }
+  };
   Safety(Game& game);
   struct Info {
     float saf[4] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -34,12 +40,17 @@ public:
     {
       return saf[2*who + dir];
     }
-    float getSum() { return saf[0] + saf[1] + saf[2] + saf[3]; }
+    float getPlayersDir(int who, int dir) const
+    {
+      return saf[2*who + dir];
+    }
+    float getSum() const { return saf[0] + saf[1] + saf[2] + saf[3]; }
   };
-  float getSafetyOf(pti p) { return safety[p].getSum(); }
+  float getSafetyOf(pti p) const { return safety[p].getSum(); }
+  std::vector<MoveSuggestions> getMovesInfo(Game& game) const;
 private:
-  void initSafetyForMargin(Game& game, pti p, pti v, pti n);
-
+  void initSafetyForMargin(Game& game, pti p, pti v, pti n, int direction_is_clockwise);
+  void getMovesInfoForMargin(Game& game, std::vector<MoveSuggestions>& sugg, pti p, pti v, pti n, int v_is_clockwise) const;
   std::vector<Info> safety;
 
 };

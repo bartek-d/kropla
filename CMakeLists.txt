@@ -49,7 +49,7 @@ add_executable(runUnitTests
   src/safety.h)
   
 
-target_link_libraries(runUnitTests gtest gtest_main)
+target_link_libraries(runUnitTests gtest gmock gtest_main)
 add_test(runUnitTests runUnitTests )
 
 
