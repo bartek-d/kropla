@@ -51,7 +51,10 @@ public:
   float getSafetyOf(pti p) const { return safety[p].getSum(); }
   MoveSuggestions getMovesInfo(Game& game) const;
   void updateAfterMove(Game& game);
+  const MoveSuggestions& getCurrentlyAddedSugg() const;
+  const MoveSuggestions& getPreviouslyAddedSugg() const;
 private:
+  void resetSafety();
   void computeSafety(Game& game);
   void initSafetyForMargin(Game& game, pti p, pti v, pti n, int direction_is_clockwise);
   void markMoveForBoth(MoveSuggestions& sugg, pti where, pti value) const;

@@ -29,6 +29,7 @@ Safety::Safety(Game& game)
 {
   safety.resize(coord.getSize());
   computeSafety(game);
+  currentMoveSugg = getMovesInfo(game);
 }
 
 void
@@ -42,6 +43,21 @@ Safety::computeSafety(Game& game)
   initSafetyForMargin(game, coord.ind(coord.wlkx-1, coord.wlky-2), coord.W, coord.S, 1);
   initSafetyForMargin(game, coord.ind(coord.wlkx-2, coord.wlky-1), coord.N, coord.E, 0);
   initSafetyForMargin(game, coord.ind(coord.wlkx-2, 0), coord.S, coord.E, 1);
+}
+
+void
+Safety::resetSafety()
+{
+  int last = coord.ind(1, coord.wlky - 2);
+  for (int ind = coord.ind(1,1); ind <= last; ind += coord.S)
+    safety[ind] = {};
+  last = coord.ind(coord.wlkx - 2, coord.wlky - 2);
+  for (int ind = coord.ind(2,1); ind <= last; ind += coord.E)
+    safety[ind] = {};
+  for (int ind = coord.ind(2, coord.wlky - 2); ind < last; ind += coord.E)
+    safety[ind] = {};
+  for (int ind = coord.ind(coord.wlkx - 2, 2); ind <= last; ind += coord.S)
+    safety[ind] = {};
 }
 
 void
@@ -150,5 +166,39 @@ Safety::getMovesInfoForMargin(Game& game, Safety::MoveSuggestions& sugg, pti p, 
 void
 Safety::updateAfterMove(Game& game)
 {
+  resetSafety();
   computeSafety(game);
+  auto curr = getMovesInfo(game);
+  prevAddedMoveSugg = std::move(justAddedMoveSugg);
+  justAddedMoveSugg = {};
+  for (const auto& [key, value] : curr) {
+    if (value > 0) {
+      auto was = currentMoveSugg.find(key);
+      if (was == currentMoveSugg.end() or was->second < value) {
+	justAddedMoveSugg[key] = value;
+      }
+    }
+  }
+  currentMoveSugg = std::move(curr);
+  // remove elements of prevAddedMoveSugg that no longer make sense
+  for (auto it = prevAddedMoveSugg.begin(), last = prevAddedMoveSugg.end(); it != last; ) {
+    auto curr = currentMoveSugg.find(it->first);
+    if (curr == currentMoveSugg.end() or curr->second <= 0) {
+      it = prevAddedMoveSugg.erase(it);
+    } else {
+      ++it;
+    }
+  }
+}
+
+const Safety::MoveSuggestions&
+Safety::getCurrentlyAddedSugg() const
+{
+  return justAddedMoveSugg;
+}
+
+const Safety::MoveSuggestions&
+Safety::getPreviouslyAddedSugg() const
+{
+  return prevAddedMoveSugg;
 }

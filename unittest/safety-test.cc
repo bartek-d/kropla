@@ -151,5 +151,98 @@ INSTANTIATE_TEST_CASE_P(
         ::testing::Values(0,1,2,3,4,5,6,7));
 
 
+class IsometryFixtureS4 :public ::testing::TestWithParam<unsigned> {
+};
+  
+TEST_P(IsometryFixtureS4, moveSuggestionsAreCorrect)
+{
+  const unsigned isometry = GetParam();
+  auto sgf = constructSgfFromGameBoard(".....o."
+				       "..o...."
+				       ".....x."
+				       ".x....."
+				       "......."
+				       "....xo."
+				       ".......");
+  Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+  Safety safety(game);
+  EXPECT_EQ(0.75f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("ef", isometry, coord))));
+  game.makeSgfMove(applyIsometry("cf", isometry, coord), 1);
+  safety.updateAfterMove(game);
+  EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("ef", isometry, coord))));
+  auto moveSugg = safety.getCurrentlyAddedSugg();
+  auto move_at1 = [&](auto pstr, pti value) -> std::pair<const Safety::MoveDescription, pti> {
+										     return {Safety::MoveDescription{coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 1}, value};
+		 };
+  auto move_at2 = [&](auto pstr, pti value) -> std::pair<const Safety::MoveDescription, pti> {
+										     return {Safety::MoveDescription{coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 2}, value};
+		 };
+
+  constexpr pti good_move = 10;
+  EXPECT_THAT(moveSugg, testing::UnorderedElementsAre(
+						      move_at1("eg", good_move), move_at2("eg", good_move),
+						      move_at2("dg", good_move), move_at2("df", good_move)));
+  game.makeSgfMove(applyIsometry("cg", isometry, coord), 2);
+  safety.updateAfterMove(game);
+  auto moveSuggNow = safety.getCurrentlyAddedSugg();
+  auto moveSuggPrev = safety.getPreviouslyAddedSugg();
+  EXPECT_THAT(moveSuggNow, testing::UnorderedElementsAre(
+							 move_at1("bf", good_move), move_at2("bf", good_move)));
+  
+  EXPECT_THAT(moveSuggPrev, testing::UnorderedElementsAre(
+							  move_at1("eg", good_move), move_at2("eg", good_move),
+							  move_at2("dg", good_move), move_at2("df", good_move)));
+
+}
+
+INSTANTIATE_TEST_CASE_P(
+        Par,
+        IsometryFixtureS4,
+        ::testing::Values(0,1,2,3,4,5,6,7));
+
+
+class IsometryFixtureS5 :public ::testing::TestWithParam<unsigned> {
+};
+  
+TEST_P(IsometryFixtureS5, moveSuggestionsAreCorrectlyRemovedWhenNoLongerMakeSense)
+{
+  const unsigned isometry = GetParam();
+  auto sgf = constructSgfFromGameBoard(".....o."
+				       "..o...."
+				       ".....x."
+				       ".x....."
+				       "......."
+				       "....xo."
+				       ".......");
+  Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+  Safety safety(game);
+  game.makeSgfMove(applyIsometry("cf", isometry, coord), 1);
+  safety.updateAfterMove(game);
+  auto moveSugg = safety.getCurrentlyAddedSugg();
+  auto move_at1 = [&](auto pstr, pti value) -> std::pair<const Safety::MoveDescription, pti> {
+										     return {Safety::MoveDescription{coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 1}, value};
+		 };
+  auto move_at2 = [&](auto pstr, pti value) -> std::pair<const Safety::MoveDescription, pti> {
+										     return {Safety::MoveDescription{coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 2}, value};
+		 };
+
+  constexpr pti good_move = 10;
+  EXPECT_THAT(moveSugg, testing::UnorderedElementsAre(
+						      move_at1("eg", good_move), move_at2("eg", good_move),
+						      move_at2("dg", good_move), move_at2("df", good_move)));
+  game.makeSgfMove(applyIsometry("df", isometry, coord), 2);
+  safety.updateAfterMove(game);
+  auto moveSuggNow = safety.getCurrentlyAddedSugg();
+  auto moveSuggPrev = safety.getPreviouslyAddedSugg();
+  EXPECT_TRUE(moveSuggNow.empty());  
+  EXPECT_TRUE(moveSuggPrev.empty());
+
+}
+
+INSTANTIATE_TEST_CASE_P(
+        Par,
+        IsometryFixtureS5,
+        ::testing::Values(0,1,2,3,4,5,6,7));
+  
 
 }
