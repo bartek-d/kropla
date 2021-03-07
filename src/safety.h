@@ -24,15 +24,17 @@
 
 #include "game.h"
 
+#include <tuple>
+
 class Safety {
 public:
-  struct MoveSuggestions {
+  struct MoveDescription {
     pti move;
     pti who;
-    pti value;
-    bool operator==(const MoveSuggestions& other) const
-    { return move == other.move and who == other.who and value == other.value; }
+    bool operator<(const MoveDescription& other) const { return std::tie(move, who) < std::tie(other.move, other.who); }
+    bool operator==(const MoveDescription& other) const { return std::tie(move, who) == std::tie(other.move, other.who); }
   };
+  using MoveSuggestions = std::map<MoveDescription, pti>;
   Safety(Game& game);
   struct Info {
     float saf[4] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -47,10 +49,15 @@ public:
     float getSum() const { return saf[0] + saf[1] + saf[2] + saf[3]; }
   };
   float getSafetyOf(pti p) const { return safety[p].getSum(); }
-  std::vector<MoveSuggestions> getMovesInfo(Game& game) const;
+  MoveSuggestions getMovesInfo(Game& game) const;
+  void updateAfterMove(Game& game);
 private:
+  void computeSafety(Game& game);
   void initSafetyForMargin(Game& game, pti p, pti v, pti n, int direction_is_clockwise);
-  void getMovesInfoForMargin(Game& game, std::vector<MoveSuggestions>& sugg, pti p, pti v, pti n, int v_is_clockwise) const;
+  void markMoveForBoth(MoveSuggestions& sugg, pti where, pti value) const;
+  void getMovesInfoForMargin(Game& game, MoveSuggestions& sugg, pti p, pti v, pti n, int v_is_clockwise) const;
   std::vector<Info> safety;
-
+  MoveSuggestions currentMoveSugg{};
+  MoveSuggestions justAddedMoveSugg{};
+  MoveSuggestions prevAddedMoveSugg{};
 };
