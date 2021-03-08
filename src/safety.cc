@@ -73,7 +73,7 @@ void
 Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_clockwise)
 {
   float current_safety[2] = {0.75f, 0.75f};
-  for (; coord.dist[p] >= 0; p += v) {
+  for (int count = 0; coord.dist[p] >= 0; p += v, ++count) {
     auto whoseDot = game->whoseDotMarginAt(p);
     if (whoseDot) {
       auto hard_safety = game->getSafetyOf(p);
@@ -82,9 +82,17 @@ Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_cl
 	current_safety[2 - whoseDot] = 0.0f;
       }
       else {
-	if (current_safety[whoseDot - 1])
-	  safety[p].getPlayersDir(whoseDot-1, direction_is_clockwise) = current_safety[whoseDot - 1];
-	current_safety[whoseDot - 1] = std::min(current_safety[whoseDot - 1] + 0.5f * hard_safety, 1.0f);
+	if (count == 1) {
+	  // at the corner we have hard safety, so we cannot double-count it as soft
+	  current_safety[whoseDot - 1] = 0.0f;
+	} else {
+	  if (current_safety[whoseDot - 1])
+	    safety[p].getPlayersDir(whoseDot-1, direction_is_clockwise) = current_safety[whoseDot - 1];
+	  auto whoseNextDot = game->whoseDotMarginAt(p + v);
+	  if (whoseNextDot == 0) {
+	    current_safety[whoseDot - 1] = std::min(current_safety[whoseDot - 1] + 0.5f * hard_safety, 1.0f);
+	  }
+	}
 	current_safety[2 - whoseDot] = 0.0f;
       }
     } else {

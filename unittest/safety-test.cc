@@ -154,6 +154,40 @@ INSTANTIATE_TEST_CASE_P(
         ::testing::Values(0,1,2,3,4,5,6,7));
 
 
+class IsometryFixtureS3b :public ::testing::TestWithParam<unsigned> {
+};
+
+TEST_P(IsometryFixtureS3b, safetyIsCorrectlyInitialised3b)
+{
+  const unsigned isometry = GetParam();
+  auto sgf = constructSgfFromGameBoard("..xxx.."
+				       "xoooox."
+				       ".x...o."
+				       ".x....."
+				       ".o...o."
+				       ".oxxxox"
+				       "...oox.");
+  Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+  Safety safety;
+  safety.init(&game);
+  EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bb", isometry, coord))));
+  EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("cb", isometry, coord))));
+  EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("db", isometry, coord))));
+  EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("eb", isometry, coord))));
+  EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("cf", isometry, coord))));
+  EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("df", isometry, coord))));
+  EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("ef", isometry, coord))));
+  EXPECT_EQ(0.5f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("fc", isometry, coord))));
+  EXPECT_EQ(0.5f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("fe", isometry, coord))));
+  EXPECT_EQ(0.5f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("ff", isometry, coord))));
+}
+
+INSTANTIATE_TEST_CASE_P(
+        Par,
+        IsometryFixtureS3b,
+        ::testing::Values(0,1,2,3,4,5,6,7));
+
+
 class IsometryFixtureS4 :public ::testing::TestWithParam<unsigned> {
 };
   
