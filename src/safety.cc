@@ -24,16 +24,25 @@
 
 #include "safety.h"
 #include "board.h"
+#include "game.h"
 
-Safety::Safety(Game& game)
+Safety::Safety()
+{
+  safety.resize(coord.getSize());
+}
+
+void
+Safety::init(Game* game)
 {
   safety.resize(coord.getSize());
   computeSafety(game);
   currentMoveSugg = getMovesInfo(game);
+  justAddedMoveSugg = {};
+  prevAddedMoveSugg = {};
 }
 
 void
-Safety::computeSafety(Game& game)
+Safety::computeSafety(Game* game)
 {
   initSafetyForMargin(game, coord.ind(0, 1), coord.E, coord.N, 1);
   initSafetyForMargin(game, coord.ind(coord.wlkx-1, 1), coord.W, coord.N, 0);
@@ -61,13 +70,13 @@ Safety::resetSafety()
 }
 
 void
-Safety::initSafetyForMargin(Game& game, pti p, pti v, pti n, int direction_is_clockwise)
+Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_clockwise)
 {
   float current_safety[2] = {0.75f, 0.75f};
   for (; coord.dist[p] >= 0; p += v) {
-    auto whoseDot = game.whoseDotMarginAt(p);
+    auto whoseDot = game->whoseDotMarginAt(p);
     if (whoseDot) {
-      auto hard_safety = game.getSafetyOf(p);
+      auto hard_safety = game->getSafetyOf(p);
       if (hard_safety >= 2) {
 	current_safety[whoseDot - 1] = 1.0f;
 	current_safety[2 - whoseDot] = 0.0f;
@@ -79,7 +88,7 @@ Safety::initSafetyForMargin(Game& game, pti p, pti v, pti n, int direction_is_cl
 	current_safety[2 - whoseDot] = 0.0f;
       }
     } else {
-      auto whoseAtTheEdge = game.whoseDotMarginAt(p + n);
+      auto whoseAtTheEdge = game->whoseDotMarginAt(p + n);
       if (whoseAtTheEdge) {
 	current_safety[whoseAtTheEdge - 1] = 1.0f;
 	current_safety[2 - whoseAtTheEdge] = 0.0f;
@@ -90,7 +99,7 @@ Safety::initSafetyForMargin(Game& game, pti p, pti v, pti n, int direction_is_cl
 
 
 Safety::MoveSuggestions
-Safety::getMovesInfo(Game& game) const
+Safety::getMovesInfo(Game* game) const
 {
   MoveSuggestions sugg;
   getMovesInfoForMargin(game, sugg, coord.ind(1, 1), coord.E, coord.N, 1);
@@ -108,17 +117,17 @@ Safety::markMoveForBoth(Safety::MoveSuggestions& sugg, pti where, pti value) con
 }
 
 void
-Safety::getMovesInfoForMargin(Game& game, Safety::MoveSuggestions& sugg, pti p, pti v, pti n, int v_is_clockwise) const
+Safety::getMovesInfoForMargin(Game* game, Safety::MoveSuggestions& sugg, pti p, pti v, pti n, int v_is_clockwise) const
 {
   constexpr pti bad_move = -10;
   constexpr pti good_move = 10;
   //  constexpr pti interesting_move = 5;
 
   for (; coord.dist[p] > 0; p += v) {
-    auto whoseDot = game.whoseDotMarginAt(p);
+    auto whoseDot = game->whoseDotMarginAt(p);
     if (whoseDot) {
-      auto whoseAtTheEdge = game.whoseDotMarginAt(p + n);
-      auto hard_safety = game.getSafetyOf(p);
+      auto whoseAtTheEdge = game->whoseDotMarginAt(p + n);
+      auto hard_safety = game->getSafetyOf(p);
       auto soft_safety = getSafetyOf(p);
       if (hard_safety + soft_safety >= 2.0f) {
 	if (whoseAtTheEdge == 0) {
@@ -129,32 +138,32 @@ Safety::getMovesInfoForMargin(Game& game, Safety::MoveSuggestions& sugg, pti p, 
       if (hard_safety == 1 and soft_safety == 0.0f and whoseAtTheEdge == 0) {
 	markMoveForBoth(sugg, p + n, good_move);
 	// other defending moves?
-	if (game.whoseDotMarginAt(p + v) == 0 and game.whoseDotMarginAt(p + n + v) == 0) {
+	if (game->whoseDotMarginAt(p + v) == 0 and game->whoseDotMarginAt(p + n + v) == 0) {
 	  sugg[MoveDescription{p + v, whoseDot}] = good_move;
 	  sugg[MoveDescription{p + n + v, whoseDot}] = good_move;
 	}
-	if (game.whoseDotMarginAt(p - v) == 0 and game.whoseDotMarginAt(p + n - v) == 0) {
+	if (game->whoseDotMarginAt(p - v) == 0 and game->whoseDotMarginAt(p + n - v) == 0) {
 	  sugg[MoveDescription{p - v, whoseDot}] = good_move;
 	  sugg[MoveDescription{p + n - v, whoseDot}] = good_move;
 	}
 	continue;
       }
       if (hard_safety == 0 and soft_safety >= 0.75f and soft_safety <= 1.0f) {
-	if (game.whoseDotMarginAt(p + v) == 0 and game.whoseDotMarginAt(p + n + v) == 0
+	if (game->whoseDotMarginAt(p + v) == 0 and game->whoseDotMarginAt(p + n + v) == 0
 	    and safety[p].getPlayersDir(whoseDot - 1, 1 - v_is_clockwise) >= 0.75f) {
 	  markMoveForBoth(sugg, p + v, good_move);
 	}
-	if (game.whoseDotMarginAt(p - v) == 0 and game.whoseDotMarginAt(p + n - v) == 0
+	if (game->whoseDotMarginAt(p - v) == 0 and game->whoseDotMarginAt(p + n - v) == 0
 	    and safety[p].getPlayersDir(whoseDot - 1, v_is_clockwise) >= 0.75f) {
 	  markMoveForBoth(sugg, p - v, good_move);
 	}
 	continue;
       }
       if (hard_safety == 0 and soft_safety == 0.5f) {
-	if (game.whoseDotMarginAt(p + v) == 0 and game.whoseDotMarginAt(p + n + v) == 0) {
+	if (game->whoseDotMarginAt(p + v) == 0 and game->whoseDotMarginAt(p + n + v) == 0) {
 	  markMoveForBoth(sugg, p + n + v, good_move);
 	}
-	if (game.whoseDotMarginAt(p - v) == 0 and game.whoseDotMarginAt(p + n - v) == 0) {
+	if (game->whoseDotMarginAt(p - v) == 0 and game->whoseDotMarginAt(p + n - v) == 0) {
 	  markMoveForBoth(sugg, p + n - v, good_move);
 	}
 	continue;
@@ -164,13 +173,12 @@ Safety::getMovesInfoForMargin(Game& game, Safety::MoveSuggestions& sugg, pti p, 
 }
 
 void
-Safety::updateAfterMove(Game& game)
+Safety::updateAfterMove(Game* game)
 {
   resetSafety();
   computeSafety(game);
   auto curr = getMovesInfo(game);
-  prevAddedMoveSugg = std::move(justAddedMoveSugg);
-  justAddedMoveSugg = {};
+  updateAfterMoveWithoutAnyChangeToSafety();
   for (const auto& [key, value] : curr) {
     if (value > 0) {
       auto was = currentMoveSugg.find(key);
@@ -191,6 +199,13 @@ Safety::updateAfterMove(Game& game)
   }
 }
 
+void
+Safety::updateAfterMoveWithoutAnyChangeToSafety()
+{
+  prevAddedMoveSugg = std::move(justAddedMoveSugg);
+  justAddedMoveSugg = {};
+}
+
 const Safety::MoveSuggestions&
 Safety::getCurrentlyAddedSugg() const
 {
@@ -201,4 +216,13 @@ const Safety::MoveSuggestions&
 Safety::getPreviouslyAddedSugg() const
 {
   return prevAddedMoveSugg;
+}
+
+bool
+Safety::isDameFor(int who, pti where) const
+{
+  if (coord.dist[where] > 0) return false;
+  auto curr = currentMoveSugg.find(MoveDescription{where, who});
+  if (curr == currentMoveSugg.end()) return false;
+  return curr->second < 0;
 }

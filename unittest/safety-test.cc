@@ -21,14 +21,15 @@ TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialised1)
 				       "...oxo."
 				       ".......");
   Game game = constructGameFromSgfWithIsometry(sgf, isometry);
-  Safety safety(game);
+  Safety safety;
+  safety.init(&game);
   EXPECT_EQ(0.75f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("cb", isometry, coord))));
   EXPECT_EQ(1.50f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bd", isometry, coord))));
   EXPECT_EQ(0.75f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("df", isometry, coord))));
   EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("ef", isometry, coord))));
   EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("ff", isometry, coord))));
   EXPECT_EQ(1.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("fc", isometry, coord))));
-  auto suggestions = safety.getMovesInfo(game);
+  auto suggestions = safety.getMovesInfo(&game);
   constexpr pti bad_move = -10;
   constexpr pti good_move = 10;
   auto move_at1 = [&](auto pstr, pti value) -> std::pair<const Safety::MoveDescription, pti> {
@@ -64,7 +65,8 @@ TEST_P(IsometryFixtureS2, safetyIsCorrectlyInitialised2)
 				       ".x.o.o."
 				       ".......");
   Game game = constructGameFromSgfWithIsometry(sgf, isometry);
-  Safety safety(game);
+  Safety safety;
+  safety.init(&game);
   EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bb", isometry, coord))));
   EXPECT_EQ(2.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("db", isometry, coord))));
   EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("fb", isometry, coord))));
@@ -74,7 +76,7 @@ TEST_P(IsometryFixtureS2, safetyIsCorrectlyInitialised2)
   EXPECT_EQ(1.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("df", isometry, coord))));
   EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bf", isometry, coord))));
   EXPECT_EQ(1.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bd", isometry, coord))));
-  auto suggestions = safety.getMovesInfo(game);
+  auto suggestions = safety.getMovesInfo(&game);
   constexpr pti bad_move = -10;
   auto move_at1 = [&](auto pstr, pti value) -> std::pair<const Safety::MoveDescription, pti> {
 										     return {Safety::MoveDescription{coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 1}, value};
@@ -115,12 +117,13 @@ TEST_P(IsometryFixtureS3, safetyIsCorrectlyInitialised3)
 				       "xo.o..."
 				       ".x.....");
   Game game = constructGameFromSgfWithIsometry(sgf, isometry);
-  Safety safety(game);
+  Safety safety;
+  safety.init(&game);
   EXPECT_EQ(0.75f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bb", isometry, coord))));
   EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bd", isometry, coord))));
   EXPECT_EQ(1.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bf", isometry, coord))));
   EXPECT_EQ(0.75f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("df", isometry, coord))));
-  auto suggestions = safety.getMovesInfo(game);
+  auto suggestions = safety.getMovesInfo(&game);
   constexpr pti good_move = 10;
   constexpr pti x_player = 2;
   auto move_at_for = [&](auto pstr, pti value, pti who) -> std::pair<const Safety::MoveDescription, pti> {
@@ -165,10 +168,11 @@ TEST_P(IsometryFixtureS4, moveSuggestionsAreCorrect)
 				       "....xo."
 				       ".......");
   Game game = constructGameFromSgfWithIsometry(sgf, isometry);
-  Safety safety(game);
+  Safety safety;
+  safety.init(&game);
   EXPECT_EQ(0.75f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("ef", isometry, coord))));
   game.makeSgfMove(applyIsometry("cf", isometry, coord), 1);
-  safety.updateAfterMove(game);
+  safety.updateAfterMove(&game);
   EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("ef", isometry, coord))));
   auto moveSugg = safety.getCurrentlyAddedSugg();
   auto move_at1 = [&](auto pstr, pti value) -> std::pair<const Safety::MoveDescription, pti> {
@@ -183,7 +187,7 @@ TEST_P(IsometryFixtureS4, moveSuggestionsAreCorrect)
 						      move_at1("eg", good_move), move_at2("eg", good_move),
 						      move_at2("dg", good_move), move_at2("df", good_move)));
   game.makeSgfMove(applyIsometry("cg", isometry, coord), 2);
-  safety.updateAfterMove(game);
+  safety.updateAfterMove(&game);
   auto moveSuggNow = safety.getCurrentlyAddedSugg();
   auto moveSuggPrev = safety.getPreviouslyAddedSugg();
   EXPECT_THAT(moveSuggNow, testing::UnorderedElementsAre(
@@ -215,9 +219,10 @@ TEST_P(IsometryFixtureS5, moveSuggestionsAreCorrectlyRemovedWhenNoLongerMakeSens
 				       "....xo."
 				       ".......");
   Game game = constructGameFromSgfWithIsometry(sgf, isometry);
-  Safety safety(game);
+  Safety safety;
+  safety.init(&game);
   game.makeSgfMove(applyIsometry("cf", isometry, coord), 1);
-  safety.updateAfterMove(game);
+  safety.updateAfterMove(&game);
   auto moveSugg = safety.getCurrentlyAddedSugg();
   auto move_at1 = [&](auto pstr, pti value) -> std::pair<const Safety::MoveDescription, pti> {
 										     return {Safety::MoveDescription{coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 1}, value};
@@ -231,7 +236,7 @@ TEST_P(IsometryFixtureS5, moveSuggestionsAreCorrectlyRemovedWhenNoLongerMakeSens
 						      move_at1("eg", good_move), move_at2("eg", good_move),
 						      move_at2("dg", good_move), move_at2("df", good_move)));
   game.makeSgfMove(applyIsometry("df", isometry, coord), 2);
-  safety.updateAfterMove(game);
+  safety.updateAfterMove(&game);
   auto moveSuggNow = safety.getCurrentlyAddedSugg();
   auto moveSuggPrev = safety.getPreviouslyAddedSugg();
   EXPECT_TRUE(moveSuggNow.empty());  

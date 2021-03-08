@@ -29,6 +29,7 @@
 #include "enclosure.h"
 #include "threats.h"
 #include "patterns.h"
+#include "safety.h"
 
 #include <vector>
 #include <map>
@@ -224,6 +225,8 @@ class Game {
   std::vector<std::shared_ptr<Enclosure> > ml_encl_moves;
   std::vector<std::shared_ptr<Enclosure> > ml_opt_encl_moves;
   std::vector<uint64_t> ml_encl_zobrists;
+  bool update_soft_safety{false};   // if safety_soft needs to be recalculated after dot+(enclosure)
+  Safety safety_soft;
   int dame_moves_so_far {0};
   // worm[] has worm-id if it is >= 4 && <= MASK_WORM_NO,
   // worm[] & MASK_DOT can have 4 values: 0=empty, 1,2 = dots, 3=point outside the board
@@ -339,6 +342,7 @@ public:
   Move getRandomEncl(Move &m);
   Move chooseAtariMove(int who);
   Move chooseAtariResponse(pti lastMove, int who);
+  Move chooseSoftSafetyResponse(int who);
   Move choosePattern3Move(pti move0, pti move1, int who);
   Move chooseSafetyMove(int who);
   Move chooseAnyMove(int who);
@@ -355,6 +359,7 @@ public:
   bool isDame_directCheck_symm(pti p) const;
   bool checkRootListOfMovesCorrectness(Treenode *children) const;
   bool checkWormCorrectness() const;
+  bool checkSoftSafetyCorrectness();
   bool checkThreatCorrectness();
   bool checkThreat2movesCorrectness();
   bool checkConnectionsCorrectness();

@@ -636,6 +636,7 @@ Game::Game(SgfSequence seq, int max_moves)
   threats[0] = AllThreats();
   threats[1] = AllThreats();
   lastWormNo[0]=1; lastWormNo[1]=2;
+  safety_soft.init(this);
   initWorm();
   history.push_back(0);
   history.push_back(0);
@@ -3426,12 +3427,16 @@ Game::placeDot(int x, int y, int who)
     threats[2-who].findThreatWhichContains(ind)->singular_dots++;
   }
   bool update_safety_dame = false;   // if some worms start/stop being safe, we need to recalculate dame moves on the first line
+  update_soft_safety = false;   // if some worms gained hard-safety (from 0 to +1/+2 or from +1 to +2), then we need to recalculate soft safety
   bool nonisolated = (count > 0);
   if (count) {
     while (count >= 2) {
       // glue the smaller to the larger worm
       if ((descr.at(numb[count-1]).safety <= 1 || descr.at(numb[count-2]).safety <= 1) && (descr.at(numb[count-1]).safety + descr.at(numb[count-2]).safety >= 2)) {
 	update_safety_dame = true;
+      }
+      if ((descr.at(numb[count-1]).safety <= 1 || descr.at(numb[count-2]).safety <= 1) && (descr.at(numb[count-1]).safety + descr.at(numb[count-2]).safety >= 1)) {
+	update_soft_safety = true;
       }
       if (descr.at(numb[count-1]).dots[0] + descr.at(numb[count-1]).dots[1] > descr.at(numb[count-2]).dots[0] + descr.at(numb[count-2]).dots[1]) {
 	wormMergeSame(numb[count-1], numb[count-2]);
@@ -3484,6 +3489,7 @@ Game::placeDot(int x, int y, int who)
 	  break;
 	}
       }
+      update_soft_safety = true;  // needed when played on the edge
     } else if (dist==1) {
       bool was_unsafe_and_nonisolated = nonisolated && !descr.at(worm[ind]).isSafe();
       for (int i=0; i<4; i++) {
@@ -3493,6 +3499,7 @@ Game::placeDot(int x, int y, int who)
 	}
       }
       if (was_unsafe_and_nonisolated && descr.at(worm[ind]).isSafe()) update_safety_dame = true;
+      update_soft_safety = true;  // needed when played near the edge
     }
   }
   // check diag neighbours
@@ -4421,6 +4428,9 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
       if ((descr.at(worm[p]).safety <= 1 || descr.at(worm_no).safety <= 1) && (descr.at(worm[p]).safety + descr.at(worm_no).safety >= 2)) {
 	update_safety_dame = true;
       }
+      if ((descr.at(worm[p]).safety <= 1 || descr.at(worm_no).safety <= 1) && (descr.at(worm[p]).safety + descr.at(worm_no).safety >= 1)) {
+	update_soft_safety = true;
+      }
       wormMergeSame(worm_no, worm[p]);
     }
     if (threats[2-who].is_in_terr[p]==0) {
@@ -5078,6 +5088,13 @@ Game::makeMove(Move &m)
     for (auto &encl : m.enclosures) {
       makeEnclosure(*encl, true);
     }
+    if (update_soft_safety) {
+      safety_soft.updateAfterMove(this);
+      update_soft_safety = false;
+    } else {
+      safety_soft.updateAfterMoveWithoutAnyChangeToSafety();
+    }
+    assert(checkSoftSafetyCorrectness());    
     recalculatePatt3Values();
     nowMoves ^= 3;
   }
@@ -5097,6 +5114,13 @@ Game::makeMoveWithPointsToEnclose(Move &m, std::vector<std::string> to_enclose)
 	makeEnclosure(encl, true);
       }
     }
+    if (update_soft_safety) {
+      safety_soft.updateAfterMove(this);
+      update_soft_safety = false;
+    } else {
+      safety_soft.updateAfterMoveWithoutAnyChangeToSafety();
+    }
+    assert(checkSoftSafetyCorrectness());    
     recalculatePatt3Values();
     nowMoves ^= 3;
   }
@@ -5167,7 +5191,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
     std::stringstream out;
     out << "Move " << coord.showPt(i) << ": ";
 #endif
-    bool is_dame = false;
+    bool is_dame = safety_soft.isDameFor(who, i);
     int x = coord.x[i], y = coord.y[i];
     if (x==0) {
       if (left || (worm[i+coord.E] && descr.at(worm[i+coord.E]).isSafe()) || (y==0 || y==coord.wlky-1)) is_dame = true;
@@ -5743,6 +5767,34 @@ Game::chooseAtariResponse(pti lastMove, int who)
   return getRandomEncl(m);
 }
 
+/// This function selects enclosures using Game:::chooseRandomEncl().
+Move
+Game::chooseSoftSafetyResponse(int who)
+{
+  auto responses = safety_soft.getCurrentlyAddedSugg();
+  int total = std::count_if(responses.begin(), responses.end(),
+			    [who](const auto& el) { return el.first.who == who; });
+  Move m;
+  m.who = who;
+  if (total == 0) {
+    m.ind = 0;
+    return m;
+  }
+  std::uniform_int_distribution<int> di(0, total-1);
+  int number = di(engine);
+  for (auto it = responses.begin(); it != responses.end(); ++it) {
+    if (it->first.who == who) {
+      if (number == 0) {
+	m.ind = it->first.move;
+	break;
+      }
+      --number;
+    }
+  }
+  return getRandomEncl(m);
+}
+
+
 
 /// Note: if move0 and move1 have common neighbours, then they have
 ///  the probability of being chosen doubled.
@@ -6113,7 +6165,7 @@ real_t
 Game::randomPlayout()
 {
   Move m;
-  std::uniform_int_distribution<int> di(0, 0xfff);
+  std::uniform_int_distribution<int> di(0, 0xffff);
   for (;;) {
     int number = di(engine);
     if ((number & 0xc00) != 0) {
@@ -6124,10 +6176,21 @@ Game::randomPlayout()
 #ifdef DEBUG_SGF
 	sgf_tree.addComment("ar");
 #endif
-	//std::cerr << "A";
 	continue;
       }
     }
+    if ((number & 0xc000) != 0) {
+      m = chooseSoftSafetyResponse(nowMoves);
+      if (m.ind != 0) {
+	dame_moves_so_far = 0;
+	makeMove(m);
+#ifdef DEBUG_SGF
+	sgf_tree.addComment("soft");
+#endif
+	continue;
+      }
+    }
+    
     if ((number & 0x1) != 0) {  // probability 1/2
       m = chooseSafetyMove(nowMoves);
       if (m.ind != 0) {
@@ -6355,6 +6418,7 @@ bool
 Game::isDame_directCheck(pti p, int who) const
 {
   if (coord.dist[p] == 0 && checkBorderMove(p, who) < 0) return true;
+  if (safety_soft.isDameFor(who, p)) return true;
   return isDame_directCheck_symm(p);
 }
 
@@ -6529,6 +6593,32 @@ Game::checkWormCorrectness() const
     }
   }
   return true;
+}
+
+bool
+Game::checkSoftSafetyCorrectness()
+{
+  Safety s;
+  s.init(this);
+  bool shown = false;
+  auto almost_eq = [](float x, float y) { return x >= y - 1e-4 and x <= y + 1e-4; };
+  for (int ind = coord.first; ind<=coord.last; ind++) {
+    if (not almost_eq(s.getSafetyOf(ind), safety_soft.getSafetyOf(ind))) {
+      if (not shown) { show(); shown = true; }
+      std::cerr << "bledne soft safety dla " << coord.showPt(ind)
+		<< " jest: " << safety_soft.getSafetyOf(ind)
+		<< ", powinno byc: " << s.getSafetyOf(ind) << std::endl;
+    }
+    if (s.isDameFor(1, ind) != safety_soft.isDameFor(1, ind) or
+	s.isDameFor(2, ind) != safety_soft.isDameFor(2, ind)) {
+      if (not shown) { show(); shown = true; }
+      std::cerr << "bledne is dame for dla " << coord.showPt(ind)
+		<< " jest: " << safety_soft.isDameFor(1, ind) << " " << safety_soft.isDameFor(2, ind)
+		<< ", powinno byc: " << s.isDameFor(1, ind)
+		<< " " << s.isDameFor(2, ind) << std::endl;
+    }
+  }
+  return not shown;
 }
 
 bool

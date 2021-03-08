@@ -22,9 +22,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
 
-#include "game.h"
+#pragma once
+
+#include "board.h"
 
 #include <tuple>
+#include <map>
+#include <vector>
+
+class Game;
 
 class Safety {
 public:
@@ -35,7 +41,7 @@ public:
     bool operator==(const MoveDescription& other) const { return std::tie(move, who) == std::tie(other.move, other.who); }
   };
   using MoveSuggestions = std::map<MoveDescription, pti>;
-  Safety(Game& game);
+  Safety();
   struct Info {
     float saf[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     float& getPlayersDir(int who, int dir)
@@ -48,18 +54,21 @@ public:
     }
     float getSum() const { return saf[0] + saf[1] + saf[2] + saf[3]; }
   };
+  void init(Game* game);
   float getSafetyOf(pti p) const { return safety[p].getSum(); }
-  MoveSuggestions getMovesInfo(Game& game) const;
-  void updateAfterMove(Game& game);
+  MoveSuggestions getMovesInfo(Game* game) const;
+  void computeSafety(Game* game);
+  void updateAfterMove(Game* game);
+  void updateAfterMoveWithoutAnyChangeToSafety();
   const MoveSuggestions& getCurrentlyAddedSugg() const;
   const MoveSuggestions& getPreviouslyAddedSugg() const;
+  bool isDameFor(int who, pti where) const;
 private:
   void resetSafety();
-  void computeSafety(Game& game);
-  void initSafetyForMargin(Game& game, pti p, pti v, pti n, int direction_is_clockwise);
+  void initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_clockwise);
   void markMoveForBoth(MoveSuggestions& sugg, pti where, pti value) const;
-  void getMovesInfoForMargin(Game& game, MoveSuggestions& sugg, pti p, pti v, pti n, int v_is_clockwise) const;
-  std::vector<Info> safety;
+  void getMovesInfoForMargin(Game* game, MoveSuggestions& sugg, pti p, pti v, pti n, int v_is_clockwise) const;
+  std::vector<Info> safety{};
   MoveSuggestions currentMoveSugg{};
   MoveSuggestions justAddedMoveSugg{};
   MoveSuggestions prevAddedMoveSugg{};
