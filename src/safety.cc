@@ -73,15 +73,31 @@ void
 Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_clockwise)
 {
   float current_safety[2] = {0.75f, 0.75f};
+  int previousDot = -1;
+  int localHardSafety = 0;
+  bool checkIfLocalHardSafetyShouldBecome1 = false;
   for (int count = 0; coord.dist[p] >= 0; p += v, ++count) {
     auto whoseDot = game->whoseDotMarginAt(p);
     if (whoseDot) {
-      auto hard_safety = game->getSafetyOf(p);
-      if (hard_safety >= 2) {
-	current_safety[whoseDot - 1] = 1.0f;
-	current_safety[2 - whoseDot] = 0.0f;
+      // find local hard safety
+      if (whoseDot == previousDot) {
+	if (checkIfLocalHardSafetyShouldBecome1 and game->whoseDotMarginAt(p + n) == 0) {
+	  checkIfLocalHardSafetyShouldBecome1 = false;
+	  localHardSafety = 1;
+	}
+      } else {
+	previousDot = whoseDot;
+	localHardSafety = game->getSafetyOf(p);
+	if (localHardSafety == 1) {
+	  checkIfLocalHardSafetyShouldBecome1 = (game->whoseDotMarginAt(p + n) != 0);
+	  if (checkIfLocalHardSafetyShouldBecome1) localHardSafety = 0;
+	} else if (localHardSafety >= 2) {
+	  current_safety[whoseDot - 1] = 1.0f;
+	  current_safety[2 - whoseDot] = 0.0f;
+	}
       }
-      else {
+      // update soft safety, if needed
+      if (localHardSafety < 2) {
 	if (count == 1) {
 	  // at the corner we have hard safety, so we cannot double-count it as soft
 	  current_safety[whoseDot - 1] = 0.0f;
@@ -90,12 +106,13 @@ Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_cl
 	    safety[p].getPlayersDir(whoseDot-1, direction_is_clockwise) = current_safety[whoseDot - 1];
 	  auto whoseNextDot = game->whoseDotMarginAt(p + v);
 	  if (whoseNextDot == 0) {
-	    current_safety[whoseDot - 1] = std::min(current_safety[whoseDot - 1] + 0.5f * hard_safety, 1.0f);
+	    current_safety[whoseDot - 1] = std::min(current_safety[whoseDot - 1] + 0.5f * localHardSafety, 1.0f);
 	  }
 	}
 	current_safety[2 - whoseDot] = 0.0f;
       }
     } else {
+      previousDot = -1;
       auto whoseAtTheEdge = game->whoseDotMarginAt(p + n);
       if (whoseAtTheEdge) {
 	current_safety[whoseAtTheEdge - 1] = 1.0f;

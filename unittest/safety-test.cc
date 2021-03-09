@@ -284,4 +284,31 @@ INSTANTIATE_TEST_CASE_P(
         ::testing::Values(0,1,2,3,4,5,6,7));
   
 
+class IsometryFixtureS6 :public ::testing::TestWithParam<unsigned> {
+};
+
+TEST_P(IsometryFixtureS6, correctlyAssignedNoDame)
+{
+  const unsigned isometry = GetParam();
+  auto sgf = constructSgfFromGameBoard("....xo."
+				       ".xo.ox."
+				       ".xooox."
+				       ".xxxxx."
+				       "......."
+				       "....xo."
+				       ".......");
+  Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+  Safety safety;
+  safety.init(&game);
+  EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("cb", isometry, coord))));
+  auto moveSugg = safety.getMovesInfo(&game);
+  auto it = moveSugg.find(Safety::MoveDescription{coord.sgfToPti(applyIsometry("ca", isometry, coord)), 2});
+  EXPECT_TRUE(it != moveSugg.end() and it->second > 0);
+}
+
+INSTANTIATE_TEST_CASE_P(
+        Par,
+        IsometryFixtureS6,
+        ::testing::Values(0,1,2,3,4,5,6,7));
+
 }
