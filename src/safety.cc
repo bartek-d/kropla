@@ -155,9 +155,9 @@ void
 Safety::markMoveForBoth(pti where, pti value)
 {
   if (value > 0) {
-    if (move_value[where][0] >= bigger_than_this_means_old and move_value[where][0] - add_this_to_make_old <= 0)
+    if (move_value[where][0] == 0)
       justAddedMoveSugg[0].push_back(where);
-    if (move_value[where][1] >= bigger_than_this_means_old and move_value[where][1] - add_this_to_make_old <= 0)
+    if (move_value[where][1] == 0)
       justAddedMoveSugg[1].push_back(where);
   }
   move_value[where] = {value, value};
@@ -167,7 +167,7 @@ void
 Safety::markMoveForPlayer(int who, pti where, pti value)
 {
   --who;
-  if (value > 0 and move_value[where][who] >= bigger_than_this_means_old and move_value[where][who] - add_this_to_make_old <= 0)
+  if (value > 0 and move_value[where][who] == 0)
       justAddedMoveSugg[who].push_back(where);
   move_value[where][who] = value;
 }
@@ -175,13 +175,21 @@ Safety::markMoveForPlayer(int who, pti where, pti value)
 void
 Safety::markMovesAsOld()
 {
+  auto saveOnlyGoodMove =
+    [](auto &move_val)
+    {
+      if (move_val > 0)
+	move_val += add_this_to_make_old;
+      else
+	move_val = 0;
+    };
   for (auto p : coord.edge_points) {
-    move_value[p][0] += add_this_to_make_old;
-    move_value[p][1] += add_this_to_make_old;
+    saveOnlyGoodMove(move_value[p][0]);
+    saveOnlyGoodMove(move_value[p][1]);
   }
   for (auto p : coord.edge_neighb_points) {
-    move_value[p][0] += add_this_to_make_old;
-    move_value[p][1] += add_this_to_make_old;
+    saveOnlyGoodMove(move_value[p][0]);
+    saveOnlyGoodMove(move_value[p][1]);
   }
 }
 
