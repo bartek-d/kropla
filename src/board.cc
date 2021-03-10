@@ -155,6 +155,10 @@ void
 Coord::initPtTabs()
 {
   int ind = 0;
+  edge_points.clear();
+  edge_neighb_points.clear();
+  edge_points.reserve(2*(wlkx+wlky-2));
+  edge_neighb_points.reserve(2*(wlkx+wlky-6));
   for (int i=0; i< wlkx+2; i++)
     for (int j=0; j< wlky+1; j++) {
       if (i==0 || i==wlkx+1 || j==0) {
@@ -165,6 +169,10 @@ Coord::initPtTabs()
 	x[ind] = i-1;
 	y[ind] = j-1;
 	dist[ind] = std::min( std::min(i-1, wlkx-i), std::min(j-1, wlky-j) );
+	if (dist[ind] == 0)
+	  edge_points.push_back(ind);
+	else if (dist[ind] == 1)
+	  edge_neighb_points.push_back(ind);
       }
       ind++;
     }

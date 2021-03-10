@@ -27,20 +27,15 @@
 #include "board.h"
 
 #include <tuple>
-#include <map>
+#include <array>
 #include <vector>
 
 class Game;
 
 class Safety {
 public:
-  struct MoveDescription {
-    pti move;
-    pti who;
-    bool operator<(const MoveDescription& other) const { return std::tie(move, who) < std::tie(other.move, other.who); }
-    bool operator==(const MoveDescription& other) const { return std::tie(move, who) == std::tie(other.move, other.who); }
-  };
-  using MoveSuggestions = std::map<MoveDescription, pti>;
+  using ValueForBoth = std::array<pti, 2>;
+  using GoodMoves = std::array<std::vector<pti>, 2>;
   Safety();
   struct Info {
     float saf[4] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -56,20 +51,24 @@ public:
   };
   void init(Game* game);
   float getSafetyOf(pti p) const { return safety[p].getSum(); }
-  MoveSuggestions getMovesInfo(Game* game) const;
-  void computeSafety(Game* game);
   void updateAfterMove(Game* game);
   void updateAfterMoveWithoutAnyChangeToSafety();
-  const MoveSuggestions& getCurrentlyAddedSugg() const;
-  const MoveSuggestions& getPreviouslyAddedSugg() const;
+  const GoodMoves& getCurrentlyAddedSugg() const;
+  const GoodMoves& getPreviouslyAddedSugg() const;
+  const std::vector<ValueForBoth>& getMoveValues() const;
   bool isDameFor(int who, pti where) const;
 private:
+  void findMoveValues(Game* game);
+  void computeSafety(Game* game);
   void resetSafety();
   void initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_clockwise);
-  void markMoveForBoth(MoveSuggestions& sugg, pti where, pti value) const;
-  void getMovesInfoForMargin(Game* game, MoveSuggestions& sugg, pti p, pti v, pti n, int v_is_clockwise) const;
+  void markMoveForBoth(pti where, pti value);
+  void markMoveForPlayer(int who, pti where, pti value);
+  void markMovesAsOld();
+  void removeOldMoves();
+  void findMoveValuesForMargin(Game* game, pti p, pti last_p, pti v, pti n, int v_is_clockwise);
   std::vector<Info> safety{};
-  MoveSuggestions currentMoveSugg{};
-  MoveSuggestions justAddedMoveSugg{};
-  MoveSuggestions prevAddedMoveSugg{};
+  std::vector<ValueForBoth> move_value{};
+  GoodMoves justAddedMoveSugg{};
+  GoodMoves prevAddedMoveSugg{};
 };

@@ -26,6 +26,7 @@
 #include <array>
 #include <sstream>
 #include <iomanip>
+#include <vector>
 
 typedef int16_t  pti;  // point int, i.e., int suitable for coordinates
 typedef float real_t;
@@ -99,7 +100,9 @@ public:
   std::array<int8_t, maxSize> dist;
 #include "connections_tab02.cc"  // std::array<pti, 256*256> connections_tab = {...}; see szabl_neighb02.cc
 #include "connections_tab03_simple.cc"  // std::array<std::array<pti,4>, 256> connections_tab_simple = {...}, see szabl_neighb03.cc
-
+  std::vector<pti> edge_points;
+  std::vector<pti> edge_neighb_points;
+  
   Coord(int x, int y);
   pti ind(int x, int y) const { return (x+1)*(wlky+1) + y+1; };
   pti findNextOnRight(pti x0, pti y) const;

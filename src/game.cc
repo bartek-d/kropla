@@ -5772,8 +5772,7 @@ Move
 Game::chooseSoftSafetyResponse(int who)
 {
   auto responses = safety_soft.getCurrentlyAddedSugg();
-  int total = std::count_if(responses.begin(), responses.end(),
-			    [who](const auto& el) { return el.first.who == who; });
+  int total = responses[who-1].size();
   Move m;
   m.who = who;
   if (total == 0) {
@@ -5782,15 +5781,7 @@ Game::chooseSoftSafetyResponse(int who)
   }
   std::uniform_int_distribution<int> di(0, total-1);
   int number = di(engine);
-  for (auto it = responses.begin(); it != responses.end(); ++it) {
-    if (it->first.who == who) {
-      if (number == 0) {
-	m.ind = it->first.move;
-	break;
-      }
-      --number;
-    }
-  }
+  m.ind = responses[who-1][number];
   return getRandomEncl(m);
 }
 

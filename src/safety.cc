@@ -26,17 +26,24 @@
 #include "board.h"
 #include "game.h"
 
+namespace {
+  constexpr int add_this_to_make_old = 10000;
+  constexpr int bigger_than_this_means_old = 5000;
+}
+
 Safety::Safety()
 {
   safety.resize(coord.getSize());
+  move_value.resize(coord.getSize(), {0, 0});
 }
 
 void
 Safety::init(Game* game)
 {
   safety.resize(coord.getSize());
+  move_value.resize(coord.getSize(), {0, 0});
   computeSafety(game);
-  currentMoveSugg = getMovesInfo(game);
+  findMoveValues(game);
   justAddedMoveSugg = {};
   prevAddedMoveSugg = {};
 }
@@ -123,32 +130,78 @@ Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_cl
 }
 
 
-Safety::MoveSuggestions
-Safety::getMovesInfo(Game* game) const
+void
+Safety::findMoveValues(Game* game)
 {
-  MoveSuggestions sugg;
-  getMovesInfoForMargin(game, sugg, coord.ind(1, 1), coord.E, coord.N, 1);
-  getMovesInfoForMargin(game, sugg, coord.ind(1, 1), coord.S, coord.W, 0);
-  getMovesInfoForMargin(game, sugg, coord.ind(coord.wlkx-2, 1), coord.S, coord.E, 1);
-  getMovesInfoForMargin(game, sugg, coord.ind(1, coord.wlky-2), coord.E, coord.S, 0);
-  return sugg;
+  markMovesAsOld();
+  updateAfterMoveWithoutAnyChangeToSafety();
+
+  auto cornerLT = coord.ind(1, 1);
+  auto cornerRT = coord.ind(coord.wlkx-2, 1);
+  auto cornerLB = coord.ind(1, coord.wlky-2);
+  auto cornerRB = coord.ind(coord.wlkx-2, coord.wlky-2);
+  findMoveValuesForMargin(game, cornerLT, cornerRT + coord.E, coord.E, coord.N, 1);
+  findMoveValuesForMargin(game, cornerLT, cornerLB + coord.S, coord.S, coord.W, 0);
+  findMoveValuesForMargin(game, cornerRT, cornerRB + coord.S, coord.S, coord.E, 1);
+  findMoveValuesForMargin(game, cornerLB, cornerRB + coord.E, coord.E, coord.S, 0);
+  removeOldMoves();		  
 }
 
 void
-Safety::markMoveForBoth(Safety::MoveSuggestions& sugg, pti where, pti value) const
+Safety::markMoveForBoth(pti where, pti value)
 {
-  sugg[MoveDescription{where, 1}] = value;
-  sugg[MoveDescription{where, 2}] = value;
+  if (value > 0) {
+    if (move_value[where][0] >= bigger_than_this_means_old and move_value[where][0] - add_this_to_make_old <= 0)
+      justAddedMoveSugg[0].push_back(where);
+    if (move_value[where][1] >= bigger_than_this_means_old and move_value[where][1] - add_this_to_make_old <= 0)
+      justAddedMoveSugg[1].push_back(where);
+  }
+  move_value[where] = {value, value};
 }
 
 void
-Safety::getMovesInfoForMargin(Game* game, Safety::MoveSuggestions& sugg, pti p, pti v, pti n, int v_is_clockwise) const
+Safety::markMoveForPlayer(int who, pti where, pti value)
+{
+  --who;
+  if (value > 0 and move_value[where][who] >= bigger_than_this_means_old and move_value[where][who] - add_this_to_make_old <= 0)
+      justAddedMoveSugg[who].push_back(where);
+  move_value[where][who] = value;
+}
+
+void
+Safety::markMovesAsOld()
+{
+  for (auto p : coord.edge_points) {
+    move_value[p][0] += add_this_to_make_old;
+    move_value[p][1] += add_this_to_make_old;
+  }
+  for (auto p : coord.edge_neighb_points) {
+    move_value[p][0] += add_this_to_make_old;
+    move_value[p][1] += add_this_to_make_old;
+  }
+}
+
+void
+Safety::removeOldMoves()
+{
+  for (auto p : coord.edge_points) {
+    if (move_value[p][0] >= bigger_than_this_means_old) move_value[p][0] = 0;
+    if (move_value[p][1] >= bigger_than_this_means_old) move_value[p][1] = 0;
+  }
+  for (auto p : coord.edge_neighb_points) {
+    if (move_value[p][0] >= bigger_than_this_means_old) move_value[p][0] = 0;
+    if (move_value[p][1] >= bigger_than_this_means_old) move_value[p][1] = 0;
+  }
+}
+
+void
+Safety::findMoveValuesForMargin(Game* game, pti p, pti last_p, pti v, pti n, int v_is_clockwise)
 {
   constexpr pti bad_move = -10;
   constexpr pti good_move = 10;
   //  constexpr pti interesting_move = 5;
 
-  for (; coord.dist[p] > 0; p += v) {
+  for (; p!=last_p; p += v) {
     auto whoseDot = game->whoseDotMarginAt(p);
     if (whoseDot) {
       auto whoseAtTheEdge = game->whoseDotMarginAt(p + n);
@@ -156,40 +209,40 @@ Safety::getMovesInfoForMargin(Game* game, Safety::MoveSuggestions& sugg, pti p, 
       auto soft_safety = getSafetyOf(p);
       if (hard_safety + soft_safety >= 2.0f) {
 	if (whoseAtTheEdge == 0) {
-	  markMoveForBoth(sugg, p+n, bad_move);
+	  markMoveForBoth(p+n, bad_move);
 	}
 	continue;
       }
       if (hard_safety == 1 and soft_safety == 0.0f and whoseAtTheEdge == 0) {
-	markMoveForBoth(sugg, p + n, good_move);
+	markMoveForBoth(p + n, good_move);
 	// other defending moves?
 	if (game->whoseDotMarginAt(p + v) == 0 and game->whoseDotMarginAt(p + n + v) == 0) {
-	  sugg[MoveDescription{p + v, whoseDot}] = good_move;
-	  sugg[MoveDescription{p + n + v, whoseDot}] = good_move;
+	  markMoveForPlayer(whoseDot, p + v, good_move);
+	  markMoveForPlayer(whoseDot, p + n + v, good_move);
 	}
 	if (game->whoseDotMarginAt(p - v) == 0 and game->whoseDotMarginAt(p + n - v) == 0) {
-	  sugg[MoveDescription{p - v, whoseDot}] = good_move;
-	  sugg[MoveDescription{p + n - v, whoseDot}] = good_move;
+	  markMoveForPlayer(whoseDot, p - v, good_move);
+	  markMoveForPlayer(whoseDot, p + n - v, good_move);
 	}
 	continue;
       }
       if (hard_safety == 0 and soft_safety >= 0.75f and soft_safety <= 1.0f) {
 	if (game->whoseDotMarginAt(p + v) == 0 and game->whoseDotMarginAt(p + n + v) == 0
 	    and safety[p].getPlayersDir(whoseDot - 1, 1 - v_is_clockwise) >= 0.75f) {
-	  markMoveForBoth(sugg, p + v, good_move);
+	  markMoveForBoth(p + v, good_move);
 	}
 	if (game->whoseDotMarginAt(p - v) == 0 and game->whoseDotMarginAt(p + n - v) == 0
 	    and safety[p].getPlayersDir(whoseDot - 1, v_is_clockwise) >= 0.75f) {
-	  markMoveForBoth(sugg, p - v, good_move);
+	  markMoveForBoth(p - v, good_move);
 	}
 	continue;
       }
       if (hard_safety == 0 and soft_safety == 0.5f) {
 	if (game->whoseDotMarginAt(p + v) == 0 and game->whoseDotMarginAt(p + n + v) == 0) {
-	  markMoveForBoth(sugg, p + n + v, good_move);
+	  markMoveForBoth(p + n + v, good_move);
 	}
 	if (game->whoseDotMarginAt(p - v) == 0 and game->whoseDotMarginAt(p + n - v) == 0) {
-	  markMoveForBoth(sugg, p + n - v, good_move);
+	  markMoveForBoth(p + n - v, good_move);
 	}
 	continue;
       }
@@ -202,26 +255,14 @@ Safety::updateAfterMove(Game* game)
 {
   resetSafety();
   computeSafety(game);
-  auto curr = getMovesInfo(game);
-  updateAfterMoveWithoutAnyChangeToSafety();
-  for (const auto& [key, value] : curr) {
-    if (value > 0) {
-      auto was = currentMoveSugg.find(key);
-      if (was == currentMoveSugg.end() or was->second < value) {
-	justAddedMoveSugg[key] = value;
-      }
-    }
-  }
-  currentMoveSugg = std::move(curr);
+  findMoveValues(game);
   // remove elements of prevAddedMoveSugg that no longer make sense
-  for (auto it = prevAddedMoveSugg.begin(), last = prevAddedMoveSugg.end(); it != last; ) {
-    auto curr = currentMoveSugg.find(it->first);
-    if (curr == currentMoveSugg.end() or curr->second <= 0) {
-      it = prevAddedMoveSugg.erase(it);
-    } else {
-      ++it;
-    }
-  }
+  prevAddedMoveSugg[0].erase( std::remove_if( prevAddedMoveSugg[0].begin(), prevAddedMoveSugg[0].end(),
+					      [this](pti where) { return  (move_value[where][0] <= 0); }),
+			      prevAddedMoveSugg[0].end() );
+  prevAddedMoveSugg[1].erase( std::remove_if( prevAddedMoveSugg[1].begin(), prevAddedMoveSugg[1].end(),
+					      [this](pti where) { return  (move_value[where][1] <= 0); }),
+			      prevAddedMoveSugg[1].end() );
 }
 
 void
@@ -231,23 +272,26 @@ Safety::updateAfterMoveWithoutAnyChangeToSafety()
   justAddedMoveSugg = {};
 }
 
-const Safety::MoveSuggestions&
+const Safety::GoodMoves&
 Safety::getCurrentlyAddedSugg() const
 {
   return justAddedMoveSugg;
 }
 
-const Safety::MoveSuggestions&
+const Safety::GoodMoves&
 Safety::getPreviouslyAddedSugg() const
 {
   return prevAddedMoveSugg;
 }
 
+const std::vector<Safety::ValueForBoth>&
+Safety::getMoveValues() const
+{
+  return move_value;
+}
+
 bool
 Safety::isDameFor(int who, pti where) const
 {
-  if (coord.dist[where] > 0) return false;
-  auto curr = currentMoveSugg.find(MoveDescription{where, who});
-  if (curr == currentMoveSugg.end()) return false;
-  return curr->second < 0;
+  return move_value[where][who] < 0;
 }
