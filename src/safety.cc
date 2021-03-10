@@ -62,21 +62,6 @@ Safety::computeSafety(Game* game)
 }
 
 void
-Safety::resetSafety()
-{
-  int last = coord.ind(1, coord.wlky - 2);
-  for (int ind = coord.ind(1,1); ind <= last; ind += coord.S)
-    safety[ind] = {};
-  last = coord.ind(coord.wlkx - 2, coord.wlky - 2);
-  for (int ind = coord.ind(2,1); ind <= last; ind += coord.E)
-    safety[ind] = {};
-  for (int ind = coord.ind(2, coord.wlky - 2); ind < last; ind += coord.E)
-    safety[ind] = {};
-  for (int ind = coord.ind(coord.wlkx - 2, 2); ind <= last; ind += coord.S)
-    safety[ind] = {};
-}
-
-void
 Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_clockwise)
 {
   float current_safety[2] = {0.75f, 0.75f};
@@ -84,6 +69,10 @@ Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_cl
   int localHardSafety = 0;
   bool checkIfLocalHardSafetyShouldBecome1 = false;
   for (int count = 0; coord.dist[p] >= 0; p += v, ++count) {
+    if (count > 1) {
+      safety[p].getPlayersDir(0, direction_is_clockwise) = {};
+      safety[p].getPlayersDir(1, direction_is_clockwise) = {};
+    }
     auto whoseDot = game->whoseDotMarginAt(p);
     if (whoseDot) {
       // find local hard safety
@@ -122,7 +111,7 @@ Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_cl
 	}
 	current_safety[2 - whoseDot] = 0.0f;
       }
-    } else {
+    } else if (count > 0) {
       previousDot = -1;
       auto whoseAtTheEdge = game->whoseDotMarginAt(p + n);
       if (whoseAtTheEdge) {
@@ -265,7 +254,6 @@ Safety::findMoveValuesForMargin(Game* game, pti p, pti last_p, pti v, pti n, int
 void
 Safety::updateAfterMove(Game* game)
 {
-  resetSafety();
   computeSafety(game);
   findMoveValues(game);
   // remove elements of prevAddedMoveSugg that no longer make sense

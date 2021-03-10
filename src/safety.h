@@ -60,7 +60,6 @@ public:
 private:
   void findMoveValues(Game* game);
   void computeSafety(Game* game);
-  void resetSafety();
   void initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_clockwise);
   void markMoveForBoth(pti where, pti value);
   void markMoveForPlayer(int who, pti where, pti value);

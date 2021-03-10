@@ -237,6 +237,55 @@ INSTANTIATE_TEST_CASE_P(
         ::testing::Values(0,1,2,3,4,5,6,7));
 
 
+class IsometryFixtureS3d :public ::testing::TestWithParam<unsigned> {
+};
+
+TEST_P(IsometryFixtureS3d, safetyIsCorrectlyInitialisedAndDotsAtCornersAreIgnored)
+{
+  const unsigned isometry = GetParam();
+  auto sgf = constructSgfFromGameBoard(".x....o"
+				       "xo....."
+				       "......."
+				       ".x....."
+				       "......."
+				       "xo.o..."
+				       ".x....x");
+  Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+  Safety safety;
+  safety.init(&game);
+  EXPECT_EQ(0.75f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bb", isometry, coord))));
+  EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bd", isometry, coord))));
+  EXPECT_EQ(1.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bf", isometry, coord))));
+  EXPECT_EQ(0.75f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("df", isometry, coord))));
+  MoveSuggestions suggestions = convertToMap(safety.getMoveValues());
+  constexpr pti good_move = 10;
+  constexpr pti x_player = 2;
+  auto move_at_for = [&](auto pstr, pti value, pti who) -> std::pair<const MoveDescription, pti> {
+										     return {MoveDescription{coord.sgfToPti(applyIsometry(pstr, isometry, coord)), who}, value};
+		 };
+
+  auto move_at1 = [&](auto pstr, pti value) -> std::pair<const MoveDescription, pti> {
+										     return {MoveDescription{coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 1}, value};
+		 };
+  auto move_at2 = [&](auto pstr, pti value) -> std::pair<const MoveDescription, pti> {
+										     return {MoveDescription{coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 2}, value};
+		 };
+
+  EXPECT_THAT(suggestions, testing::UnorderedElementsAre(
+							 move_at1("cb", good_move), move_at2("cb", good_move),
+							 move_at1("ad", good_move), move_at2("ad", good_move),
+							 move_at1("cf", good_move), move_at2("cf", good_move),
+							 move_at_for("ac", good_move, x_player),
+							 move_at_for("bc", good_move, x_player),
+							 move_at_for("ae", good_move, x_player),
+							 move_at_for("be", good_move, x_player)));
+
+}
+
+INSTANTIATE_TEST_CASE_P(
+        Par,
+        IsometryFixtureS3d,
+        ::testing::Values(0,1,2,3,4,5,6,7));
 
 
 class IsometryFixtureS4 :public ::testing::TestWithParam<unsigned> {
