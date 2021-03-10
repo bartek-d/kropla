@@ -6,7 +6,6 @@
 #include <gmock/gmock.h>
 
 #include <map>
-#include <iostream>
 
 namespace {
 
@@ -158,12 +157,6 @@ TEST_P(IsometryFixtureS3, safetyIsCorrectlyInitialised3)
   auto move_at2 = [&](auto pstr, pti value) -> std::pair<const MoveDescription, pti> {
 										     return {MoveDescription{coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 2}, value};
 		 };
-  std::cout << "Suggestions:";
-  for (const auto& [el, val] : suggestions) {
-    std::cout << " " << el.who << ":" << coord.showPt(el.move);
-
-  }
-  std::cout << std::endl;
 
   EXPECT_THAT(suggestions, testing::UnorderedElementsAre(
 							 move_at1("cb", good_move), move_at2("cb", good_move),

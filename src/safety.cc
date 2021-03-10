@@ -98,9 +98,12 @@ Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_cl
 	if (localHardSafety == 1) {
 	  checkIfLocalHardSafetyShouldBecome1 = (game->whoseDotMarginAt(p + n) != 0);
 	  if (checkIfLocalHardSafetyShouldBecome1) localHardSafety = 0;
-	} else if (localHardSafety >= 2) {
-	  current_safety[whoseDot - 1] = 1.0f;
-	  current_safety[2 - whoseDot] = 0.0f;
+	} else {
+	  checkIfLocalHardSafetyShouldBecome1 = false;
+	  if (localHardSafety >= 2) {
+	    current_safety[whoseDot - 1] = 1.0f;
+	    current_safety[2 - whoseDot] = 0.0f;
+	  }
 	}
       }
       // update soft safety, if needed
@@ -109,8 +112,9 @@ Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_cl
 	  // at the corner we have hard safety, so we cannot double-count it as soft
 	  current_safety[whoseDot - 1] = 0.0f;
 	} else {
-	  if (current_safety[whoseDot - 1])
+	  if (current_safety[whoseDot - 1]) {
 	    safety[p].getPlayersDir(whoseDot-1, direction_is_clockwise) = current_safety[whoseDot - 1];
+	  }
 	  auto whoseNextDot = game->whoseDotMarginAt(p + v);
 	  if (whoseNextDot == 0) {
 	    current_safety[whoseDot - 1] = std::min(current_safety[whoseDot - 1] + 0.5f * localHardSafety, 1.0f);
