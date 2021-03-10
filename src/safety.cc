@@ -42,23 +42,31 @@ Safety::init(Game* game)
 {
   safety.resize(coord.getSize());
   move_value.resize(coord.getSize(), {0, 0});
-  computeSafety(game);
+  computeSafety(game, getUpdateValueForAllMargins());
   findMoveValues(game);
   justAddedMoveSugg = {};
   prevAddedMoveSugg = {};
 }
 
 void
-Safety::computeSafety(Game* game)
+Safety::computeSafety(Game* game, int what_to_update)
 {
-  initSafetyForMargin(game, coord.ind(0, 1), coord.E, coord.N, 1);
-  initSafetyForMargin(game, coord.ind(coord.wlkx-1, 1), coord.W, coord.N, 0);
-  initSafetyForMargin(game, coord.ind(1, 0), coord.S, coord.W, 0);
-  initSafetyForMargin(game, coord.ind(1, coord.wlky-1), coord.N, coord.W, 1);
-  initSafetyForMargin(game, coord.ind(0, coord.wlky-2), coord.E, coord.S, 0);
-  initSafetyForMargin(game, coord.ind(coord.wlkx-1, coord.wlky-2), coord.W, coord.S, 1);
-  initSafetyForMargin(game, coord.ind(coord.wlkx-2, coord.wlky-1), coord.N, coord.E, 0);
-  initSafetyForMargin(game, coord.ind(coord.wlkx-2, 0), coord.S, coord.E, 1);
+  if (what_to_update & 1) {  // top
+    initSafetyForMargin(game, coord.ind(0, 1), coord.E, coord.N, 1);
+    initSafetyForMargin(game, coord.ind(coord.wlkx-1, 1), coord.W, coord.N, 0);
+  }
+  if (what_to_update & 2) {  // right
+    initSafetyForMargin(game, coord.ind(coord.wlkx-2, coord.wlky-1), coord.N, coord.E, 0);
+    initSafetyForMargin(game, coord.ind(coord.wlkx-2, 0), coord.S, coord.E, 1);
+  }
+  if (what_to_update & 4) {  // bottom
+    initSafetyForMargin(game, coord.ind(0, coord.wlky-2), coord.E, coord.S, 0);
+    initSafetyForMargin(game, coord.ind(coord.wlkx-1, coord.wlky-2), coord.W, coord.S, 1);
+  }
+  if (what_to_update & 8) {  // left
+    initSafetyForMargin(game, coord.ind(1, 0), coord.S, coord.W, 0);
+    initSafetyForMargin(game, coord.ind(1, coord.wlky-1), coord.N, coord.W, 1);
+  }
 }
 
 void
@@ -252,9 +260,13 @@ Safety::findMoveValuesForMargin(Game* game, pti p, pti last_p, pti v, pti n, int
 }
 
 void
-Safety::updateAfterMove(Game* game)
+Safety::updateAfterMove(Game* game, int what_to_update)
 {
-  computeSafety(game);
+  if (what_to_update == 0) {
+    updateAfterMoveWithoutAnyChangeToSafety();
+    return;
+  }
+  computeSafety(game, what_to_update);
   findMoveValues(game);
   // remove elements of prevAddedMoveSugg that no longer make sense
   prevAddedMoveSugg[0].erase( std::remove_if( prevAddedMoveSugg[0].begin(), prevAddedMoveSugg[0].end(),
@@ -294,4 +306,24 @@ bool
 Safety::isDameFor(int who, pti where) const
 {
   return move_value[where][who] < 0;
+}
+
+int Safety::getUpdateValueForAllMargins() const
+{
+  return 0xf;
+}
+
+int Safety::getUpdateValueForMarginsContaining(pti p) const
+{
+  if (p == coord.ind(0,0) or p == coord.ind(coord.wlkx-1,0)
+      or p == coord.ind(0,coord.wlky-1) or p == coord.ind(coord.wlkx-1,coord.wlky-1))
+    return 0;  // ignore corners
+  int value = 0;
+  int x = coord.x[p];
+  int y = coord.y[p];
+  if (y <= 1) value |= 1;
+  if (x >= coord.wlkx-2) value |= 2;
+  if (y >= coord.wlky-2) value |= 4;
+  if (x <= 1) value |= 8;
+  return value;
 }

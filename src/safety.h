@@ -51,15 +51,17 @@ public:
   };
   void init(Game* game);
   float getSafetyOf(pti p) const { return safety[p].getSum(); }
-  void updateAfterMove(Game* game);
+  void updateAfterMove(Game* game, int what_to_update);
   void updateAfterMoveWithoutAnyChangeToSafety();
   const GoodMoves& getCurrentlyAddedSugg() const;
   const GoodMoves& getPreviouslyAddedSugg() const;
   const std::vector<ValueForBoth>& getMoveValues() const;
   bool isDameFor(int who, pti where) const;
+  int getUpdateValueForAllMargins() const;
+  int getUpdateValueForMarginsContaining(pti p) const;
 private:
   void findMoveValues(Game* game);
-  void computeSafety(Game* game);
+  void computeSafety(Game* game, int what_to_update);
   void initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_clockwise);
   void markMoveForBoth(pti where, pti value);
   void markMoveForPlayer(int who, pti where, pti value);

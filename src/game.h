@@ -225,7 +225,7 @@ class Game {
   std::vector<std::shared_ptr<Enclosure> > ml_encl_moves;
   std::vector<std::shared_ptr<Enclosure> > ml_opt_encl_moves;
   std::vector<uint64_t> ml_encl_zobrists;
-  bool update_soft_safety{false};   // if safety_soft needs to be recalculated after dot+(enclosure)
+  int update_soft_safety{0};   // if safety_soft needs to be recalculated after dot+(enclosure), and which margins
   Safety safety_soft;
   int dame_moves_so_far {0};
   // worm[] has worm-id if it is >= 4 && <= MASK_WORM_NO,

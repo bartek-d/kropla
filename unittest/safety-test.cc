@@ -227,7 +227,7 @@ TEST_P(IsometryFixtureS3c, safetyIsCorrectlyInitialised3c)
   safety.init(&game);
   EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("fg", isometry, coord))));
   game.makeSgfMove(applyIsometry("dg", isometry, coord), 1);
-  safety.updateAfterMove(&game);
+  safety.updateAfterMove(&game, safety.getUpdateValueForAllMargins());
   EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("fg", isometry, coord))));
 }
 
@@ -306,7 +306,7 @@ TEST_P(IsometryFixtureS4, moveSuggestionsAreCorrect)
   safety.init(&game);
   EXPECT_EQ(0.75f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("ef", isometry, coord))));
   game.makeSgfMove(applyIsometry("cf", isometry, coord), 1);
-  safety.updateAfterMove(&game);
+  safety.updateAfterMove(&game, safety.getUpdateValueForAllMargins());
   EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("ef", isometry, coord))));
   auto moveSugg = safety.getCurrentlyAddedSugg();
   auto move = [&](auto pstr) -> pti { return coord.sgfToPti(applyIsometry(pstr, isometry, coord)); };
@@ -314,7 +314,7 @@ TEST_P(IsometryFixtureS4, moveSuggestionsAreCorrect)
   EXPECT_THAT(moveSugg[0], testing::UnorderedElementsAre(move("eg")));
   EXPECT_THAT(moveSugg[1], testing::UnorderedElementsAre(move("eg"), move("dg"), move("df")));
   game.makeSgfMove(applyIsometry("cg", isometry, coord), 2);
-  safety.updateAfterMove(&game);
+  safety.updateAfterMove(&game, safety.getUpdateValueForAllMargins());
   auto moveSuggNow = safety.getCurrentlyAddedSugg();
   auto moveSuggPrev = safety.getPreviouslyAddedSugg();
   EXPECT_THAT(moveSuggNow[0], testing::UnorderedElementsAre(move("bf")));
@@ -346,14 +346,14 @@ TEST_P(IsometryFixtureS5, moveSuggestionsAreCorrectlyRemovedWhenNoLongerMakeSens
   Safety safety;
   safety.init(&game);
   game.makeSgfMove(applyIsometry("cf", isometry, coord), 1);
-  safety.updateAfterMove(&game);
+  safety.updateAfterMove(&game, safety.getUpdateValueForAllMargins());
   auto moveSugg = safety.getCurrentlyAddedSugg();
   auto move = [&](auto pstr) -> pti { return coord.sgfToPti(applyIsometry(pstr, isometry, coord)); };
 
   EXPECT_THAT(moveSugg[0], testing::UnorderedElementsAre(move("eg")));
   EXPECT_THAT(moveSugg[1], testing::UnorderedElementsAre(move("eg"), move("dg"), move("df")));
   game.makeSgfMove(applyIsometry("df", isometry, coord), 2);
-  safety.updateAfterMove(&game);
+  safety.updateAfterMove(&game, safety.getUpdateValueForAllMargins());
   auto moveSuggNow = safety.getCurrentlyAddedSugg();
   auto moveSuggPrev = safety.getPreviouslyAddedSugg();
   EXPECT_TRUE(moveSuggNow[0].empty());  
@@ -395,4 +395,14 @@ INSTANTIATE_TEST_CASE_P(
         IsometryFixtureS6,
         ::testing::Values(0,1,2,3,4,5,6,7));
 
+}
+
+TEST(Safety, getUpdateValueForMarginsContaining)
+{
+  Safety safety;
+  EXPECT_EQ(0, safety.getUpdateValueForMarginsContaining(coord.ind(0,0)));
+  EXPECT_EQ(1, safety.getUpdateValueForMarginsContaining(coord.ind(2,1)));
+  EXPECT_EQ(0, safety.getUpdateValueForMarginsContaining(coord.ind(2,2)));
+  EXPECT_EQ(9, safety.getUpdateValueForMarginsContaining(coord.ind(1,1)));
+  EXPECT_EQ(2, safety.getUpdateValueForMarginsContaining(coord.ind(coord.wlkx-2,3)));
 }

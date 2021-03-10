@@ -3427,7 +3427,7 @@ Game::placeDot(int x, int y, int who)
     threats[2-who].findThreatWhichContains(ind)->singular_dots++;
   }
   bool update_safety_dame = false;   // if some worms start/stop being safe, we need to recalculate dame moves on the first line
-  update_soft_safety = false;   // if some worms gained hard-safety (from 0 to +1/+2 or from +1 to +2), then we need to recalculate soft safety
+  update_soft_safety = 0;   // if some worms gained hard-safety (from 0 to +1/+2 or from +1 to +2), then we need to recalculate soft safety
   bool nonisolated = (count > 0);
   if (count) {
     while (count >= 2) {
@@ -3436,7 +3436,7 @@ Game::placeDot(int x, int y, int who)
 	update_safety_dame = true;
       }
       if ((descr.at(numb[count-1]).safety <= 1 || descr.at(numb[count-2]).safety <= 1) && (descr.at(numb[count-1]).safety + descr.at(numb[count-2]).safety >= 1)) {
-	update_soft_safety = true;
+	update_soft_safety = safety_soft.getUpdateValueForAllMargins();
       }
       if (descr.at(numb[count-1]).dots[0] + descr.at(numb[count-1]).dots[1] > descr.at(numb[count-2]).dots[0] + descr.at(numb[count-2]).dots[1]) {
 	wormMergeSame(numb[count-1], numb[count-2]);
@@ -3478,6 +3478,9 @@ Game::placeDot(int x, int y, int who)
   {
     int dist = coord.dist[ind];
     if (dist==0) {
+      if (descr.at(worm[ind]).safety == 1) {
+	update_soft_safety = safety_soft.getUpdateValueForAllMargins();  // we made something completely secure
+      }
       descr.at(worm[ind]).safety = WormDescr::SAFE_VALUE;
       for (int i=0; i<4; i++) {
 	pti nb = ind + coord.nb4[i];
@@ -3485,13 +3488,17 @@ Game::placeDot(int x, int y, int who)
 	  descr.at(worm[nb]).safety--;   // it may happen that worm[nb]==worm[ind], but we may safely decrease SAFE_VALUE by one
 	  if (descr.at(worm[nb]).safety == 1) {
 	    update_safety_dame = true;  // worm at nb stopped being safe
+	    update_soft_safety = safety_soft.getUpdateValueForAllMargins();
 	  }
 	  break;
 	}
       }
-      update_soft_safety = true;  // needed when played on the edge
+      if (update_soft_safety != safety_soft.getUpdateValueForAllMargins()) {
+	update_soft_safety = safety_soft.getUpdateValueForMarginsContaining(ind);  // needed when played on the edge
+      }
     } else if (dist==1) {
       bool was_unsafe_and_nonisolated = nonisolated && !descr.at(worm[ind]).isSafe();
+      auto safety_level_before = descr.at(worm[ind]).safety;
       for (int i=0; i<4; i++) {
 	pti nb = ind + coord.nb4[i];
 	if (coord.dist[nb]==0 && worm[nb]==0) {
@@ -3499,7 +3506,13 @@ Game::placeDot(int x, int y, int who)
 	}
       }
       if (was_unsafe_and_nonisolated && descr.at(worm[ind]).isSafe()) update_safety_dame = true;
-      update_soft_safety = true;  // needed when played near the edge
+      if (nonisolated and safety_level_before < 2 and safety_level_before < descr.at(worm[ind]).safety) {
+	update_soft_safety = safety_soft.getUpdateValueForAllMargins();
+      } else {
+	if (update_soft_safety != safety_soft.getUpdateValueForAllMargins()) {
+	  update_soft_safety = safety_soft.getUpdateValueForMarginsContaining(ind);  // needed when played on the edge
+	}
+      }
     }
   }
   // check diag neighbours
@@ -4429,7 +4442,7 @@ Game::makeEnclosure(const Enclosure& encl, bool remove_it_from_threats)
 	update_safety_dame = true;
       }
       if ((descr.at(worm[p]).safety <= 1 || descr.at(worm_no).safety <= 1) && (descr.at(worm[p]).safety + descr.at(worm_no).safety >= 1)) {
-	update_soft_safety = true;
+	update_soft_safety = safety_soft.getUpdateValueForAllMargins();
       }
       wormMergeSame(worm_no, worm[p]);
     }
@@ -5088,12 +5101,8 @@ Game::makeMove(Move &m)
     for (auto &encl : m.enclosures) {
       makeEnclosure(*encl, true);
     }
-    if (update_soft_safety) {
-      safety_soft.updateAfterMove(this);
-      update_soft_safety = false;
-    } else {
-      safety_soft.updateAfterMoveWithoutAnyChangeToSafety();
-    }
+    safety_soft.updateAfterMove(this, update_soft_safety);
+    update_soft_safety = 0;
     assert(checkSoftSafetyCorrectness());    
     recalculatePatt3Values();
     nowMoves ^= 3;
@@ -5114,12 +5123,8 @@ Game::makeMoveWithPointsToEnclose(Move &m, std::vector<std::string> to_enclose)
 	makeEnclosure(encl, true);
       }
     }
-    if (update_soft_safety) {
-      safety_soft.updateAfterMove(this);
-      update_soft_safety = false;
-    } else {
-      safety_soft.updateAfterMoveWithoutAnyChangeToSafety();
-    }
+    safety_soft.updateAfterMove(this, update_soft_safety);
+    update_soft_safety = 0;
     assert(checkSoftSafetyCorrectness());    
     recalculatePatt3Values();
     nowMoves ^= 3;
