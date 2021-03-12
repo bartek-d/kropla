@@ -51,7 +51,7 @@ public:
   };
   void init(Game* game);
   float getSafetyOf(pti p) const { return safety[p].getSum(); }
-  void updateAfterMove(Game* game, int what_to_update);
+  void updateAfterMove(Game* game, int what_to_update, pti last_move = 0);
   void updateAfterMoveWithoutAnyChangeToSafety();
   const GoodMoves& getCurrentlyAddedSugg() const;
   const GoodMoves& getPreviouslyAddedSugg() const;
@@ -61,13 +61,14 @@ public:
   int getUpdateValueForMarginsContaining(pti p) const;
 private:
   void findMoveValues(Game* game);
-  void computeSafety(Game* game, int what_to_update);
-  void initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_clockwise);
+  bool computeSafety(Game* game, int what_to_update);
+  void initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_clockwise, bool &something_changed);
   void markMoveForBoth(pti where, pti value);
   void markMoveForPlayer(int who, pti where, pti value);
   void markMovesAsOld();
   void removeOldMoves();
   void findMoveValuesForMargin(Game* game, pti p, pti last_p, pti v, pti n, int v_is_clockwise);
+  bool areThereNoFreePointsAtTheEdgeNearPoint(Game *game, pti p) const;
   std::vector<Info> safety{};
   std::vector<ValueForBoth> move_value{};
   GoodMoves justAddedMoveSugg{};

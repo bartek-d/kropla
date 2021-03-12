@@ -48,38 +48,43 @@ Safety::init(Game* game)
   prevAddedMoveSugg = {};
 }
 
-void
+bool
 Safety::computeSafety(Game* game, int what_to_update)
 {
+  bool something_changed = (what_to_update == getUpdateValueForAllMargins());   // if we update everything, then too much changed to make some savings
   if (what_to_update & 1) {  // top
-    initSafetyForMargin(game, coord.ind(0, 1), coord.E, coord.N, 1);
-    initSafetyForMargin(game, coord.ind(coord.wlkx-1, 1), coord.W, coord.N, 0);
+    initSafetyForMargin(game, coord.ind(0, 1), coord.E, coord.N, 1, something_changed);
+    initSafetyForMargin(game, coord.ind(coord.wlkx-1, 1), coord.W, coord.N, 0, something_changed);
   }
   if (what_to_update & 2) {  // right
-    initSafetyForMargin(game, coord.ind(coord.wlkx-2, coord.wlky-1), coord.N, coord.E, 0);
-    initSafetyForMargin(game, coord.ind(coord.wlkx-2, 0), coord.S, coord.E, 1);
+    initSafetyForMargin(game, coord.ind(coord.wlkx-2, coord.wlky-1), coord.N, coord.E, 0, something_changed);
+    initSafetyForMargin(game, coord.ind(coord.wlkx-2, 0), coord.S, coord.E, 1, something_changed);
   }
   if (what_to_update & 4) {  // bottom
-    initSafetyForMargin(game, coord.ind(0, coord.wlky-2), coord.E, coord.S, 0);
-    initSafetyForMargin(game, coord.ind(coord.wlkx-1, coord.wlky-2), coord.W, coord.S, 1);
+    initSafetyForMargin(game, coord.ind(0, coord.wlky-2), coord.E, coord.S, 0, something_changed);
+    initSafetyForMargin(game, coord.ind(coord.wlkx-1, coord.wlky-2), coord.W, coord.S, 1, something_changed);
   }
   if (what_to_update & 8) {  // left
-    initSafetyForMargin(game, coord.ind(1, 0), coord.S, coord.W, 0);
-    initSafetyForMargin(game, coord.ind(1, coord.wlky-1), coord.N, coord.W, 1);
+    initSafetyForMargin(game, coord.ind(1, 0), coord.S, coord.W, 0, something_changed);
+    initSafetyForMargin(game, coord.ind(1, coord.wlky-1), coord.N, coord.W, 1, something_changed);
   }
+  return something_changed;
 }
 
 void
-Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_clockwise)
+Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_clockwise, bool &something_changed)
 {
   float current_safety[2] = {0.75f, 0.75f};
   int previousDot = -1;
   int localHardSafety = 0;
   bool checkIfLocalHardSafetyShouldBecome1 = false;
+  float old_values[2];
   for (int count = 0; coord.dist[p] >= 0; p += v, ++count) {
     if (count > 1) {
-      safety[p].getPlayersDir(0, direction_is_clockwise) = {};
-      safety[p].getPlayersDir(1, direction_is_clockwise) = {};
+      for (int d = 0; d<=1; ++d) {
+	old_values[d] = safety[p].getPlayersDir(d, direction_is_clockwise);
+	safety[p].getPlayersDir(d, direction_is_clockwise) = {};
+      }
     }
     auto whoseDot = game->whoseDotMarginAt(p);
     if (whoseDot) {
@@ -125,6 +130,12 @@ Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_cl
       if (whoseAtTheEdge) {
 	current_safety[whoseAtTheEdge - 1] = 1.0f;
 	current_safety[2 - whoseAtTheEdge] = 0.0f;
+      }
+    }
+    if (count > 1 and not something_changed) {
+      for (int d = 0; d<=1; ++d) {
+	if (old_values[d] != safety[p].getPlayersDir(d, direction_is_clockwise))
+	    something_changed = true;
       }
     }
   }
@@ -259,14 +270,33 @@ Safety::findMoveValuesForMargin(Game* game, pti p, pti last_p, pti v, pti n, int
   }
 }
 
+bool
+Safety::areThereNoFreePointsAtTheEdgeNearPoint(Game *game, pti p) const
+{
+  if (coord.dist[p] == 0)
+    return true;
+  for (int i=0; i<4; ++i) {
+    pti nb = p + coord.nb4[i];
+    if (coord.dist[nb] == 0 and game->whoseDotMarginAt(nb) == 0)
+      return false;
+  }
+  return true;
+}
+
 void
-Safety::updateAfterMove(Game* game, int what_to_update)
+Safety::updateAfterMove(Game* game, int what_to_update, pti last_move)
 {
   if (what_to_update == 0) {
     updateAfterMoveWithoutAnyChangeToSafety();
     return;
   }
-  computeSafety(game, what_to_update);
+  bool something_changed = computeSafety(game, what_to_update);
+  if (not something_changed and last_move and game->getSafetyOf(last_move) >= 2
+      and areThereNoFreePointsAtTheEdgeNearPoint(game, last_move)) {   // it would be possible to optimise also when there are free points, by adding dame by hand
+    updateAfterMoveWithoutAnyChangeToSafety();
+    markMoveForBoth(last_move, 0);
+    return;
+  }
   findMoveValues(game);
   // remove elements of prevAddedMoveSugg that no longer make sense
   prevAddedMoveSugg[0].erase( std::remove_if( prevAddedMoveSugg[0].begin(), prevAddedMoveSugg[0].end(),

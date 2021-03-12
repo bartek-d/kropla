@@ -5101,7 +5101,7 @@ Game::makeMove(Move &m)
     for (auto &encl : m.enclosures) {
       makeEnclosure(*encl, true);
     }
-    safety_soft.updateAfterMove(this, update_soft_safety);
+    safety_soft.updateAfterMove(this, update_soft_safety, m.ind);
     update_soft_safety = 0;
     assert(checkSoftSafetyCorrectness());    
     recalculatePatt3Values();
@@ -5123,7 +5123,7 @@ Game::makeMoveWithPointsToEnclose(Move &m, std::vector<std::string> to_enclose)
 	makeEnclosure(encl, true);
       }
     }
-    safety_soft.updateAfterMove(this, update_soft_safety);
+    safety_soft.updateAfterMove(this, update_soft_safety, m.ind);
     update_soft_safety = 0;
     assert(checkSoftSafetyCorrectness());    
     recalculatePatt3Values();
