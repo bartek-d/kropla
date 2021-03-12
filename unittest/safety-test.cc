@@ -395,7 +395,6 @@ INSTANTIATE_TEST_CASE_P(
         IsometryFixtureS6,
         ::testing::Values(0,1,2,3,4,5,6,7));
 
-}
 
 TEST(Safety, getUpdateValueForMarginsContaining)
 {
@@ -406,3 +405,87 @@ TEST(Safety, getUpdateValueForMarginsContaining)
   EXPECT_EQ(9, safety.getUpdateValueForMarginsContaining(coord.ind(1,1)));
   EXPECT_EQ(2, safety.getUpdateValueForMarginsContaining(coord.ind(coord.wlkx-2,3)));
 }
+
+
+class IsometryFixtureS7 :public ::testing::TestWithParam<unsigned> {
+};
+
+TEST_P(IsometryFixtureS7, removesMovesThatNoLongerMakesSenseWhenNoExpensiveUpdateIsNeeded)
+{
+  const unsigned isometry = GetParam();
+  auto sgf = constructSgfFromGameBoard("......."
+				       "......."
+				       "......."
+				       "......."
+				       ".x....."
+				       ".x...x."
+				       ".......");
+  Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+  Safety safety;
+  safety.init(&game);
+  auto move1_sgf = applyIsometry("df", isometry, coord);
+  auto move1 = coord.sgfToPti(move1_sgf);
+  game.makeSgfMove(move1_sgf, 1);
+  safety.updateAfterMove(&game, safety.getUpdateValueForMarginsContaining(move1), move1);
+
+  auto move = [&](auto pstr) -> pti { return coord.sgfToPti(applyIsometry(pstr, isometry, coord)); };
+  auto moveSuggNow = safety.getCurrentlyAddedSugg();
+  EXPECT_THAT(moveSuggNow[0], testing::UnorderedElementsAre(move("dg"), move("eg"), move("ef"), move("cg"), move("cf")));
+  EXPECT_THAT(moveSuggNow[1], testing::UnorderedElementsAre(move("dg")));
+  
+  auto move2_sgf = applyIsometry("cf", isometry, coord);
+  auto move2 = coord.sgfToPti(move2_sgf);
+  game.makeSgfMove(move2_sgf, 2);
+  safety.updateAfterMove(&game, safety.getUpdateValueForMarginsContaining(move2), move2);
+  auto moveSuggPrev = safety.getPreviouslyAddedSugg();
+  EXPECT_THAT(moveSuggPrev[0], testing::UnorderedElementsAre(move("dg"), move("eg"), move("ef")));
+  EXPECT_THAT(moveSuggPrev[1], testing::UnorderedElementsAre(move("dg")));
+}
+
+INSTANTIATE_TEST_CASE_P(
+        Par,
+        IsometryFixtureS7,
+        ::testing::Values(0,1,2,3,4,5,6,7));
+
+class IsometryFixtureS8 :public ::testing::TestWithParam<unsigned> {
+};
+
+TEST_P(IsometryFixtureS8, removesMovesThatNoLongerMakesSenseWhenNoExpensiveUpdateIsNeeded2)
+{
+  const unsigned isometry = GetParam();
+  auto sgf = constructSgfFromGameBoard("......."
+				       "......."
+				       "......."
+				       "......."
+				       ".x....."
+				       ".x...x."
+				       ".......");
+  Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+  Safety safety;
+  safety.init(&game);
+  auto move1_sgf = applyIsometry("df", isometry, coord);
+  auto move1 = coord.sgfToPti(move1_sgf);
+  game.makeSgfMove(move1_sgf, 1);
+  safety.updateAfterMove(&game, safety.getUpdateValueForMarginsContaining(move1), move1);
+
+  auto move = [&](auto pstr) -> pti { return coord.sgfToPti(applyIsometry(pstr, isometry, coord)); };
+  auto moveSuggNow = safety.getCurrentlyAddedSugg();
+  EXPECT_THAT(moveSuggNow[0], testing::UnorderedElementsAre(move("dg"), move("eg"), move("ef"), move("cg"), move("cf")));
+  EXPECT_THAT(moveSuggNow[1], testing::UnorderedElementsAre(move("dg")));
+  
+  auto move2_sgf = applyIsometry("cg", isometry, coord);
+  auto move2 = coord.sgfToPti(move2_sgf);
+  game.makeSgfMove(move2_sgf, 2);
+  safety.updateAfterMove(&game, safety.getUpdateValueForMarginsContaining(move2), move2);
+  auto moveSuggPrev = safety.getPreviouslyAddedSugg();
+  EXPECT_THAT(moveSuggPrev[0], testing::UnorderedElementsAre(move("dg"), move("eg"), move("ef")));
+  EXPECT_THAT(moveSuggPrev[1], testing::UnorderedElementsAre(move("dg")));
+}
+
+INSTANTIATE_TEST_CASE_P(
+        Par,
+        IsometryFixtureS8,
+        ::testing::Values(0,1,2,3,4,5,6,7));
+
+}  // namespace
+

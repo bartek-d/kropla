@@ -273,8 +273,16 @@ Safety::findMoveValuesForMargin(Game* game, pti p, pti last_p, pti v, pti n, int
 bool
 Safety::areThereNoFreePointsAtTheEdgeNearPoint(Game *game, pti p) const
 {
-  if (coord.dist[p] == 0)
+  if (coord.dist[p] == 0) {
+    // check if there were some good moves nearby
+    for (int i=0; i<4; ++i) {
+      pti nb = p + coord.nb4[i];
+      if (coord.dist[nb] == 1 and (move_value[nb][0] != 0 or move_value[nb][1] != 0))
+	return false;
+    }
     return true;
+  }
+    
   for (int i=0; i<4; ++i) {
     pti nb = p + coord.nb4[i];
     if (coord.dist[nb] == 0 and game->whoseDotMarginAt(nb) == 0)
@@ -292,7 +300,7 @@ Safety::updateAfterMove(Game* game, int what_to_update, pti last_move)
   }
   bool something_changed = computeSafety(game, what_to_update);
   if (not something_changed and last_move and game->getSafetyOf(last_move) >= 2
-      and areThereNoFreePointsAtTheEdgeNearPoint(game, last_move)) {   // it would be possible to optimise also when there are free points, by adding dame by hand
+      and areThereNoFreePointsAtTheEdgeNearPoint(game, last_move)) {   // it would be possible to optimise also when there are free points, by adding dame by hand / removing now dame moves
     updateAfterMoveWithoutAnyChangeToSafety();
     markMoveForBoth(last_move, 0);
     return;
