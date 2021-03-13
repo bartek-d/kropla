@@ -288,6 +288,40 @@ INSTANTIATE_TEST_CASE_P(
         ::testing::Values(0,1,2,3,4,5,6,7));
 
 
+
+class IsometryFixtureS3e :public ::testing::TestWithParam<unsigned> {
+};
+
+TEST_P(IsometryFixtureS3e, safetyIsCorrectlyInitialisedGame_1uWjT8c6B_move95)
+{
+  const unsigned isometry = GetParam();
+  auto sgf = constructSgfFromGameBoard("........"
+				       ".x.oo..."
+				       "..x....."
+				       ".o......"
+				       "....x..."
+				       ".ooox..."
+				       ".xxx...."
+				       "........");
+  Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+  Safety safety;
+  safety.init(&game);
+
+  game.makeSgfMove(applyIsometry("ae", isometry, coord), 2);
+  safety.updateAfterMove(&game, safety.getUpdateValueForMarginsContaining(coord.sgfToPti(applyIsometry("ae", isometry, coord))));
+
+  EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bd", isometry, coord))));
+  EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bf", isometry, coord))));
+  EXPECT_FALSE(safety.isDameFor(coord.sgfToPti(applyIsometry("af", isometry, coord)), 1));
+  EXPECT_FALSE(safety.isDameFor(coord.sgfToPti(applyIsometry("af", isometry, coord)), 2));
+}
+
+INSTANTIATE_TEST_CASE_P(
+        Par,
+        IsometryFixtureS3e,
+        ::testing::Values(0,1,2,3,4,5,6,7));
+
+
 class IsometryFixtureS4 :public ::testing::TestWithParam<unsigned> {
 };
   

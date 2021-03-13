@@ -26,6 +26,8 @@
 #include "board.h"
 #include "game.h"
 
+#include <cassert>
+
 namespace {
   constexpr int add_this_to_make_old = 10000;
   constexpr int bigger_than_this_means_old = 5000;
@@ -343,7 +345,8 @@ Safety::getMoveValues() const
 bool
 Safety::isDameFor(int who, pti where) const
 {
-  return move_value[where][who] < 0;
+  assert(who == 1 or who == 2);
+  return move_value[where][who-1] < 0;
 }
 
 int Safety::getUpdateValueForAllMargins() const
