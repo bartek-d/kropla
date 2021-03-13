@@ -343,6 +343,8 @@ public:
   Move chooseAtariMove(int who);
   Move chooseAtariResponse(pti lastMove, int who);
   Move chooseSoftSafetyResponse(int who);
+  Move chooseSoftSafetyContinuation(int who);
+  Move selectMoveRandomlyFrom(const std::vector<pti>& moves, int who);
   Move choosePattern3Move(pti move0, pti move1, int who);
   Move chooseSafetyMove(int who);
   Move chooseAnyMove(int who);

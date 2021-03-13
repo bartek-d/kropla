@@ -303,15 +303,15 @@ Safety::updateAfterMove(Game* game, int what_to_update, pti last_move)
       and areThereNoFreePointsAtTheEdgeNearPoint(game, last_move)) {   // it would be possible to optimise also when there are free points, by adding dame by hand / removing now dame moves
     updateAfterMoveWithoutAnyChangeToSafety();
     markMoveForBoth(last_move, 0);
-    return;
+  } else {
+    findMoveValues(game);
   }
-  findMoveValues(game);
   // remove elements of prevAddedMoveSugg that no longer make sense
   prevAddedMoveSugg[0].erase( std::remove_if( prevAddedMoveSugg[0].begin(), prevAddedMoveSugg[0].end(),
-					      [this](pti where) { return  (move_value[where][0] <= 0); }),
+					      [this, game](pti where) { return  (move_value[where][0] <= 0 or game->whoseDotMarginAt(where) != 0); }),
 			      prevAddedMoveSugg[0].end() );
   prevAddedMoveSugg[1].erase( std::remove_if( prevAddedMoveSugg[1].begin(), prevAddedMoveSugg[1].end(),
-					      [this](pti where) { return  (move_value[where][1] <= 0); }),
+					      [this, game](pti where) { return  (move_value[where][1] <= 0 or game->whoseDotMarginAt(where) != 0); }),
 			      prevAddedMoveSugg[1].end() );
 }
 

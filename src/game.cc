@@ -5777,7 +5777,21 @@ Move
 Game::chooseSoftSafetyResponse(int who)
 {
   auto responses = safety_soft.getCurrentlyAddedSugg();
-  int total = responses[who-1].size();
+  return selectMoveRandomlyFrom(responses[who-1], who);
+}
+
+/// This function selects enclosures using Game:::chooseRandomEncl().
+Move
+Game::chooseSoftSafetyContinuation(int who)
+{
+  auto responses = safety_soft.getPreviouslyAddedSugg();
+  return selectMoveRandomlyFrom(responses[who-1], who);
+}
+
+Move
+Game::selectMoveRandomlyFrom(const std::vector<pti>& moves, int who)
+{
+  int total = moves.size();
   Move m;
   m.who = who;
   if (total == 0) {
@@ -5786,11 +5800,9 @@ Game::chooseSoftSafetyResponse(int who)
   }
   std::uniform_int_distribution<int> di(0, total-1);
   int number = di(engine);
-  m.ind = responses[who-1][number];
+  m.ind = moves[number];
   return getRandomEncl(m);
 }
-
-
 
 /// Note: if move0 and move1 have common neighbours, then they have
 ///  the probability of being chosen doubled.
@@ -6187,17 +6199,6 @@ Game::randomPlayout()
       }
     }
     
-    if ((number & 0x1) != 0) {  // probability 1/2
-      m = chooseSafetyMove(nowMoves);
-      if (m.ind != 0) {
-	dame_moves_so_far = 0;
-	makeMove(m);
-#ifdef DEBUG_SGF
-	sgf_tree.addComment(std::string("saf"));
-#endif
-	continue;
-      }
-    }
     if ((number & 0x300) != 0) {
       auto it = history.end();
       --it;
@@ -6215,6 +6216,19 @@ Game::randomPlayout()
 	continue;
       }
     }
+ 
+    if ((number & 0x2000) != 0) {
+      m = chooseSoftSafetyContinuation(nowMoves);
+      if (m.ind != 0) {
+	dame_moves_so_far = 0;
+	makeMove(m);
+#ifdef DEBUG_SGF
+	sgf_tree.addComment("sofc");
+#endif
+	continue;
+      }
+    }
+
     if ((number & 0x4) != 0) {
       auto it = history.end();
       --it;
@@ -6251,6 +6265,17 @@ Game::randomPlayout()
 	makeMove(m);
 #ifdef DEBUG_SGF
 	sgf_tree.addComment(std::string("cut"));
+#endif
+	continue;
+      }
+    }
+    if ((number & 0x1) != 0) {  // probability 1/2
+      m = chooseSafetyMove(nowMoves);
+      if (m.ind != 0) {
+	dame_moves_so_far = 0;
+	makeMove(m);
+#ifdef DEBUG_SGF
+	sgf_tree.addComment(std::string("saf"));
 #endif
 	continue;
       }
