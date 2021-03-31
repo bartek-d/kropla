@@ -336,7 +336,11 @@ public:
   bool isDotAt(pti ind) const { assert(worm[ind] >= 0 && worm[ind] <= MASK_WORM_NO);  return (worm[ind] >= CONST_WORM_INCR); }
   int whoseDotMarginAt(pti ind) const { return (worm[ind] & MASK_DOT); }
   int whoseDotAt(pti ind) const { int v[4]={0,1,2,0};  return v[worm[ind] & MASK_DOT]; }
+  int isInTerr(pti ind, int who) const;
+  int isInEncl(pti ind, int who) const;
+  int isInBorder(pti ind, int who) const;
   int getSafetyOf(pti ind) const { return descr.at(worm[ind]).safety; }
+  float getTotalSafetyOf(pti ind) const { return whoseDotAt(ind) ? descr.at(worm[ind]).safety + safety_soft.getSafetyOf(ind) : 0.0f; }
   pattern3_t readPattern3_at(pti ind) const { return pattern3_at[ind]; }
   void generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth, int who);
   Move getRandomEncl(Move &m);

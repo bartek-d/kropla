@@ -5131,6 +5131,24 @@ Game::makeMoveWithPointsToEnclose(Move &m, std::vector<std::string> to_enclose)
   }
 }
 
+int
+Game::isInTerr(pti ind, int who) const
+{
+  return threats[who-1].is_in_terr[ind];
+}
+
+int
+Game::isInEncl(pti ind, int who) const
+{
+  return threats[who-1].is_in_encl[ind];
+}
+
+int
+Game::isInBorder(pti ind, int who) const
+{
+  return threats[who-1].is_in_border[ind];
+}
+
 
 int encl_count, opt_encl_count, moves_count, priority_count;
 

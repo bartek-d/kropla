@@ -39,8 +39,8 @@
 #include <queue>
 #include <set>
 
-constexpr int PLANES = 9;
-constexpr int BSIZE = 20;
+constexpr int PLANES = 10;
+constexpr int BSIZE = 25;
 constexpr int TAB_SIZE = 16384;
 
 // using Board = float[PLANES][BSIZE][BSIZE];
@@ -101,6 +101,7 @@ DataCollector::~DataCollector()
 {
   if (curr_size == 0) return;
   data.resize(boost::extents[curr_size][PLANES][BSIZE][BSIZE]);
+  data_labels.resize(boost::extents[curr_size]);
   dump();
 }
 
@@ -131,9 +132,18 @@ void gatherDataFromPosition(Game& game, Move& move)
       for (int y = 0; y < BSIZE; ++y) {
 	int p_orig = coord.ind(x, y);
 	int p = applyIsometry(p_orig, isometry);
+	int on_move = game.whoNowMoves();
+	int opponent = 3 - on_move;
 	data[0][x][y] = (game.whoseDotMarginAt(p) == 0) ? 1.0f : 0.0f;
-	data[1][x][y] = (game.whoseDotMarginAt(p) == 1) ? 1.0f : 0.0f;
-	data[2][x][y] = (game.whoseDotMarginAt(p) == 2) ? 1.0f : 0.0f;
+	data[1][x][y] = (game.whoseDotMarginAt(p) == on_move) ? 1.0f : 0.0f;
+	data[2][x][y] = (game.whoseDotMarginAt(p) == opponent) ? 1.0f : 0.0f;
+	data[3][x][y] = game.isInTerr(p, on_move) > 0 ? 1.0f : 0.0f;
+	data[4][x][y] = game.isInTerr(p, opponent) > 0 ? 1.0f : 0.0f;
+	data[5][x][y] = std::min(game.isInEncl(p, on_move), 2) * 0.5f;
+	data[6][x][y] = std::min(game.isInEncl(p, opponent), 2) * 0.5f;
+	data[7][x][y] = std::min(game.isInBorder(p, on_move), 2) * 0.5f;
+	data[8][x][y] = std::min(game.isInBorder(p, opponent), 2) * 0.5f;
+	data[9][x][y] = std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
       }
     int move_isom = applyIsometry(move.ind, isometry);
     int label = coord.x[move_isom] * BSIZE + coord.y[move_isom];
@@ -181,7 +191,10 @@ void gatherDataFromSgfSequence(SgfSequence &seq,
 			       const std::map<int, bool> &whichSide)
 {
   const auto [x, y] = getSize(seq[0]);
-  if (x != BSIZE or y != BSIZE) return;
+  if (x != BSIZE or y != BSIZE) {
+    std::cout << "  ... size: " << x << "x" << y << std::endl;
+    return;
+  }
   const unsigned start_from = 5;
   const unsigned go_to = std::min<unsigned>((x*y*3) / 5,     // use moves until 60% of board is full
 					    seq.size() - 1);
@@ -234,11 +247,19 @@ int main(int argc, char* argv[]) {
     auto seq = parser.parseMainVar();
     auto blue = seq[0].findProp("PB")->second[0];
     auto red = seq[0].findProp("PW")->second[0];
-    std::cout << "Game: " << blue << " -- " << red << std::endl;
-    gatherDataFromSgfSequence(seq,
-			      {
-			       {1, players.find(blue) != players.end()},
-			       {2, players.find(red) != players.end()}
-      });
+    std::cout << sgf_file << " -- game: " << blue << " -- " << red << "  ";
+    if (players.find(blue) != players.end() or players.find(red) != players.end()) {
+      if (players.find(blue) != players.end()) std::cout << "1 ";
+      if (players.find(red) != players.end()) std::cout << "2 ";
+      std::cout << std::endl;
+      gatherDataFromSgfSequence(seq,
+				{
+				 {1, players.find(blue) != players.end()},
+				 {2, players.find(red) != players.end()}
+				});
+    } else {
+      std::cout << "omitted." << std::endl;
+    }
+      
   }
 }
