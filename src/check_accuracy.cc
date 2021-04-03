@@ -1,5 +1,5 @@
 /********************************************************************************************************
- kropla -- a program to play Kropki; file extract.cc -- main file for extracting trainign data for NN.
+ kropla -- a program to play Kropki; file check_accuracy.cc -- main file for testing NN.
     Copyright (C) 2021 Bartek Dyda,
     email: bartekdyda (at) protonmail (dot) com
 
@@ -24,14 +24,9 @@
 
 #include "game.h"
 #include "sgf.h"
-#include "patterns.h"
-#include "allpattgen.h"
+#include "caffe/mcaffe.h"
 
-#include <highfive/H5DataSet.hpp>
-#include <highfive/H5DataSpace.hpp>
-#include <highfive/H5File.hpp>
-
-#include <boost/multi_array.hpp>
+//#include <boost/multi_array.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -39,71 +34,13 @@
 #include <queue>
 #include <set>
 
-constexpr int PLANES = 12;
+constexpr int PLANES = 10;
 constexpr int BSIZE = 20;
-constexpr int TAB_SIZE = 16384;
 
-// using Board = float[PLANES][BSIZE][BSIZE];
-
-class DataCollector {
-public:
-  using Array4dim = boost::multi_array<float, 4>;
-  using Array1dim = boost::multi_array<int, 1>;
-  Array4dim data{boost::extents[TAB_SIZE][PLANES][BSIZE][BSIZE]};
-  Array1dim data_labels{boost::extents[TAB_SIZE]};
-  int curr_size = 0;
-  int file_no = 1;
-public:
-  auto getCurrentArray();
-  void save(int label);
-  void dump();
-  ~DataCollector();
-} collector;
-
-auto DataCollector::getCurrentArray()
-{
-  return data[curr_size];
-}
-
-void DataCollector::save(int label)
-{
-  data_labels[curr_size] = label;
-  ++curr_size;
-  if (curr_size == TAB_SIZE)
-    dump();
-}
-  
-void DataCollector::dump()
-{
-  try {
-    std::string filename{"board_" + std::to_string(file_no) + ".h5"};
-    HighFive::File file(filename, HighFive::File::ReadWrite | HighFive::File::Create | HighFive::File::Truncate);
-    // Create the dataset
-    const std::string DATASET_NAME("bdata");
-    HighFive::DataSet dataset =
-      file.createDataSet<float>(DATASET_NAME, HighFive::DataSpace::From(data));
-
-    const std::string LABELS_NAME("blabels");
-    HighFive::DataSet labels =
-      file.createDataSet<int>(LABELS_NAME, HighFive::DataSpace::From(data_labels));
-
-    dataset.write(data);
-    labels.write(data_labels);
-  } catch (const HighFive::Exception& err) {
-    // catch and print any HDF5 error
-    std::cerr << err.what() << std::endl;
-  }
-  curr_size = 0;
-  ++file_no;
-}
-
-DataCollector::~DataCollector()
-{
-  if (curr_size == 0) return;
-  data.resize(boost::extents[curr_size][PLANES][BSIZE][BSIZE]);
-  data_labels.resize(boost::extents[curr_size]);
-  dump();
-}
+using Board = float[PLANES][BSIZE][BSIZE];
+MCaffe cnn;
+//using Array3dim = boost::multi_array<float, 3>;
+//Array3dim data{boost::extents[PLANES][BSIZE][BSIZE]};
 
 
 int applyIsometry(int p, unsigned isometry)
@@ -126,8 +63,8 @@ void gatherDataFromPosition(Game& game, Move& move)
   game.show();
   std::cerr << "Move " << move.show() << " was about to play." << std::endl;
   */
-  for (unsigned isometry = 0; isometry < 8; ++isometry) {
-    auto data = collector.getCurrentArray();
+  Board data;
+  for (unsigned isometry = 0; isometry < 1; ++isometry) {
     for (int x = 0; x < BSIZE; ++x)
       for (int y = 0; y < BSIZE; ++y) {
 	int p_orig = coord.ind(x, y);
@@ -144,12 +81,43 @@ void gatherDataFromPosition(Game& game, Move& move)
 	data[7][x][y] = std::min(game.isInBorder(p, on_move), 2) * 0.5f;
 	data[8][x][y] = std::min(game.isInBorder(p, opponent), 2) * 0.5f;
 	data[9][x][y] = std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
-	data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
-	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
+	//	data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
+	//	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
       }
     int move_isom = applyIsometry(move.ind, isometry);
-    int label = coord.x[move_isom] * BSIZE + coord.y[move_isom];
-    collector.save(label);
+    //    int label = coord.x[move_isom] * BSIZE + coord.y[move_isom];
+    game.show();
+    std::cout << "Move of player #" << game.whoNowMoves() << ": " << coord.showPt(move_isom) << std::endl;
+
+    struct MoveAndProb {
+      int x;
+      int y;
+      float prob;
+      bool operator<(const MoveAndProb& other) const
+      {
+	return prob < other.prob;
+      }
+    };
+    std::priority_queue<MoveAndProb, std::vector<MoveAndProb>> queue;
+    auto res = cnn.caffe_get_data(static_cast<float*>(&data[0][0][0]), BSIZE, PLANES, BSIZE);
+    for (int y = 0; y < BSIZE; ++y) {
+      for (int x = 0; x < BSIZE; ++x) {
+	//std::cout << res[x * BSIZE + y] << " ";
+	queue.push(MoveAndProb{x, y, res[x * BSIZE + y]});
+      }
+      //std::cout << std::endl;
+    }
+    int shown = 0;
+    for (int i=0; shown<20 && not queue.empty(); ++i) {
+      auto mp= queue.top();
+      if (game.whoseDotMarginAt(coord.ind(mp.x, mp.y)) == 0) {
+	std::cout << "Move #" << i << ": (" << mp.x << ", " << mp.y << ") --> " << mp.prob << std::endl;
+	++shown;
+      }
+      queue.pop();
+    }
+    std::cout << std::endl;
+      
   }
 }
 
@@ -226,19 +194,18 @@ std::set<std::string> readLines(const std::string& filename)
 
 
 int main(int argc, char* argv[]) {
-  if (argc < 4) {
-    std::cerr << "at least 3 parameters needed, players_file out_file sgf_file(s)" << std::endl;
+  if (argc < 5) {
+    std::cerr << "at least 4 parameters needed, protofile weights players_file sgf_file(s)" << std::endl;
     return 1;
   }
-
-  auto players = readLines(argv[1]);
+  cnn.caffe_init(BSIZE, argv[1], argv[2], BSIZE);
+ 
+  auto players = readLines(argv[3]);
   for (auto& p : players) {
     std::cout << "PLAYER: " << p << std::endl;
   }
 
-  std::string out_file{argv[2]};
-
-  for (int nfile = 3; nfile < argc; ++nfile) {
+  for (int nfile = 4; nfile < argc; ++nfile) {
     std::string sgf_file{argv[nfile]};
     std::ifstream t(sgf_file);
     std::stringstream buffer;
