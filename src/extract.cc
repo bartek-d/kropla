@@ -38,24 +38,26 @@
 #include <string>
 #include <queue>
 #include <set>
+#include <array>
 
-constexpr int PLANES = 12;
+constexpr int MOVES_USED = 3;
+constexpr int PLANES = 7;
 constexpr int BSIZE = 20;
 constexpr int TAB_SIZE = 16384;
 
 // using Board = float[PLANES][BSIZE][BSIZE];
 
 class DataCollector {
-public:
   using Array4dim = boost::multi_array<float, 4>;
   using Array1dim = boost::multi_array<int, 1>;
   Array4dim data{boost::extents[TAB_SIZE][PLANES][BSIZE][BSIZE]};
-  Array1dim data_labels{boost::extents[TAB_SIZE]};
+  std::array<Array1dim, MOVES_USED> data_labels;
   int curr_size = 0;
   int file_no = 1;
 public:
+  DataCollector() { for (auto &a : data_labels) a.resize(boost::extents[TAB_SIZE]); }
   auto getCurrentArray();
-  void save(int label);
+  void save(int move, int label);
   void dump();
   ~DataCollector();
 } collector;
@@ -65,12 +67,14 @@ auto DataCollector::getCurrentArray()
   return data[curr_size];
 }
 
-void DataCollector::save(int label)
+void DataCollector::save(int move, int label)
 {
-  data_labels[curr_size] = label;
-  ++curr_size;
-  if (curr_size == TAB_SIZE)
-    dump();
+  data_labels[move][curr_size] = label;
+  if (move == MOVES_USED - 1) {
+    ++curr_size;
+    if (curr_size == TAB_SIZE)
+      dump();
+  }
 }
   
 void DataCollector::dump()
@@ -82,13 +86,14 @@ void DataCollector::dump()
     const std::string DATASET_NAME("bdata");
     HighFive::DataSet dataset =
       file.createDataSet<float>(DATASET_NAME, HighFive::DataSpace::From(data));
-
-    const std::string LABELS_NAME("blabels");
-    HighFive::DataSet labels =
-      file.createDataSet<int>(LABELS_NAME, HighFive::DataSpace::From(data_labels));
-
     dataset.write(data);
-    labels.write(data_labels);
+    
+    for (int m = 0; m < MOVES_USED; ++m) {
+      const std::string LABELS_NAME(std::string{"blabels"} + (m==0? "" : std::to_string(m)));
+      HighFive::DataSet labels =
+	file.createDataSet<int>(LABELS_NAME, HighFive::DataSpace::From(data_labels[m]));
+      labels.write(data_labels[m]);
+    }
   } catch (const HighFive::Exception& err) {
     // catch and print any HDF5 error
     std::cerr << err.what() << std::endl;
@@ -101,7 +106,8 @@ DataCollector::~DataCollector()
 {
   if (curr_size == 0) return;
   data.resize(boost::extents[curr_size][PLANES][BSIZE][BSIZE]);
-  data_labels.resize(boost::extents[curr_size]);
+  for (int m=0; m<MOVES_USED; ++m)
+    data_labels[m].resize(boost::extents[curr_size]);
   dump();
 }
 
@@ -119,7 +125,7 @@ int applyIsometry(int p, unsigned isometry)
   return coord.ind(x, y);
 }
 
-void gatherDataFromPosition(Game& game, Move& move)
+void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
 {
   /*
   std::cerr << "Gather data from position: " << std::endl;
@@ -141,15 +147,17 @@ void gatherDataFromPosition(Game& game, Move& move)
 	data[4][x][y] = game.isInTerr(p, opponent) > 0 ? 1.0f : 0.0f;
 	data[5][x][y] = std::min(game.isInEncl(p, on_move), 2) * 0.5f;
 	data[6][x][y] = std::min(game.isInEncl(p, opponent), 2) * 0.5f;
-	data[7][x][y] = std::min(game.isInBorder(p, on_move), 2) * 0.5f;
-	data[8][x][y] = std::min(game.isInBorder(p, opponent), 2) * 0.5f;
-	data[9][x][y] = std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
-	data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
-	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
+	//data[7][x][y] = std::min(game.isInBorder(p, on_move), 2) * 0.5f;
+	//data[8][x][y] = std::min(game.isInBorder(p, opponent), 2) * 0.5f;
+	//data[9][x][y] = std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
+	//	data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
+	//	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
       }
-    int move_isom = applyIsometry(move.ind, isometry);
-    int label = coord.x[move_isom] * BSIZE + coord.y[move_isom];
-    collector.save(label);
+    for (int m=0; m<MOVES_USED; ++m) {
+      int move_isom = applyIsometry(moves.at(m).ind, isometry);
+      int label = coord.x[move_isom] * BSIZE + coord.y[move_isom];
+      collector.save(m, label);
+    }
   }
 }
 
@@ -199,13 +207,17 @@ void gatherDataFromSgfSequence(SgfSequence &seq,
   }
   const unsigned start_from = 5;
   const unsigned go_to = std::min<unsigned>((x*y*3) / 5,     // use moves until 60% of board is full
-					    seq.size() - 1);
+					    seq.size() - MOVES_USED);
   Game game(SgfSequence(seq.begin(), seq.begin() + start_from), go_to);
   for (unsigned i = start_from; i < go_to; ++i) {
     if (whichSide.at(game.whoNowMoves())) {
-      auto [move, points_to_enclose] = getMoveFromSgfNode(game, seq[i]);
-      if (move.ind != 0 and move.who == game.whoNowMoves()) {
-	gatherDataFromPosition(game, move);
+      std::vector<Move> subsequentMoves;
+      for (int j=0; j<MOVES_USED; ++j) {
+	auto [move, points_to_enclose] = getMoveFromSgfNode(game, seq[i + j]);
+	subsequentMoves.push_back(move);
+      }
+      if (subsequentMoves[0].ind != 0 and subsequentMoves[0].who == game.whoNowMoves()) {
+	gatherDataFromPosition(game, subsequentMoves);
       }
     }
     // std::cerr << "Trying to play at: " << seq[i].toString() << std::endl;
@@ -232,8 +244,24 @@ int main(int argc, char* argv[]) {
   }
 
   auto players = readLines(argv[1]);
+  std::set<std::string> allowedPlayers{};
+  std::set<std::string> forbiddenPlayers{};
+  int min_rank = 4000;
   for (auto& p : players) {
-    std::cout << "PLAYER: " << p << std::endl;
+    switch (p[0]) {
+    case '!':
+      std::cout << "PLAYER FORBIDDEN: " << p.substr(1) << std::endl;
+      forbiddenPlayers.insert(p.substr(1));
+      break;
+    case '>':
+      min_rank = std::stoi(p.substr(1));
+      std::cout << "MIN RANK: " << min_rank << std::endl;
+      break;
+    default:
+      std::cout << "PLAYER: " << p << std::endl;
+      allowedPlayers.insert(p);
+      break;
+    }
   }
 
   std::string out_file{argv[2]};
@@ -247,18 +275,17 @@ int main(int argc, char* argv[]) {
 
     SgfParser parser(s);
     auto seq = parser.parseMainVar();
+    if (seq[0].findProp("PB") == seq[0].props.end() or seq[0].findProp("PW") == seq[0].props.end() or seq[0].findProp("BR") == seq[0].props.end() or seq[0].findProp("WR") == seq[0].props.end())
+      continue;
     auto blue = seq[0].findProp("PB")->second[0];
     auto red = seq[0].findProp("PW")->second[0];
-    std::cout << sgf_file << " -- game: " << blue << " -- " << red << "  ";
-    if (players.find(blue) != players.end() or players.find(red) != players.end()) {
-      if (players.find(blue) != players.end()) std::cout << "1 ";
-      if (players.find(red) != players.end()) std::cout << "2 ";
-      std::cout << std::endl;
-      gatherDataFromSgfSequence(seq,
-				{
-				 {1, players.find(blue) != players.end()},
-				 {2, players.find(red) != players.end()}
-				});
+    auto blueRank = std::stoi(seq[0].findProp("BR")->second[0]);
+    auto redRank = std::stoi(seq[0].findProp("WR")->second[0]);
+    bool blueOk = (allowedPlayers.find(blue) != allowedPlayers.end() or blueRank >= min_rank) and (forbiddenPlayers.find(blue) ==forbiddenPlayers.end());
+    bool redOk = (allowedPlayers.find(red) != allowedPlayers.end() or redRank >= min_rank) and (forbiddenPlayers.find(red) ==forbiddenPlayers.end());
+    std::cout << sgf_file << " -- game: " << blue << " [" << blueRank << "] -- " << red << " [" << redRank << "]  ";
+    if (blueOk and redOk) {
+      gatherDataFromSgfSequence(seq, {{1, blueOk}, {2, redOk}});
     } else {
       std::cout << "omitted." << std::endl;
     }
