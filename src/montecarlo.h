@@ -45,6 +45,7 @@ extern std::atomic<bool> finish_sim;
 extern bool finish_threads;
 extern std::atomic<int> threads_to_be_finished;
 extern std::atomic<int64_t> iterations;
+extern std::atomic<int64_t> generateMovesCount;
 }
 
 void

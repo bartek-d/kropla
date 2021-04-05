@@ -5155,6 +5155,7 @@ int encl_count, opt_encl_count, moves_count, priority_count;
 void
 Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth, int who)
 {
+  ++montec::generateMovesCount;
 #ifndef NDEBUG
   // check margins
   bool top=true, left=true, bottom=true, right=true;  // are margins empty?

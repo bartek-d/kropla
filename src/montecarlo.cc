@@ -45,6 +45,7 @@ std::atomic<bool> finish_sim(false);
 std::atomic<int> threads_to_be_finished{0};
 
 std::atomic<int64_t> iterations(0);
+std::atomic<int64_t> generateMovesCount{0};
 
 bool finish_threads(false);
 }
@@ -215,6 +216,7 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
 #endif
 
   montec::iterations = 0;  montec::finish_sim = false;  montec::finish_threads = false;
+  montec::generateMovesCount = 0;
   montec::threads_to_be_finished = threads;
   std::vector< std::future<int> > concurrent;
   concurrent.reserve(threads);
@@ -320,7 +322,7 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
     for (int i=0; i<n; i++) {
       real_playouts += montec::root.children[i].t.playouts - montec::root.children[i].prior.playouts;
     }
-    std::cerr << "Real saved playouts: " << real_playouts << std::endl;
+    std::cerr << "Real saved playouts: " << real_playouts << "; generateMovesCount: " << montec::generateMovesCount << std::endl;
   }
 
   std::string res = "";

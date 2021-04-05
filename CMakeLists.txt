@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 
 project(kropla)
-set(CMAKE_CXX_FLAGS "-g -Wall -std=c++17 -O3 -DNDEBUG -msse3")
+set(CMAKE_CXX_FLAGS "-s -Wall -std=c++17 -O3 -DNDEBUG -msse3")
 #add_compile_options(-s -Wall -std=c++17 -O3 -DNDEBUG -msse3)
 #set(CMAKE_CXX_FLAGS "-s  -std=c++17 -O3 -DNDEBUG -msse3")
 #set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc  -Wall -std=c++17 -O3 -DNDEBUG -msse3 -DSPEED_TEST")
@@ -71,7 +71,7 @@ include_directories(src)
 add_executable(kropla src/game.cc src/game.h src/game_utils.h src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/kropla_main.cc src/safety.cc src/safety.h)
 target_link_libraries(kropla Threads::Threads)
 
-add_executable(gather src/game.cc src/game.h src/game_utils.h src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/generatedata.cc src/allpattgen.cc src/allpattgen.h  src/safety.cc src/safety.h)
+add_executable(gather src/game.cc src/game.h src/game_utils.h src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/generatedata.cc src/allpattgen.cc src/allpattgen.h  src/safety.cc src/safety.h src/montecarlo.cc src/montecarlo.h)
 target_link_libraries(gather Threads::Threads)
 
 add_executable(extract src/game.cc src/game.h src/game_utils.h src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/extract.cc src/safety.cc src/safety.h)
