@@ -103,17 +103,20 @@ struct Treenode {
   Move move;
   uint32_t flags;
   static const uint32_t LAST_CHILD = 1;
+  static const uint32_t IS_DAME = 2;
   real_t getValue() const;
   bool operator<(const Treenode& other) const;
-  void markAsLast() { flags |= LAST_CHILD; };
-  void markAsNotLast() { flags &= ~LAST_CHILD; };
-  bool isLast() { return (flags & LAST_CHILD) !=0; };
+  void markAsLast() { flags |= LAST_CHILD; }
+  void markAsNotLast() { flags &= ~LAST_CHILD; }
+  bool isLast() { return (flags & LAST_CHILD) !=0; }
+  void markAsDame() { flags |= IS_DAME; }
+  bool isDame() { return (flags & IS_DAME) != 0; }
   const Treenode* getBestChild() const;
   std::string show() const;
   std::string getMoveSgf() const;
-  Treenode() { flags=0;   children=nullptr;  parent=nullptr; };
+  Treenode() { flags=0;   children=nullptr;  parent=nullptr; }
   Treenode& operator=(const Treenode&);
-  Treenode(const Treenode& other) { *this = other; };
+  Treenode(const Treenode& other) { *this = other; }
 };
 
 /********************************************************************************************************

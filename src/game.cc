@@ -53,6 +53,7 @@
 #include "threats.h"
 #include "game.h"
 #include "montecarlo.h"
+#include "get_cnn_prob.h"
 
 Coord coord(15,15);
 
@@ -3090,11 +3091,15 @@ Game::checkBorderOneSide(pti ind, pti viter, pti vnorm, int who) const
 void
 Game::descend(TreenodeAllocator &alloc, Treenode *node, int depth, bool expand)
 {
+  constexpr int max_depth_for_cnn = 2;
   if (node->children == nullptr && (expand || (node->t.playouts - node->prior.playouts) >= MC_EXPAND_THRESHOLD)) {
     //std::cerr << " expand: node->move = " << coord.showPt(node->move.ind) << std::endl;
     generateListOfMoves(alloc, node, depth, node->move.who ^ 3);
     if (node->children == nullptr) {
       node->children = alloc.getLastBlock();
+      if (depth <= max_depth_for_cnn) {
+	updatePriors(*this, lastBlock);
+      }
     }
     else {
       alloc.getLastBlock();
@@ -5232,6 +5237,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
     //  threats[who-1].is_in_border[i] == 0) continue;
     tn.move.ind = i;
     tn.t.playouts = 30;  tn.t.value_sum = 15;
+    tn.flags = 0;
     // add prior values according to Pattern3
     bool is_in_our_te = (threats[who-1].is_in_encl[i]>0 || threats[who-1].is_in_terr[i]>0);  // te = territory or enclosure
     bool is_in_opp_te = (threats[2-who].is_in_encl[i]>0 || threats[2-who].is_in_terr[i]>0);
@@ -5291,6 +5297,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
       out << "dame=true,-5 ";
 #endif
       tn.t.playouts += 5;    // add lost simulations
+      tn.markAsDame();
     }
     // add prior values according to Pattern52
     /* // turned off in v136
