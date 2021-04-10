@@ -8,6 +8,7 @@ set(CMAKE_CXX_FLAGS "-s -Wall -std=c++17 -O3 -DNDEBUG -msse3")
 #set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc  -Wall -std=c++17 -O3 -DNDEBUG -msse3")
 #set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc  -Wall -std=c++17 -O3 -DNDEBUG -DDEBUG_SGF -msse3")
 
+set(SHARED_LIBS_DIR "/home/b/kropki/cnn/shared")
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -27,8 +28,6 @@ set(USE_MLSL 0)
 add_subdirectory(caffeintel)
 include_directories("${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
 
-message("oto: ${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
-
 add_library(libcaffe SHARED IMPORTED)
 set_target_properties(libcaffe PROPERTIES
   IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/caffeintel/bin/lib/libcaffe.so"
@@ -42,17 +41,20 @@ set_target_properties(libcaffe PROPERTIES
 
 add_library(iomp5 SHARED IMPORTED)
 set_target_properties(iomp5 PROPERTIES
-  IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/caffeintel/external/mkl/mklml_lnx_2019.0.3.20190220/lib/libiomp5.so"
+  #  IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/caffeintel/external/mkl/mklml_lnx_2019.0.3.20190220/lib/libiomp5.so"
+  IMPORTED_LOCATION "${SHARED_LIBS_DIR}/libiomp5.so"
 )
 
 add_library(mklml_intel SHARED IMPORTED)
 set_target_properties(mklml_intel PROPERTIES
-  IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/caffeintel/external/mkl/mklml_lnx_2019.0.3.20190220/lib/libmklml_intel.so"
+  #  IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/caffeintel/external/mkl/mklml_lnx_2019.0.3.20190220/lib/libmklml_intel.so"
+    IMPORTED_LOCATION "${SHARED_LIBS_DIR}/libmklml_intel.so"
 )
 
 add_library(mkldnn SHARED IMPORTED)
 set_target_properties(mkldnn PROPERTIES
-  IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/caffeintel/external/mkldnn/install/lib/libmkldnn.so"
+  #  IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/caffeintel/external/mkldnn/install/lib/libmkldnn.so"
+    IMPORTED_LOCATION "${SHARED_LIBS_DIR}/libmkldnn.so"
 )
 #set(MKLDNNROOT "${CMAKE_SOURCE_DIR}/external/mkldnn")
 

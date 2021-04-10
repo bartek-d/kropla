@@ -29,4 +29,4 @@
 #include <utility>
 
 std::pair<bool, std::vector<float>> getCnnInfo(Game& game);
-void updatePriors(Game& game, Treenode* children);
+void updatePriors(Game& game, Treenode* children, int depth);

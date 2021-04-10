@@ -25,6 +25,8 @@
 #include "get_cnn_prob.h"
 #include "caffe/mcaffe.h"
 
+//#include "board.h"
+
 #include <boost/multi_array.hpp>
 
 #include <iostream>
@@ -37,12 +39,16 @@ namespace {
 MCaffe cnn;
 std::mutex caffe_mutex; 
 constexpr int PLANES = 10;
-
+bool madeQuiet = false;
 using Array3dim = boost::multi_array<float, 3>;
 }
 
 std::pair<bool, std::vector<float>> getCnnInfo(Game& game) try
 {
+  if (not madeQuiet) {
+    cnn.quiet_caffe("kropla");
+    madeQuiet = true;
+  }
   Array3dim data{boost::extents[PLANES][coord.wlkx][coord.wlky]};
   const std::lock_guard<std::mutex> lock(caffe_mutex);
   if (not cnn.caffe_ready()) {
@@ -86,7 +92,7 @@ catch (const CaffeException& exc) {
   return {false, {}};
 }
 
-void updatePriors(Game& game, Treenode* children)
+void updatePriors(Game& game, Treenode* children, int depth)
 {
   const auto [is_cnn_available, probs] = getCnnInfo(game);
   std::cerr << "Trying to update priors from CNN: " << is_cnn_available << std::endl;
@@ -102,17 +108,23 @@ void updatePriors(Game& game, Treenode* children)
     std::cerr << "Max is 0.0f, CNN does not work?" << std::endl;
     return;
   }
-  constexpr float prior_for_best = 200.0f;
+  const float prior_max = (depth == 1) ? 800.0f : 200.0f;
   for (auto *ch = children; true; ++ch) {
     float prob = probs[ch->move.ind];
-    if (not ch->isDame()) {
+    if (prob > 0.001f) {
       prob = std::sqrt(prob);
-    } else {
-      prob *= prob;
+      /*
+	if (not ch->isDame()) {
+	prob = std::sqrt(prob);
+	} else {
+	prob *= prob;
+	} */
+      const int32_t value = prob * prior_max;
+      ch->t.playouts += value;
+      ch->t.value_sum = ch->t.value_sum.load() + value;
+      ch->prior.playouts += value;
+      ch->prior.value_sum = ch->prior.value_sum.load() + value;
     }
-    const int32_t value = prob * prior_for_best;
-    ch->t.playouts += value;
-    ch->t.value_sum = ch->t.value_sum.load() + value;
     if (ch->isLast()) break;
   }
   std::cerr << "Updated priors from CNN!" << std::endl;

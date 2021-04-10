@@ -46,6 +46,7 @@ MCaffe::shape_size(const vector<int>& shape) const
 void
 MCaffe::quiet_caffe(char *name) const
 {
+  FLAGS_logtostderr = 1;
   google::InitGoogleLogging(name);
 }
 	

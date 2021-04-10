@@ -42,6 +42,7 @@
 #include <stdexcept>
 #include <cctype>  // iswhite()
 #include <chrono>  // chrono::high_resolution_clock, only to measure elapsed time
+#include <mutex>
 
 #include <boost/container/small_vector.hpp>
 
@@ -73,6 +74,7 @@ Pattern52 patt52_edge({});
 Pattern52 patt52_inner({});
 int komi;
 int komi_ratchet;
+std::mutex cnn_mutex;
 }
 
 /********************************************************************************************************
@@ -3091,14 +3093,20 @@ Game::checkBorderOneSide(pti ind, pti viter, pti vnorm, int who) const
 void
 Game::descend(TreenodeAllocator &alloc, Treenode *node, int depth, bool expand)
 {
-  constexpr int max_depth_for_cnn = 2;
+  constexpr int max_depth_for_cnn = 3;
   if (node->children == nullptr && (expand || (node->t.playouts - node->prior.playouts) >= MC_EXPAND_THRESHOLD)) {
     //std::cerr << " expand: node->move = " << coord.showPt(node->move.ind) << std::endl;
     generateListOfMoves(alloc, node, depth, node->move.who ^ 3);
     if (node->children == nullptr) {
-      node->children = alloc.getLastBlock();
-      if (depth <= max_depth_for_cnn) {
-	updatePriors(*this, lastBlock);
+      if (depth > max_depth_for_cnn) {
+	node->children = alloc.getLastBlock();
+      } else {
+	auto lastBlock = alloc.getLastBlock();
+	const std::lock_guard<std::mutex> lock(global::cnn_mutex);
+	if (node->children == nullptr) {
+	  updatePriors(*this, lastBlock, depth);
+	  node->children = lastBlock;
+	}
       }
     }
     else {
