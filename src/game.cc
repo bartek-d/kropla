@@ -1,6 +1,6 @@
 /********************************************************************************************************
  kropla -- a program to play Kropki; file game.cc -- main file.
-    Copyright (C) 2015,2016,2017,2018 Bartek Dyda,
+    Copyright (C) 2015,2016,2017,2018,2019,2020,2021 Bartek Dyda,
     email: bartekdyda (at) protonmail (dot) com
 
     Some parts are inspired by Pachi http://pachi.or.cz/
@@ -55,6 +55,7 @@
 #include "game.h"
 #include "montecarlo.h"
 #include "get_cnn_prob.h"
+#include "group_neighbours.h"
 
 Coord coord(15,15);
 
@@ -1504,7 +1505,7 @@ Game::findClosableNeighbours(pti ind, pti forbidden1, pti forbidden2, int who) c
 }
 
 /// 3 points: p0, p1, p2 should be on the boundary of an enclosure, so check them and
-/// take the optimal one.
+/// take the optimal one. Points p0, p1, p2 do not have to be adjacent.
 /// TODO: use connections_tab, like in usual Threats
 void
 Game::addClosableNeighbours(std::vector<pti> &tab, pti p0, pti p1, pti p2, int who) const
@@ -1523,7 +1524,6 @@ Game::addClosableNeighbours(std::vector<pti> &tab, pti p0, pti p1, pti p2, int w
     tab.push_back(cn2[0]);
   }
 }
-
 
 /// Checks if empty points p1, p2 are connected, i.e., if they both have the same group of who as a neighbour.
 bool
@@ -1738,6 +1738,57 @@ Game::findThreats2moves_preDot(pti ind, int who)
     debug_nanos3 += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - debug_time).count();
 
   }
+
+  if (connected_groups.hasAtLeastTwoDistinctElements()) {
+    std::vector<pti> unique_connected_groups = connected_groups.getUniqueSet();
+    std::vector<uint8_t> neighbours(coord.getSize(), 0);
+    std::vector<GroupNeighbours> group_neighb;
+    int mask = 1;
+    for (pti gid : unique_connected_groups) {
+      group_neighb.emplace_back(*this, neighbours, gid, ind, mask, who);
+      mask <<= 1;
+    }
+    for (unsigned first = 0; first < unique_connected_groups.size() - 1; ++first) {
+      int mask_first = (1 << first);
+      for (unsigned second = first + 1; second < unique_connected_groups.size(); ++second) {
+	int mask_second = (1 << second);
+	int mask_both =  mask_first | mask_second;
+	// check if there are 2 adjacent points from neighbours of exactly one of gr1 and gr2
+	for (auto point_close_to_1 : group_neighb[first].neighbours_list) {
+	  if ((neighbours[point_close_to_1] & mask_second) == 0) { // point_close_to_1 is not a neighbour of group2
+	    for (int n=0; n<8; ++n) {
+	      int nb = point_close_to_1 + coord.nb8[n];
+	      if ((neighbours[nb] & mask_both) == mask_second) {
+		addClosableNeighbours(possible_threats, ind, point_close_to_1, nb, who);
+		possible_threats.push_back(point_close_to_1);
+		possible_threats.push_back(nb);
+	      }
+	    }
+	  }
+	}
+	// find other groups that are close to both gr1 and gr2 and add threats
+	for (auto other_gr_id : group_neighb[first].neighbour_groups) {
+	  if (not group_neighb[second].isGroupClose(other_gr_id))
+	    continue;
+	  for (auto point_close_to_1 : group_neighb[first].neighbours_list) {
+	    if (not connects[who-1][point_close_to_1].contains(other_gr_id))
+	      continue;
+	    if (neighbours[point_close_to_1] & mask_second) continue;
+	    for (auto point_close_to_2 : group_neighb[second].neighbours_list) {
+	      if (not connects[who-1][point_close_to_2].contains(other_gr_id))
+		continue;
+	      if (neighbours[point_close_to_2] & mask_first) continue;
+	      addClosableNeighbours(possible_threats, ind, point_close_to_1, point_close_to_2, who);
+	      possible_threats.push_back(point_close_to_1);
+	      possible_threats.push_back(point_close_to_2);
+	    }
+	  }
+	}
+	//
+      }
+    }
+  }
+    
   /*
   // (new part, v137)
   if (top >= 2) {

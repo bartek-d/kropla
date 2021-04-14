@@ -51,7 +51,7 @@ struct WormDescr {
   pti leftmost; // the dot of the worm with the smallest index (the top one from the leftmost)
   pti group_id; // some positive number which is common for worms in the same group (i.e., connected) and different otherwise
   int32_t safety;  // safety info, ==0 not safe, ==1 partially safe, >=2 safe
-  bool isSafe() const { return safety >= 2; };
+  bool isSafe() const { return safety >= 2; }
   const static int32_t SAFE_VALUE = 20000;        // safety := SAFE_VALUE when the worm touches the edge
   const static int32_t SAFE_THRESHOLD = 10000;
   std::vector<pti> neighb;   // numbers of other worms that touch this one
@@ -69,10 +69,11 @@ struct OneConnection {
                                   // 0-filled at the end if necessary
   int code {0};       // code of the neighbourhood used by coord.connections_tab
   // int() and != are mainly for debugging, to print and check connections
-  operator int() const { return (groups_id[0]!=0) + (groups_id[1]!=0) + (groups_id[2]!=0) + (groups_id[3]!=0); };
+  operator int() const { return (groups_id[0]!=0) + (groups_id[1]!=0) + (groups_id[2]!=0) + (groups_id[3]!=0); }
   bool operator!=(const OneConnection& other) const;
   // returns the number of groups in the neighbourhood
-  int count() { int count=0; while (count<4 && groups_id[count]!=0) count++; return count; };
+  int count() { int count=0; while (count<4 && groups_id[count]!=0) count++; return count; }
+  bool contains(pti what) const { return (groups_id[0] == what) or (groups_id[1] == what) or (groups_id[2] == what) or (groups_id[3] == what); }
   int getUniqueGroups(std::array<pti,4> &ug) const;
 };
 
@@ -390,6 +391,7 @@ public:
   std::string showDescr(pti p) const { return descr.at(p).show();  };
 
   friend class Safety;
+  friend class GroupNeighbours;
 };
 
 namespace global {

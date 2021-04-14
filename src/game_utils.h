@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <algorithm>
 
 /********************************************************************************************************
   Cleanup class
@@ -58,8 +59,10 @@ public:
   void insert(T x);
   int remove_one(T x);
   bool contains(T x) const;
-  int size() { return count; };
-  bool empty() { return (count==0); };
+  int size() const { return count; };
+  bool hasAtLeastTwoDistinctElements() const;
+  std::vector<T> getUniqueSet() const;
+  bool empty() const { return (count==0); };
   void clear() { count=0; };
   std::string show();
 };
@@ -95,6 +98,26 @@ bool SmallMultiset<T, N>::contains(T x) const
   for (int i=0; i<count; ++i)
     if (data[i] == x) return true;
   return false;
+}
+
+template <class T, int N>
+bool SmallMultiset<T, N>::hasAtLeastTwoDistinctElements() const
+{
+  for (int i=1; i<count; ++i)
+    if (data[i] != data[0])
+      return true;
+  return false;
+}
+
+template <class T, int N>
+std::vector<T> SmallMultiset<T, N>::getUniqueSet() const
+{
+  std::vector<T> uni;
+  uni.reserve(count);
+  for (int i=0; i<count; ++i)
+    if (std::find(uni.begin(), uni.end(), data[i]) == uni.end())
+      uni.push_back(data[i]);
+  return uni;
 }
 
 template <class T, int N>
