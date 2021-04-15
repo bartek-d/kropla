@@ -312,8 +312,8 @@ TEST_P(IsometryFixtureS3e, safetyIsCorrectlyInitialisedGame_1uWjT8c6B_move95)
 
   EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bd", isometry, coord))));
   EXPECT_EQ(0.0f, safety.getSafetyOf(coord.sgfToPti(applyIsometry("bf", isometry, coord))));
-  EXPECT_FALSE(safety.isDameFor(coord.sgfToPti(applyIsometry("af", isometry, coord)), 1));
-  EXPECT_FALSE(safety.isDameFor(coord.sgfToPti(applyIsometry("af", isometry, coord)), 2));
+  EXPECT_FALSE(safety.isDameFor(1, coord.sgfToPti(applyIsometry("af", isometry, coord))));
+  EXPECT_FALSE(safety.isDameFor(2, coord.sgfToPti(applyIsometry("af", isometry, coord))));
 }
 
 INSTANTIATE_TEST_CASE_P(
