@@ -377,9 +377,9 @@ public:
   bool checkCorrectness(SgfSequence seq);
   bool checkPattern3valuesCorrectness() const;
 
-  void seedRandomEngine(int newseed) { engine.seed(newseed); };
+  void seedRandomEngine(int newseed) { engine.seed(newseed); }
   void findConnections();
-
+  const AllThreats& getAllThreatsForPlayer(int who) const { return threats[who]; }
   void Test();
   void show() const;
   void showSvg();
