@@ -91,7 +91,8 @@ bool containsThreat2m(const AllThreats& thr, pti move0, pti move1)
   return (it2 != it->thr_list.end());
 }
 
-TEST_P(IsometryFixture3, weFindThreat2mDistantFromThePointPlayed) {
+TEST_P(IsometryFixture3, weFindThreat2mDistantFromThePointPlayed)
+{
   unsigned isometry = GetParam();
   // http://eidokropki.reaktywni.pl/#2aub0edZj:0,0
   Game game = constructGameFromSgfWithIsometry("(;GM[40]FF[4]CA[UTF-8]SZ[20];B[fg];W[gg];B[ge];W[gf];B[gh];W[jg];B[hh];W[jf];B[ff])", isometry);
@@ -123,5 +124,102 @@ INSTANTIATE_TEST_CASE_P(
         Par,
         IsometryFixture3,
         ::testing::Values(0,1,2,3,4,5,6,7));
+
+
+class IsometryFixture4 :public ::testing::TestWithParam<unsigned> {
+};
+
+TEST_P(IsometryFixture4, weFindThreat2mWithOnePointCloseAndOneDistantFromThePointPlayed)
+{
+  const unsigned isometry = GetParam();
+  auto sgf = constructSgfFromGameBoard("......."
+				       "..o.o.."
+				       ".oxx.o."
+				       ".o.xxo."
+				       "....oo."
+				       "......."
+				       ".......");
+  Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+  game.makeSgfMove(applyIsometry("ce", isometry, coord), 1);
+  const auto& thr = game.getAllThreatsForPlayer(0);
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("de", isometry, coord)), coord.sgfToPti(applyIsometry("da", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("da", isometry, coord)), coord.sgfToPti(applyIsometry("de", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("de", isometry, coord)), coord.sgfToPti(applyIsometry("db", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("db", isometry, coord)), coord.sgfToPti(applyIsometry("de", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("df", isometry, coord)), coord.sgfToPti(applyIsometry("da", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("da", isometry, coord)), coord.sgfToPti(applyIsometry("df", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("df", isometry, coord)), coord.sgfToPti(applyIsometry("db", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("db", isometry, coord)), coord.sgfToPti(applyIsometry("df", isometry, coord))));
+}
+
+INSTANTIATE_TEST_CASE_P(
+        Par,
+        IsometryFixture4,
+        ::testing::Values(0,1,2,3,4,5,6,7));
+
+
+class IsometryFixture5 :public ::testing::TestWithParam<unsigned> {
+};
+
+TEST_P(IsometryFixture5, weFindThreat2mWithBothPointsCloseToThePointPlayed)
+{
+  const unsigned isometry = GetParam();
+  auto sgf = constructSgfFromGameBoard("...o..."
+				       "..o.o.."
+				       ".oxx.o."
+				       ".o.xxo."
+				       ".....o."
+				       "......."
+				       ".......");
+  Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+  game.makeSgfMove(applyIsometry("de", isometry, coord), 1);
+  const auto& thr = game.getAllThreatsForPlayer(0);
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("cd", isometry, coord)), coord.sgfToPti(applyIsometry("ee", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("ee", isometry, coord)), coord.sgfToPti(applyIsometry("cd", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("ce", isometry, coord)), coord.sgfToPti(applyIsometry("ee", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("ee", isometry, coord)), coord.sgfToPti(applyIsometry("ce", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("cd", isometry, coord)), coord.sgfToPti(applyIsometry("ef", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("ef", isometry, coord)), coord.sgfToPti(applyIsometry("cd", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("ce", isometry, coord)), coord.sgfToPti(applyIsometry("ef", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("ef", isometry, coord)), coord.sgfToPti(applyIsometry("ce", isometry, coord))));
+}
+
+INSTANTIATE_TEST_CASE_P(
+        Par,
+        IsometryFixture5,
+        ::testing::Values(0,1,2,3,4,5,6,7));
+
+
+class IsometryFixture6 :public ::testing::TestWithParam<unsigned> {
+};
+
+TEST_P(IsometryFixture6, weFindThreat2mWithBothPointsToEachOtherAndOneCloseToThePointPlayed)
+{
+  const unsigned isometry = GetParam();
+  auto sgf = constructSgfFromGameBoard("...o..."
+				       "..o.o.."
+				       ".oxx.o."
+				       ".o.xxo."
+				       ".....o."
+				       "......."
+				       ".......");
+  Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+  game.makeSgfMove(applyIsometry("ce", isometry, coord), 1);
+  const auto& thr = game.getAllThreatsForPlayer(0);
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("de", isometry, coord)), coord.sgfToPti(applyIsometry("ee", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("ee", isometry, coord)), coord.sgfToPti(applyIsometry("de", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("df", isometry, coord)), coord.sgfToPti(applyIsometry("ee", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("ee", isometry, coord)), coord.sgfToPti(applyIsometry("df", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("de", isometry, coord)), coord.sgfToPti(applyIsometry("ef", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("ef", isometry, coord)), coord.sgfToPti(applyIsometry("de", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("df", isometry, coord)), coord.sgfToPti(applyIsometry("ef", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("ef", isometry, coord)), coord.sgfToPti(applyIsometry("df", isometry, coord))));
+}
+
+INSTANTIATE_TEST_CASE_P(
+        Par,
+        IsometryFixture6,
+        ::testing::Values(0,1,2,3,4,5,6,7));
+
 
 } // namespace
