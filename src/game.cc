@@ -1550,11 +1550,6 @@ Game::findThreats2moves_preDot(pti ind, int who)
 //  number of these points to enclose,
 //  a pair of pti's, denoting the points to play.
 // (The order is so that we may then pop_back two points, count and points to enclose).
-// At the end we put the pairs:
-//   (empty neighbour, group_id that this neigbhour touches)
-// and at the end the number of such pairs.
-// However, if this number is 0 and there are no threats, we do not put this to keep possible_threats
-// empty.
 {
   std::vector<pti> possible_threats;
   // find groups in the neighbourhood
@@ -1739,7 +1734,19 @@ Game::findThreats2moves_preDot(pti ind, int who)
 
   }
 
-  if (connected_groups.hasAtLeastTwoDistinctElements()) {
+
+  SmallMultimap<7, 7> pairs_pointCloseToInd_groupIdThatItTouches{};
+  if (top > 0 and top < 4) {
+    pairs_pointCloseToInd_groupIdThatItTouches =
+      getEmptyPointsCloseToIndTouchingSomeOtherGroup(connected_groups, ind, who);
+  }
+
+  if (pairs_pointCloseToInd_groupIdThatItTouches.getNumberOfGroups() > 0 or connected_groups.hasAtLeastTwoDistinctElements()) {
+    // If the first part of the above alternative is true, we find threats of type:
+    //  a. one point is close to ind and it connects with some other group G, second point is far and it connects G with a group already touching ind
+    // If the second part of the above alternative is true, we find threats caused by connecting 2 groups:
+    //  b. maybe there are 2 moves somewhere connecting these groups (and thus posing a threat in 2 moves)
+    //  c. maybe there is a third group which is of distance 1 to each of the just connected 2 groups
     std::vector<pti> unique_connected_groups = connected_groups.getUniqueSet();
     std::vector<uint8_t> neighbours(coord.getSize(), 0);
     std::vector<GroupNeighbours> group_neighb;
@@ -1748,12 +1755,34 @@ Game::findThreats2moves_preDot(pti ind, int who)
       group_neighb.emplace_back(*this, neighbours, gid, ind, mask, who);
       mask <<= 1;
     }
+    // the first part, case a.
+    for (unsigned first = 0; first < unique_connected_groups.size(); ++first) {
+      for (unsigned second = 0; second < pairs_pointCloseToInd_groupIdThatItTouches.getNumberOfGroups(); ++second) {
+	pti second_gr_id = pairs_pointCloseToInd_groupIdThatItTouches.group(second);
+	if (not group_neighb[first].isGroupClose(second_gr_id))
+	    continue;
+	for (auto point_close_to_1 : group_neighb[first].neighbours_list) {
+	  if (not connects[who-1][point_close_to_1].contains(second_gr_id))
+	    continue;
+	  auto number_of_neighb = pairs_pointCloseToInd_groupIdThatItTouches.numberOfElems(second);
+	  for (unsigned ind_dot2 = 0; ind_dot2 < number_of_neighb; ++ind_dot2) {
+	    pti point2 = pairs_pointCloseToInd_groupIdThatItTouches.elem(second, ind_dot2);
+	    if (coord.isInNeighbourhood(point2, point_close_to_1))  // second point is not far: both points touch each other
+	      continue;
+	    addClosableNeighbours(possible_threats, ind, point_close_to_1, point2, who);
+	    possible_threats.push_back(point_close_to_1);
+	    possible_threats.push_back(point2);
+	  }
+	}
+      }
+    }
+    // the second part, cases b. and c.
     for (unsigned first = 0; first < unique_connected_groups.size() - 1; ++first) {
       int mask_first = (1 << first);
       for (unsigned second = first + 1; second < unique_connected_groups.size(); ++second) {
 	int mask_second = (1 << second);
 	int mask_both =  mask_first | mask_second;
-	// check if there are 2 adjacent points from neighbours of exactly one of gr1 and gr2
+	// check if there are 2 adjacent points from neighbours of exactly one of gr1 and gr2 (case b.)
 	for (auto point_close_to_1 : group_neighb[first].neighbours_list) {
 	  if ((neighbours[point_close_to_1] & mask_second) == 0) { // point_close_to_1 is not a neighbour of group2
 	    for (int n=0; n<8; ++n) {
@@ -1766,7 +1795,7 @@ Game::findThreats2moves_preDot(pti ind, int who)
 	    }
 	  }
 	}
-	// find other groups that are close to both gr1 and gr2 and add threats
+	// find other groups that are close to both gr1 and gr2 and add threats (case c.)
 	for (auto other_gr_id : group_neighb[first].neighbour_groups) {
 	  if (not group_neighb[second].isGroupClose(other_gr_id))
 	    continue;
@@ -1784,113 +1813,32 @@ Game::findThreats2moves_preDot(pti ind, int who)
 	    }
 	  }
 	}
-	//
       }
     }
   }
-    
-  /*
-  // (new part, v137)
-  if (top >= 2) {
-    // flood fill from exterior...
-    std::array<pti, Coord::maxSize> queue;
-    int queue_top = 0;
-    int queue_tail = 0;
-    // left and right edge
-    {
-      int lind = coord.ind(0, 0);
-      int rind = coord.ind(coord.wlkx-1, 0);
-      for (int j=0; j<coord.wlky; j++) {
-	if (whoseDotMarginAt(lind) != who) {
-	  queue[queue_tail++] = lind;
-	}
-	if (whoseDotMarginAt(rind) != who) {
-	  queue[queue_tail++] = rind;
-	}
-	lind += coord.S;
-	rind += coord.S;
-      }
-    }
-    // top and bottom edge
-    {
-      int tind = coord.ind(0, 0);
-      int bind = coord.ind(0, coord.wlky-1);
-      for (int i=0; i<coord.wlkx; i++) {
-	if (whoseDotMarginAt(tind) != who) {
-	  queue[queue_tail++] = tind;
-	}
-	if (whoseDotMarginAt(bind) != who) {
-	  queue[queue_tail++] = bind;
-	}
-	tind += coord.E;
-	bind += coord.E;
-      }
-    }
-    // now mark exterior
-    while (queue_top < queue_tail) {
-      pti p = queue[queue_top++];
-      // visit the point p
-      if (whoseDotMarginAt(p) == 0) {
-	if (connects[who-1][p].groups_id[0] != 0){
-	  // check if it's connected to one of 'connected_groups'
-	  int connected = 0;
-	  for (int g=0; g<4; ++g) {
-	    auto this_g = connects[who-1][p].groups_id[g];
-	    if (this_g == 0) break;
-	    if (this_g != connected &&
-		connected_groups.contains(this_g)) {
-	      if (connected != 0) goto one_move_encl;
-	      connected = this_g;
-	    }
-	  }
-	}
-      }
 
-      // visit neighbours
-      for (int j=0; j<4; j++) {
-	pti nb = p + coord.nb4[j];
-	if (coord.dist[nb] >= 0 && (tab[nb] & test_mask) == 0) {
-	  tab[nb] |= mark_by;
-	  stack[stackSize++] = nb;
-	  count++;
-	}
-      }
-    }
-
-  }  // end of new part (v137)
-  */
-
-  // find empty points in the neighbourhood which touch some other group
-  {
-    int count = 0;   // number of pairs (group_id, neighbour)
-    if (top > 0 && top < 4) {
-      for (int i=0; i<8; i++) {
-	pti nb = ind + coord.nb8[i];
-	if (whoseDotMarginAt(nb) != 0 || connects[who-1][nb].groups_id[0] == 0) continue;
-	std::array<pti, 4> unique_groups = {0,0,0,0};
-	int ug = connects[who-1][nb].getUniqueGroups(unique_groups);
-	// check if [nb] touches one of our groups
-	for (int j=0; j<ug; j++) {
-	  if (connected_groups.contains(unique_groups[j])) {
-	    goto touches_group;
-	  }
-	}
-	// we touch no group, so all should be saved
-	for (int j=0; j<ug; j++) {
-	  possible_threats.push_back(nb);
-	  possible_threats.push_back(unique_groups[j]);
-	  ++count;
-	}
-      touches_group:;
-      }
-    }
-    if (!possible_threats.empty() || count) {
-      possible_threats.push_back(count);
-    }
-  }
   return possible_threats;
 }
 
+
+SmallMultimap<7, 7>
+Game::getEmptyPointsCloseToIndTouchingSomeOtherGroup(const SmallMultiset<pti, 4>& connected_groups, pti ind, int who) const
+{
+  constexpr unsigned max_number_of_groups = 7;
+  constexpr unsigned max_number_of_neighb_per_group = 7;
+  SmallMultimap<max_number_of_groups, max_number_of_neighb_per_group> pairs{};
+  for (int i=0; i<8; i++) {
+    pti nb = ind + coord.nb8[i];
+    if (whoseDotMarginAt(nb) != 0 || connects[who-1][nb].groups_id[0] == 0) continue;
+    std::array<pti, 4> unique_groups = {0,0,0,0};
+    int ug = connects[who-1][nb].getUniqueGroups(unique_groups);
+    for (int j=0; j<ug; j++)
+      if (not connected_groups.contains(unique_groups[j])) {
+	pairs.addPair(unique_groups[j], nb);
+      }
+  }
+  return pairs;
+}
 
 
 void
@@ -2155,78 +2103,6 @@ int debug_n = 0, debug_N = 0;
 void
 Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
 {
-  if (!newthr.empty()) {
-    // get the number of pairs in neighbourhood
-    int pairs_count = newthr.back();
-    newthr.pop_back();
-    if (pairs_count) {
-      // here we will find threats in 2 moves such that one move is close to [ind], but the other is neither close to [ind], nor to the first move
-      const int TAB_SIZE = 7;   // 1 for group_id and 5 for moves (it seems 5 is max), 1 redundant?
-      const int N_SIZE = 5;     // max count for neighbours group, it seems that 5 is max (but if not, we would just lose some groups)
-      std::array<pti, N_SIZE*TAB_SIZE> groups{};  // groups[0,...,N_SIZE-1]: group_id's,  groups[j+N_SIZE*k], k=1,2,... -- neighbours for group j
-      int group_count = 0;
-      for (int i=0; i<pairs_count; i++) {
-	auto g = newthr.back();  newthr.pop_back();
-	auto neighb = newthr.back();  newthr.pop_back();
-	for (int j=0; j<N_SIZE; ++j) {
-	  if (groups[j] == 0) {  // group g occurs the first time, save it as new
-	    groups[j] = g;
-	    groups[j+N_SIZE] = neighb;
-	    ++group_count;
-	    break;
-	  }
-	  if (groups[j] == g) {  // there was already a neighbour for group g, find the first empty place to save the neighbour
-	    for (int p=1; p<TAB_SIZE; ++p) {
-	      if (groups[j + N_SIZE*p] == 0) {
-		groups[j + N_SIZE*p] = neighb;
-		break;
-	      }
-	    }
-	  }
-	}
-      }
-      // info about groups is collected, now find the other places to play
-      auto this_group = descr.at(worm[ind]).group_id;
-      for (int i=coord.first; i<=coord.last; ++i) {
-	if (whoseDotMarginAt(i) == 0 && connects[who-1][i].groups_id[1] != 0 &&
-	    !coord.isInNeighbourhood(i, ind)) {
-	  std::array<pti, 4> unique_groups = {0,0,0,0};
-	  int ug = connects[who-1][i].getUniqueGroups(unique_groups);
-	  if (ug < 2) continue;
-	  // check if [i] touches this_group
-	  for (int j=0; j<ug; ++j) {
-	    if (unique_groups[j] == this_group) {
-	      // ok, it touches, so check if it touches some of the groups in the neighbourhood of [ind]
-	      for (int k=0; k<ug; ++k) {
-		if (k==j) continue;
-		for (int g=0; g<group_count; ++g) {
-		  if (groups[g] == unique_groups[k]) {
-		    for (int p=1; p<TAB_SIZE; ++p) {
-		      auto nei = groups[g + N_SIZE*p];
-		      if (nei == 0) break;
-		      if (!coord.isInNeighbourhood(i, nei)) {
-			// we have found a threat! save it
-			addClosableNeighbours(newthr, ind, i, nei, who);
-			newthr.push_back(i);
-			newthr.push_back(nei);
-			/*
-			CleanupOneVar<pti> worm_where_cleanup0(&worm[i], who);   //  worm[ind0] = who;  with restored old value (0) by destructor
-			CleanupOneVar<pti> worm_where_cleanup1(&worm[nei], who);   //  worm[ind1] = who;  with restored old value (0) by destructor
-			show();
-			std::cerr << "Zagrozenie2: " << who << " w " << coord.showPt(nei) << " + " << coord.showPt(i) << std::endl;
-			std::cin.ignore();
-			*/
-		      }
-		    }
-		  }
-		}
-	      }
-	    }
-	  }
-	}
-      }
-    }
-  }
   // check our old threats
   for (auto &t2 : threats[who-1].threats2m) {
     if (t2.where0 == ind) {

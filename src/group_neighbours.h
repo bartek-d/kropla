@@ -25,6 +25,12 @@
 
 #include "game.h"
 
+/*
+ * Finds empty points close to a given group (group_id), but not close to forbidden_point.
+ * These points are stored in neighbours_list, and also denoted by a 'mask' in 'neighbours'.
+ * Moreover, in neighbour_groups we store all group_id's close to these empty points, so that
+ * we know which groups can be connected with 'group_id' in one move.
+ */
 struct GroupNeighbours {
   GroupNeighbours() = delete;
   GroupNeighbours(Game& game, std::vector<uint8_t>& neighbours, pti group_id, pti forbidden_point, uint8_t mask, int who);

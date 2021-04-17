@@ -269,6 +269,7 @@ private:
   void addClosableNeighbours(std::vector<pti> &tab, pti p0, pti p1, pti p2, int who) const;
   bool haveConnection(pti p1, pti p2, int who) const;
   std::vector<pti> findThreats2moves_preDot(pti ind, int who);
+  SmallMultimap<7, 7> getEmptyPointsCloseToIndTouchingSomeOtherGroup(const SmallMultiset<pti, 4>& connected_groups, pti ind, int who) const;
   void checkThreat_encl(Threat* thr, int who);
   std::shared_ptr<Enclosure> checkThreat_terr(Threat* thr, pti p, int who);
   void checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who);

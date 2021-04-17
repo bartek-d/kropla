@@ -71,6 +71,23 @@ TEST(extractSgfMove, forMoveNotWithMinimalArea)
   ASSERT_TRUE(expected_interior.find(move.enclosures[0]->interior[1]) != expected_interior.end());
 }
 
+TEST(smallMultimap, works)
+{
+  SmallMultimap<7, 7> map{};
+  EXPECT_EQ(0, map.getNumberOfGroups());
+  map.addPair(3, 111);
+  EXPECT_EQ(1, map.getNumberOfGroups());
+  EXPECT_EQ(1, map.numberOfElems(0));
+  EXPECT_EQ(111, map.elem(0, 0));
+  map.addPair(4, 112);
+  map.addPair(3, 113);
+  EXPECT_EQ(2, map.getNumberOfGroups());
+  EXPECT_EQ(2, map.numberOfElems(0));
+  EXPECT_EQ(1, map.numberOfElems(1));
+  map.addPair(4, 115);
+  map.addPair(5, 116);
+  EXPECT_EQ(3, map.getNumberOfGroups());
+}
 
 class IsometryFixture3 :public ::testing::TestWithParam<unsigned> {
 };
@@ -219,6 +236,35 @@ TEST_P(IsometryFixture6, weFindThreat2mWithBothPointsToEachOtherAndOneCloseToThe
 INSTANTIATE_TEST_CASE_P(
         Par,
         IsometryFixture6,
+        ::testing::Values(0,1,2,3,4,5,6,7));
+
+
+
+class IsometryFixture7 :public ::testing::TestWithParam<unsigned> {
+};
+
+TEST_P(IsometryFixture7, weFindThreat2mWithOnePointCloseAndOneDistantFromThePointPlayed_evenIfTheOneCloseMakesEnclosure)
+{
+  const unsigned isometry = GetParam();
+  auto sgf = constructSgfFromGameBoard(".o.o..."
+				       "ox..o.."
+				       "..xx.o."
+				       ".o.xxo."
+				       "..oo.o."
+				       "......."
+				       ".......");
+  Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+  game.makeSgfMove(applyIsometry("cb", isometry, coord), 1);
+  const auto& thr = game.getAllThreatsForPlayer(0);
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("bc", isometry, coord)), coord.sgfToPti(applyIsometry("ee", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("ee", isometry, coord)), coord.sgfToPti(applyIsometry("bc", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("bc", isometry, coord)), coord.sgfToPti(applyIsometry("ef", isometry, coord))));
+  EXPECT_TRUE(containsThreat2m(thr, coord.sgfToPti(applyIsometry("ef", isometry, coord)), coord.sgfToPti(applyIsometry("bc", isometry, coord))));
+}
+
+INSTANTIATE_TEST_CASE_P(
+        Par,
+        IsometryFixture7,
         ::testing::Values(0,1,2,3,4,5,6,7));
 
 

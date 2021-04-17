@@ -141,3 +141,72 @@ std::string SmallMultiset<T, N>::show()
 
 template class SmallMultiset<pti, 4>;
 
+
+/********************************************************************************************************
+  SmallMultimap class (for the case with the same type of Key and Values)
+*********************************************************************************************************/
+
+template <int MaxKeys, int MaxElems>
+class SmallMultimap {
+public:
+  using T = pti;
+  T& group(int g);
+  T& numberOfElems(int g);
+  T& elem(int g, int n);
+  void addPair(T g, T el);
+  int findIndexOfGroup(T g);
+  int getNumberOfGroups() const { return ngroups; }
+private:
+  std::array<T, (MaxElems + 2) * MaxKeys> data;
+  int ngroups{0};
+};
+
+
+template <int MaxKeys, int MaxElems>
+typename SmallMultimap<MaxKeys, MaxElems>::T& SmallMultimap<MaxKeys, MaxElems>::group(int g)
+{
+  assert(g < MaxKeys);
+  return data[(MaxElems + 2) * g];
+}
+
+template <int MaxKeys, int MaxElems>
+typename SmallMultimap<MaxKeys, MaxElems>::T& SmallMultimap<MaxKeys, MaxElems>::numberOfElems(int g)
+{
+  assert(g < MaxKeys);
+  return data[(MaxElems + 2) * g + 1];
+}
+
+template <int MaxKeys, int MaxElems>
+typename SmallMultimap<MaxKeys, MaxElems>::T& SmallMultimap<MaxKeys, MaxElems>::elem(int g, int n)
+{
+  assert(g < MaxKeys);
+  assert(n < MaxElems);
+  return data[(MaxElems + 2) * g + 2 + n];
+}
+
+template <int MaxKeys, int MaxElems>
+int SmallMultimap<MaxKeys, MaxElems>::findIndexOfGroup(T g)
+{
+  for (int i=0; i<ngroups; ++i) {
+    if (group(i) == g)
+      return i;
+  }
+  return ngroups;
+}
+
+template <int MaxKeys, int MaxElems>
+void SmallMultimap<MaxKeys, MaxElems>::addPair(T g, T el)
+{
+  int index = findIndexOfGroup(g);
+  if (index < ngroups) {
+    assert(numberOfElems(index) < MaxElems);
+    elem(index, numberOfElems(index)) = el;
+    ++numberOfElems(index);
+    return;
+  }
+  assert(index < MaxKeys);
+  group(index) = g;
+  numberOfElems(index) = 1;
+  elem(index, 0) = el;
+  ++ngroups;
+}
