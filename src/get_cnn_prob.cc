@@ -41,6 +41,7 @@ std::mutex caffe_mutex;
 constexpr int PLANES = 10;
 bool madeQuiet = false;
 using Array3dim = boost::multi_array<float, 3>;
+constexpr int DEFAULT_CNN_BOARD_SIZE = 20;
 }
 
 std::pair<bool, std::vector<float>> getCnnInfo(Game& game) try
@@ -48,6 +49,9 @@ std::pair<bool, std::vector<float>> getCnnInfo(Game& game) try
   if (not madeQuiet) {
     cnn.quiet_caffe("kropla");
     madeQuiet = true;
+  }
+  if (coord.wlkx != coord.wlky) {
+    return {false, {}};
   }
   Array3dim data{boost::extents[PLANES][coord.wlkx][coord.wlky]};
   const std::lock_guard<std::mutex> lock(caffe_mutex);
@@ -57,7 +61,7 @@ std::pair<bool, std::vector<float>> getCnnInfo(Game& game) try
     std::ifstream t("cnn.config");
     if (std::getline(t, model_file_name))
       std::getline(t, weights_file_name);
-    cnn.caffe_init(coord.wlkx, model_file_name, weights_file_name, coord.wlky);
+    cnn.caffe_init(coord.wlkx, model_file_name, weights_file_name, DEFAULT_CNN_BOARD_SIZE);
   }
   for (int x = 0; x < coord.wlkx; ++x)
     for (int y = 0; y < coord.wlky; ++y) {
