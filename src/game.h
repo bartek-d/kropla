@@ -383,7 +383,7 @@ public:
   const AllThreats& getAllThreatsForPlayer(int who) const { return threats[who]; }
   void Test();
   void show() const;
-  void showSvg();
+  void showSvg(const std::string& filename, const std::vector<pti>& tab) const;
   void showConnections();
   void showGroupsId();
   void showThreats2m();

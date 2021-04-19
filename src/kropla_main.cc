@@ -125,9 +125,6 @@ int main(int argc, char* argv[]) {
     game.show();
   }
 
-  std::cerr << "***" << std::endl;
-
-  game.showSvg();
 #endif
 }
 

@@ -3525,8 +3525,17 @@ Game::show() const
 }
 
 void
-Game::showSvg()
+Game::showSvg(const std::string& filename, const std::vector<pti>& tab) const
 {
+  Svg svg(coord.wlkx, coord.wlky);
+  for (int i=coord.first; i<=coord.last; ++i)
+    if (coord.dist[i] >= 0)
+      svg.drawDot(coord.x[i], coord.y[i], std::max<pti>(0, std::min<pti>(tab[i],3)) );
+
+  std::fstream fs;
+  fs.open(filename, std::fstream::out);
+  fs << svg.to_str();
+  fs.close();
 }
 
 
@@ -4935,13 +4944,28 @@ Game::makeSgfMove(std::string m, int who)
   }
 
 
-  //floodFillCost(nowMoves);
-  //findImportantMoves(nowMoves);
-  //std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
   /*
-  showSvg();
-  std::this_thread::sleep_for(std::chrono::milliseconds(1200));
+  if (m == "ek") {
+    showSvg("is_in_2m_encl.svg", threats[1].is_in_2m_encl);
+    showSvg("is_in_2m_miai.svg", threats[1].is_in_2m_miai);
+    int i=0;
+    for (auto &t : threats[1].threats2m) {
+      std::cout << "Zagr " << coord.showPt(t.where0) << std::endl;
+      std::cout << "  min_wins: " << t.min_win << ", " << t.min_win2 << std::endl;
+      std::cout << "  flags: " << t.flags << ", win_move_count: " << t.win_move_count << std::endl;
+      if (not t.is_in_encl2.empty()) {
+	std::string filename{"is_in_encl2__" + std::to_string(i) + ".svg"};
+	++i;
+	std::cout << "  is_in_encl2 saved to file " << filename << std::endl;
+	showSvg(filename, t.is_in_encl2);
+      } else {
+	std::cout << "  is_in_encl2 is empty" << std::endl;
+      }
+      for (const auto& thr : t.thr_list) {
+	std::cout << "   ... " << coord.showPt(thr.where) << " opp_dots: " << thr.opp_dots << std::endl;
+      }
+    }
+  }
   */
 
   assert(checkThreatCorrectness());
