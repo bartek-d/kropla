@@ -24,8 +24,8 @@
 
 #include "game.h"
 #include "sgf.h"
-#include "caffe/mcaffe.h"
-
+//#include "caffe/mcaffe.h"
+#include "get_cnn_prob.h"
 //#include <boost/multi_array.hpp>
 
 #include <iostream>
@@ -34,91 +34,40 @@
 #include <queue>
 #include <set>
 
-constexpr int PLANES = 10;
-constexpr int BSIZE = 20;
-
-using Board = float[PLANES][BSIZE][BSIZE];
-MCaffe cnn;
-//using Array3dim = boost::multi_array<float, 3>;
-//Array3dim data{boost::extents[PLANES][BSIZE][BSIZE]};
-
-
-int applyIsometry(int p, unsigned isometry)
-// isometry & 1: reflect w/r to Y
-// isometry & 2: reflect w/r to X
-// isometry & 4: reflect w/r to x==y (swap x--y)
-{
-  int x = coord.x[p];
-  int y = coord.y[p];
-  if (isometry & 1) x = coord.wlkx - 1 - x;
-  if (isometry & 2) y = coord.wlky - 1 - y;
-  if (isometry & 4) std::swap(x, y);
-  return coord.ind(x, y);
-}
 
 void gatherDataFromPosition(Game& game, Move& move)
 {
-  /*
-  std::cerr << "Gather data from position: " << std::endl;
-  game.show();
-  std::cerr << "Move " << move.show() << " was about to play." << std::endl;
-  */
-  Board data;
-  for (unsigned isometry = 0; isometry < 1; ++isometry) {
-    for (int x = 0; x < BSIZE; ++x)
-      for (int y = 0; y < BSIZE; ++y) {
-	int p_orig = coord.ind(x, y);
-	int p = applyIsometry(p_orig, isometry);
-	int on_move = game.whoNowMoves();
-	int opponent = 3 - on_move;
-	data[0][x][y] = (game.whoseDotMarginAt(p) == 0) ? 1.0f : 0.0f;
-	data[1][x][y] = (game.whoseDotMarginAt(p) == on_move) ? 1.0f : 0.0f;
-	data[2][x][y] = (game.whoseDotMarginAt(p) == opponent) ? 1.0f : 0.0f;
-	data[3][x][y] = game.isInTerr(p, on_move) > 0 ? 1.0f : 0.0f;
-	data[4][x][y] = game.isInTerr(p, opponent) > 0 ? 1.0f : 0.0f;
-	data[5][x][y] = std::min(game.isInEncl(p, on_move), 2) * 0.5f;
-	data[6][x][y] = std::min(game.isInEncl(p, opponent), 2) * 0.5f;
-	data[7][x][y] = std::min(game.isInBorder(p, on_move), 2) * 0.5f;
-	data[8][x][y] = std::min(game.isInBorder(p, opponent), 2) * 0.5f;
-	data[9][x][y] = std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
-	//	data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
-	//	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
-      }
-    int move_isom = applyIsometry(move.ind, isometry);
-    //    int label = coord.x[move_isom] * BSIZE + coord.y[move_isom];
-    game.show();
-    std::cout << "Move of player #" << game.whoNowMoves() << ": " << coord.showPt(move_isom) << std::endl;
-
-    struct MoveAndProb {
-      int x;
-      int y;
-      float prob;
-      bool operator<(const MoveAndProb& other) const
-      {
-	return prob < other.prob;
-      }
-    };
-    std::priority_queue<MoveAndProb, std::vector<MoveAndProb>> queue;
-    auto res = cnn.caffe_get_data(static_cast<float*>(&data[0][0][0]), BSIZE, PLANES, BSIZE);
-    for (int y = 0; y < BSIZE; ++y) {
-      for (int x = 0; x < BSIZE; ++x) {
-	//std::cout << res[x * BSIZE + y] << " ";
-	queue.push(MoveAndProb{x, y, res[x * BSIZE + y]});
-      }
-      //std::cout << std::endl;
+  const auto [is_cnn_available, probs] = getCnnInfo(game);
+  struct MoveAndProb {
+    int x;
+    int y;
+    float prob;
+    bool operator<(const MoveAndProb& other) const
+    {
+      return prob < other.prob;
     }
-    int shown = 0;
-    for (int i=0; shown<20 && not queue.empty(); ++i) {
-      auto mp= queue.top();
-      if (game.whoseDotMarginAt(coord.ind(mp.x, mp.y)) == 0) {
-	std::cout << "Move #" << i << ": (" << mp.x << ", " << mp.y << ") --> " << mp.prob << std::endl;
-	++shown;
-      }
-      queue.pop();
+  };
+  std::priority_queue<MoveAndProb, std::vector<MoveAndProb>> queue;
+  for (int y = 0; y < coord.wlky; ++y) {
+    for (int x = 0; x < coord.wlkx; ++x) {
+      queue.push(MoveAndProb{x, y, probs[coord.ind(x, y)]});
     }
-    std::cout << std::endl;
-      
   }
+  game.show();
+  std::cout << "Move of player #" << game.whoNowMoves() << ": " << coord.showPt(move.ind) << std::endl;
+
+  int shown = 0;
+  for (int i=0; shown<20 && not queue.empty(); ++i) {
+    auto mp= queue.top();
+    if (game.whoseDotMarginAt(coord.ind(mp.x, mp.y)) == 0) {
+      std::cout << "Move #" << i << ": (" << mp.x << ", " << mp.y << ") --> " << mp.prob;
+      if (coord.ind(mp.x, mp.y) == move.ind) std::cout << " *****";
+      std::cout << std::endl;
+      ++shown;
+    }
+    queue.pop();
+  }
+  std::cout << std::endl;
 }
 
 std::pair<Move, std::vector<std::string>>
@@ -161,7 +110,7 @@ void gatherDataFromSgfSequence(SgfSequence &seq,
 			       const std::map<int, bool> &whichSide)
 {
   const auto [x, y] = getSize(seq[0]);
-  if (x != BSIZE or y != BSIZE) {
+  if (x != y) {
     std::cout << "  ... size: " << x << "x" << y << std::endl;
     return;
   }
@@ -194,18 +143,18 @@ std::set<std::string> readLines(const std::string& filename)
 
 
 int main(int argc, char* argv[]) {
-  if (argc < 5) {
-    std::cerr << "at least 4 parameters needed, protofile weights players_file sgf_file(s)" << std::endl;
+  std::cerr << "CNN info will be read from file cnn.config" << std::endl;
+  if (argc < 3) {
+    std::cerr << "at least 2 parameters needed, players_file sgf_file(s)" << std::endl;
     return 1;
   }
-  cnn.caffe_init(BSIZE, argv[1], argv[2], BSIZE);
  
-  auto players = readLines(argv[3]);
+  auto players = readLines(argv[1]);
   for (auto& p : players) {
     std::cout << "PLAYER: " << p << std::endl;
   }
 
-  for (int nfile = 4; nfile < argc; ++nfile) {
+  for (int nfile = 2; nfile < argc; ++nfile) {
     std::string sgf_file{argv[nfile]};
     std::ifstream t(sgf_file);
     std::stringstream buffer;
