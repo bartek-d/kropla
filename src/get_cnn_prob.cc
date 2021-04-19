@@ -38,8 +38,8 @@
 namespace {
 MCaffe cnn;
 std::mutex caffe_mutex; 
-constexpr int PLANES = 10;
 bool madeQuiet = false;
+int planes = 10;
 using Array3dim = boost::multi_array<float, 3>;
 constexpr int DEFAULT_CNN_BOARD_SIZE = 20;
 }
@@ -53,16 +53,23 @@ std::pair<bool, std::vector<float>> getCnnInfo(Game& game) try
   if (coord.wlkx != coord.wlky) {
     return {false, {}};
   }
-  Array3dim data{boost::extents[PLANES][coord.wlkx][coord.wlky]};
   const std::lock_guard<std::mutex> lock(caffe_mutex);
   if (not cnn.caffe_ready()) {
-    std::string model_file_name;
-    std::string weights_file_name;
+    std::string number_of_planes{};
+    std::string model_file_name{};
+    std::string weights_file_name{};
     std::ifstream t("cnn.config");
-    if (std::getline(t, model_file_name))
-      std::getline(t, weights_file_name);
+    if (std::getline(t, number_of_planes))
+      if (std::getline(t, model_file_name))
+	std::getline(t, weights_file_name);
+    planes = std::stoi(number_of_planes);
+    if (planes != 7 and planes != 10) {
+      std::cerr << "Unsupported number of planes (" << planes << "), assuming 10." << std::endl;
+      planes = 10;
+    }
     cnn.caffe_init(coord.wlkx, model_file_name, weights_file_name, DEFAULT_CNN_BOARD_SIZE);
   }
+  Array3dim data{boost::extents[planes][coord.wlkx][coord.wlky]};
   for (int x = 0; x < coord.wlkx; ++x)
     for (int y = 0; y < coord.wlky; ++y) {
       int p = coord.ind(x, y);
@@ -75,6 +82,7 @@ std::pair<bool, std::vector<float>> getCnnInfo(Game& game) try
       data[4][x][y] = game.isInTerr(p, opponent) > 0 ? 1.0f : 0.0f;
       data[5][x][y] = std::min(game.isInEncl(p, on_move), 2) * 0.5f;
       data[6][x][y] = std::min(game.isInEncl(p, opponent), 2) * 0.5f;
+      if (planes == 7) continue;
       data[7][x][y] = std::min(game.isInBorder(p, on_move), 2) * 0.5f;
       data[8][x][y] = std::min(game.isInBorder(p, opponent), 2) * 0.5f;
       data[9][x][y] = std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
@@ -82,7 +90,7 @@ std::pair<bool, std::vector<float>> getCnnInfo(Game& game) try
       //	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
     }
   
-  auto res = cnn.caffe_get_data(static_cast<float*>(&data[0][0][0]), coord.wlkx, PLANES, coord.wlky);
+  auto res = cnn.caffe_get_data(static_cast<float*>(&data[0][0][0]), coord.wlkx, planes, coord.wlky);
   std::vector<float> probs(coord.getSize(), 0.0f);
   for (int x = 0; x < coord.wlkx; ++x) {
     for (int y = 0; y < coord.wlky; ++y) {
