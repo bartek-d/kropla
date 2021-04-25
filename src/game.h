@@ -205,7 +205,9 @@ class Game {
   std::vector<pti> worm;
   std::vector<pti> nextDot;
   std::map<pti, WormDescr> descr;
+public:
   AllThreats threats[2];
+private:
   std::vector<OneConnection> connects[2];
   Score score[2];
   int lastWormNo[2];  // lastWormNo used in worm, for players 1,2

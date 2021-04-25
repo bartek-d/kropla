@@ -41,7 +41,7 @@
 #include <array>
 
 constexpr int MOVES_USED = 3;
-constexpr int PLANES = 7;
+constexpr int PLANES = 20;
 constexpr int BSIZE = 20;
 constexpr int TAB_SIZE = 16384;
 
@@ -147,12 +147,35 @@ void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
 	data[4][x][y] = game.isInTerr(p, opponent) > 0 ? 1.0f : 0.0f;
 	data[5][x][y] = std::min(game.isInEncl(p, on_move), 2) * 0.5f;
 	data[6][x][y] = std::min(game.isInEncl(p, opponent), 2) * 0.5f;
-	//data[7][x][y] = std::min(game.isInBorder(p, on_move), 2) * 0.5f;
-	//data[8][x][y] = std::min(game.isInBorder(p, opponent), 2) * 0.5f;
-	//data[9][x][y] = std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
-	//	data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
+	data[7][x][y] = std::min(game.isInBorder(p, on_move), 2) * 0.5f;
+	data[8][x][y] = std::min(game.isInBorder(p, opponent), 2) * 0.5f;
+	data[9][x][y] = std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
+	data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
 	//	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
+	data[11][x][y] = 1;
+	data[12][x][y] = 0;  // where for thr such that opp_dots>0
+	data[13][x][y] = 0;  // where for thr such that opp_dots>0
+	data[14][x][y] = 0;  // where0 for thr2 such that minwin2 > 0 and isSafe
+	data[15][x][y] = 0;  // where0 for thr2 such that minwin2 > 0 and isSafe
+	data[16][x][y] = (game.threats[on_move-1].is_in_2m_encl[p] > 0) ? 1.0f : 0.0f;
+	data[17][x][y] = (game.threats[opponent-1].is_in_2m_encl[p] > 0) ? 1.0f : 0.0f;
+	data[18][x][y] = (game.threats[on_move-1].is_in_2m_miai[p] > 1) ? 1.0f : 0.0f;
+	data[19][x][y] = (game.threats[opponent-1].is_in_2m_miai[p] > 1) ? 1.0f : 0.0f;
       }
+    for (int player = 0; player<2; ++player) {
+      int which2 = (player + 1 == game.whoNowMoves()) ? 14 : 15;
+      for (auto &t : game.threats[player].threats2m) {
+	if (t.min_win2 && t.isSafe()) {
+	  data[which2][coord.x[t.where0]][coord.y[t.where0]] = 1.0f - std::pow(0.75f, t.min_win2);
+	}
+      }
+      int which = (player + 1 == game.whoNowMoves()) ? 12 : 13;
+      for (auto &t : game.threats[player].threats) {
+	if (t.where && t.singular_dots) {
+	  data[which][coord.x[t.where]][coord.y[t.where]] = 1.0f - std::pow(0.75f, t.singular_dots);
+	}
+      }
+    }
     for (int m=0; m<MOVES_USED; ++m) {
       int move_isom = applyIsometry(moves.at(m).ind, isometry);
       int label = coord.x[move_isom] * BSIZE + coord.y[move_isom];

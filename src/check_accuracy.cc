@@ -144,17 +144,13 @@ std::set<std::string> readLines(const std::string& filename)
 
 int main(int argc, char* argv[]) {
   std::cerr << "CNN info will be read from file cnn.config" << std::endl;
-  if (argc < 3) {
-    std::cerr << "at least 2 parameters needed, players_file sgf_file(s)" << std::endl;
+  if (argc < 2) {
+    std::cerr << "at least 1 parameter needed, sgf_file(s)" << std::endl;
     return 1;
   }
  
-  auto players = readLines(argv[1]);
-  for (auto& p : players) {
-    std::cout << "PLAYER: " << p << std::endl;
-  }
 
-  for (int nfile = 2; nfile < argc; ++nfile) {
+  for (int nfile = 1; nfile < argc; ++nfile) {
     std::string sgf_file{argv[nfile]};
     std::ifstream t(sgf_file);
     std::stringstream buffer;
@@ -166,18 +162,10 @@ int main(int argc, char* argv[]) {
     auto blue = seq[0].findProp("PB")->second[0];
     auto red = seq[0].findProp("PW")->second[0];
     std::cout << sgf_file << " -- game: " << blue << " -- " << red << "  ";
-    if (players.find(blue) != players.end() or players.find(red) != players.end()) {
-      if (players.find(blue) != players.end()) std::cout << "1 ";
-      if (players.find(red) != players.end()) std::cout << "2 ";
-      std::cout << std::endl;
-      gatherDataFromSgfSequence(seq,
-				{
-				 {1, players.find(blue) != players.end()},
-				 {2, players.find(red) != players.end()}
-				});
-    } else {
-      std::cout << "omitted." << std::endl;
-    }
-      
+    gatherDataFromSgfSequence(seq,
+			      {
+			       {1, true},
+			       {2, true}
+			      });
   }
 }
