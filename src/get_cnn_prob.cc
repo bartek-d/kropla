@@ -22,6 +22,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
 
+/*
+ Set
+   export OMP_NUM_THREADS=1
+ or otherwise it will be slow.
+*/
+
 #include "get_cnn_prob.h"
 #include "caffe/mcaffe.h"
 
@@ -63,7 +69,7 @@ std::pair<bool, std::vector<float>> getCnnInfo(Game& game) try
       if (std::getline(t, model_file_name))
 	std::getline(t, weights_file_name);
     planes = std::stoi(number_of_planes);
-    if (planes != 7 and planes != 10) {
+    if (planes != 7 and planes != 10 and planes != 20) {
       std::cerr << "Unsupported number of planes (" << planes << "), assuming 10." << std::endl;
       planes = 10;
     }
@@ -86,8 +92,20 @@ std::pair<bool, std::vector<float>> getCnnInfo(Game& game) try
       data[7][x][y] = std::min(game.isInBorder(p, on_move), 2) * 0.5f;
       data[8][x][y] = std::min(game.isInBorder(p, opponent), 2) * 0.5f;
       data[9][x][y] = std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
+      if (planes == 10) continue;
       //	data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
       //	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
+      data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
+      //	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
+      data[11][x][y] = 1;
+      data[12][x][y] = 0;  // where for thr such that opp_dots>0
+      data[13][x][y] = 0;  // where for thr such that opp_dots>0
+      data[14][x][y] = 0;  // where0 for thr2 such that minwin2 > 0 and isSafe
+      data[15][x][y] = 0;  // where0 for thr2 such that minwin2 > 0 and isSafe
+      data[16][x][y] = (game.threats[on_move-1].is_in_2m_encl[p] > 0) ? 1.0f : 0.0f;
+      data[17][x][y] = (game.threats[opponent-1].is_in_2m_encl[p] > 0) ? 1.0f : 0.0f;
+      data[18][x][y] = (game.threats[on_move-1].is_in_2m_miai[p] > 1) ? 1.0f : 0.0f;
+      data[19][x][y] = (game.threats[opponent-1].is_in_2m_miai[p] > 1) ? 1.0f : 0.0f;
     }
   
   auto res = cnn.caffe_get_data(static_cast<float*>(&data[0][0][0]), coord.wlkx, planes, coord.wlky);
@@ -120,7 +138,7 @@ void updatePriors(Game& game, Treenode* children, int depth)
     std::cerr << "Max is 0.0f, CNN does not work?" << std::endl;
     return;
   }
-  const float prior_max = (depth == 1) ? 800.0f : 200.0f;
+  const float prior_max = (depth == 1) ? 800.0f : (depth == 2 ? 400.0f : 200.0f);
   for (auto *ch = children; true; ++ch) {
     float prob = probs[ch->move.ind];
     if (prob > 0.001f) {
