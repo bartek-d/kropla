@@ -1757,7 +1757,7 @@ Game::findThreats2moves_preDot(pti ind, int who)
     }
     // the first part, case a.
     for (unsigned first = 0; first < unique_connected_groups.size(); ++first) {
-      for (unsigned second = 0; second < pairs_pointCloseToInd_groupIdThatItTouches.getNumberOfGroups(); ++second) {
+      for (int second = 0; second < pairs_pointCloseToInd_groupIdThatItTouches.getNumberOfGroups(); ++second) {
 	pti second_gr_id = pairs_pointCloseToInd_groupIdThatItTouches.group(second);
 	if (not group_neighb[first].isGroupClose(second_gr_id))
 	    continue;
@@ -1765,7 +1765,7 @@ Game::findThreats2moves_preDot(pti ind, int who)
 	  if (not connects[who-1][point_close_to_1].contains(second_gr_id))
 	    continue;
 	  auto number_of_neighb = pairs_pointCloseToInd_groupIdThatItTouches.numberOfElems(second);
-	  for (unsigned ind_dot2 = 0; ind_dot2 < number_of_neighb; ++ind_dot2) {
+	  for (int ind_dot2 = 0; ind_dot2 < number_of_neighb; ++ind_dot2) {
 	    pti point2 = pairs_pointCloseToInd_groupIdThatItTouches.elem(second, ind_dot2);
 	    if (coord.isInNeighbourhood(point2, point_close_to_1))  // second point is not far: both points touch each other
 	      continue;

@@ -66,7 +66,7 @@ extern Enclosure empty_enclosure;
 *********************************************************************************************************/
 struct Move {
   std::vector<std::shared_ptr<Enclosure> > enclosures;
-  uint64_t zobrist_key;
+  uint64_t zobrist_key{0};
   pti ind;
   pti who {-1};
   bool operator==(const Move& other) const { return zobrist_key == other.zobrist_key; };
