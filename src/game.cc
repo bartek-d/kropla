@@ -1551,6 +1551,8 @@ Game::findThreats2moves_preDot(pti ind, int who)
 //  a pair of pti's, denoting the points to play.
 // (The order is so that we may then pop_back two points, count and points to enclose).
 {
+  if (not threats[who-1].isActiveThreats2m())
+    return {};
   std::vector<pti> possible_threats;
   // find groups in the neighbourhood
   std::array<pti, 4> groups = connects[who-1][ind].groups_id;
@@ -2103,6 +2105,8 @@ int debug_n = 0, debug_N = 0;
 void
 Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
 {
+  if (not threats[who-1].isActiveThreats2m())
+    return;
   // check our old threats
   for (auto &t2 : threats[who-1].threats2m) {
     if (t2.where0 == ind) {
@@ -6159,7 +6163,12 @@ Game::randomPlayout()
 {
   Move m;
   std::uniform_int_distribution<int> di(0, 0xffff);
-  for (;;) {
+  constexpr int threats2m_threshold = 25;
+  for (int move_number = 0;;++move_number) {
+    if (move_number > threats2m_threshold) {
+      threats[0].turnOffThreats2m();
+      threats[1].turnOffThreats2m();
+    }
     int number = di(engine);
     if ((number & 0xc00) != 0) {
       m = chooseAtariResponse(history.back() & history_move_MASK, nowMoves);

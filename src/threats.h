@@ -106,7 +106,10 @@ struct AllThreats {
   Threat* findThreatWhichContains(pti ind);
   Threat* findThreatZobrist(uint64_t zobr);
   const Threat* findThreatZobrist_const(uint64_t zobr) const;
+  void turnOffThreats2m();
+  bool isActiveThreats2m() const;
 private:
+  bool active_thr2m{true};
   void subtractThreat2moves(Threat2m &t2, const Threat& t);
   void deleteMiai(Threat2m &t2);
   void recalculateMiai(Threat2m &t2);

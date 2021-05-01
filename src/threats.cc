@@ -425,6 +425,21 @@ AllThreats::findThreatZobrist_const(uint64_t zobr) const
 }
 
 void
+AllThreats::turnOffThreats2m()
+{
+  threats2m.clear();
+  std::fill(is_in_2m_encl.begin(), is_in_2m_encl.end(), 0);
+  std::fill(is_in_2m_miai.begin(), is_in_2m_miai.end(), 0);
+  active_thr2m = false;
+}
+
+bool
+AllThreats::isActiveThreats2m() const
+{
+  return active_thr2m;
+}
+
+void
 AllThreats::removeMarkedAndAtPoint2moves(pti ind)
 {
   if (!threats2m.empty()) {
