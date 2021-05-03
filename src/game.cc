@@ -6163,7 +6163,7 @@ Game::randomPlayout()
 {
   Move m;
   std::uniform_int_distribution<int> di(0, 0xffff);
-  constexpr int threats2m_threshold = 25;
+  constexpr int threats2m_threshold = 30;
   for (int move_number = 0;;++move_number) {
     if (move_number > threats2m_threshold) {
       threats[0].turnOffThreats2m();
