@@ -25,10 +25,12 @@
 #include "game.h"
 #include "montecarlo.h"
 #include "command.h"
+#include "get_cnn_prob.h"
 
 #include <chrono>  // chrono::high_resolution_clock, only to measure elapsed time
 #include <atomic>
 #include <future>
+#include <memory>
 
 #include <condition_variable>
 #include <mutex>
@@ -47,7 +49,13 @@ std::atomic<int> threads_to_be_finished{0};
 std::atomic<int64_t> iterations(0);
 std::atomic<int64_t> generateMovesCount{0};
 
+std::mutex cnn_mutex;
+
 bool finish_threads(false);
+constexpr int start_increasing = 200;
+constexpr real_t increase_komi_threshhold = 0.75;
+constexpr real_t decrease_komi_threshhold = 0.15;
+constexpr int MC_EXPAND_THRESHOLD = 8;
 }
 
 MonteCarlo::MonteCarlo() //: finish_sim(false), finish_threads(false), finished_threads(0), iterations(0)
@@ -62,23 +70,23 @@ MonteCarlo::findBestMove(Game &pos, int iter_count)
   montec::root = Treenode();
   montec::root.move = pos.getLastMove();
   montec::root.parent = &montec::root;
+  montec::root.game_ptr = std::make_shared<Game>(pos);
   std::cerr << "Descend starts, komi==" << global::komi << std::endl;
 #ifdef DEBUG_SGF
   pos.sgf_tree.saveCursor();
 #endif
 
-  int komi_change_at = pos.start_increasing;
+  int komi_change_at = montec::start_increasing;
   TreenodeAllocator alloc;
-
+  constexpr unsigned seed = 1;
   for (int i=0; i<iter_count; i++) {
 #ifdef DEBUG_SGF
     pos.sgf_tree.restoreCursor();
 #endif
-    Game tmp = pos;
     if ((i & 0x7f) == 0) std::cerr << "iteration = " << i << std::endl;
     if (i >= komi_change_at) {
       komi_change_at *= 6;
-      if (montec::root.t.value_sum < montec::root.t.playouts * (1-pos.increase_komi_threshhold)) {  // green zone
+      if (montec::root.t.value_sum < montec::root.t.playouts * (1-montec::increase_komi_threshhold)) {  // green zone
 	int perspective = 2*montec::root.move.who - 3;   // -1 if we are white, 1 if black (montec::root.move.who is the opponent)
 	std::cerr << "Green zone; komi = " << global::komi << ", perspective = " << perspective << ", ratchet = " << global::komi_ratchet << std::endl;
 	if (global::komi*perspective < global::komi_ratchet) {
@@ -86,7 +94,7 @@ MonteCarlo::findBestMove(Game &pos, int iter_count)
 	  global::komi += (montec::root.move.who == 1) ? -2 : 2;
 	  std::cerr << global::komi << std::endl;
 	}
-      } else if (montec::root.t.value_sum > montec::root.t.playouts * (1-pos.decrease_komi_threshhold)) {  // red zone
+      } else if (montec::root.t.value_sum > montec::root.t.playouts * (1-montec::decrease_komi_threshhold)) {  // red zone
 	int perspective = 2*montec::root.move.who - 3;   // -1 if we are white, 1 if black (montec::root.move.who is the opponent)
 	std::cerr << "Red zone; komi = " << global::komi << ", perspective = " << perspective << ", ratchet = " << global::komi_ratchet << std::endl;
 	if (global::komi*perspective > 0) {
@@ -97,7 +105,7 @@ MonteCarlo::findBestMove(Game &pos, int iter_count)
 	std::cerr << global::komi << std::endl;
       }
     }
-    tmp.descend(alloc, &montec::root, 1, true);
+    descend(alloc, &montec::root, seed);
   }
   std::cerr << "Descend ends" << std::endl;
   assert(pos.checkRootListOfMovesCorrectness(montec::root.children));
@@ -133,21 +141,102 @@ MonteCarlo::findBestMove(Game &pos, int iter_count)
   }
 }
 
-int
-MonteCarlo::runSimulations(Game pos, int max_iter_count, int thread_no)
+Treenode*
+MonteCarlo::selectBestChild(Treenode *node) const
 {
-  int komi_change_at = pos.start_increasing;
+  Treenode *ch = node->children;
+  Treenode *best = ch;
+  real_t bestv = -1e5;
+  for(;;) {
+    assert(ch->amaf.playouts + ch->t.playouts > 0);
+    real_t value = ch->getValue();
+    //if (ch->move.who == 2) value = -value;
+    if (value > bestv) {
+      bestv = value;
+      best = ch;
+    }
+    if (ch->isLast()) break;
+    ch++;
+  }
+  return best;
+}
+
+std::shared_ptr<Game>
+MonteCarlo::getCopyOfGame(Treenode *node) const
+{
+  if (std::atomic_load(&node->game_ptr) == nullptr) {
+    assert(std::atomic_load(&node->parent->game_ptr) != nullptr);
+    std::shared_ptr<Game> game_ptr = std::make_shared<Game>(*std::atomic_load(&node->parent->game_ptr));
+    game_ptr->makeMove(node->move);
+    std::atomic_store(&node->game_ptr, game_ptr);
+  }
+  return std::make_shared<Game>(*std::atomic_load(&node->game_ptr));
+}
+
+void
+MonteCarlo::expandNode(TreenodeAllocator &alloc, Treenode *node, Game* game, int depth) const
+{
+  constexpr int max_depth_for_cnn = 3;
+  game->generateListOfMoves(alloc, node, depth, node->move.who ^ 3);
+  if (node->children == nullptr) {
+    if (depth > max_depth_for_cnn) {
+      node->children = alloc.getLastBlock();
+    } else {
+      auto lastBlock = alloc.getLastBlock();
+      const std::lock_guard<std::mutex> lock(montec::cnn_mutex);
+      if (node->children == nullptr) {
+	updatePriors(*game, lastBlock, depth);
+	node->children = lastBlock;
+      }
+    }
+  }
+  else {
+    alloc.getLastBlock();
+  }
+#ifndef NDEBUG
+  if (node == node->parent) {
+    assert(game->checkRootListOfMovesCorrectness(node->children));
+  }
+#endif
+}
+
+void
+MonteCarlo::descend(TreenodeAllocator &alloc, Treenode *node, unsigned seed)
+{
+  int depth = 1;
+  std::shared_ptr<Game> game_ptr;
+  for (;;) {
+    if (node->children == nullptr) {
+      game_ptr = getCopyOfGame(node);
+    }
+    bool expand = (depth == 1);
+    if (node->children == nullptr && (expand || (node->t.playouts - node->prior.playouts) >= montec::MC_EXPAND_THRESHOLD)) {
+      expandNode(alloc, node, game_ptr.get(), depth);
+    }
+    if (node->children == nullptr) {
+      break;
+    }
+    node = selectBestChild(node);
+    node->t.playouts += Game::VIRTUAL_LOSS;
+    ++depth;
+  }
+  game_ptr->seedRandomEngine(seed);
+  game_ptr->rollout(node, depth);
+}
+
+int
+MonteCarlo::runSimulations(int max_iter_count, unsigned thread_no, unsigned threads_count)
+{
+  int komi_change_at = montec::start_increasing;
   TreenodeAllocator alloc;
-  pos.seedRandomEngine(thread_no);
   int i=0;
   std::cerr << "*** Starting ratchet: " << global::komi_ratchet << std::endl;
   for (;;) {
-    Game tmp = pos;
     if ((i & 0x7f) == 0) std::cerr << "thr " << thread_no << ", iteration = " << i << std::endl;
     if (thread_no == 0) {
       if (montec::iterations >= komi_change_at) {
 	komi_change_at *= 6;
-	if (montec::root.t.value_sum < montec::root.t.playouts * (1-pos.increase_komi_threshhold)) {  // green zone
+	if (montec::root.t.value_sum < montec::root.t.playouts * (1-montec::increase_komi_threshhold)) {  // green zone
 	  int perspective = 2*montec::root.move.who - 3;   // -1 if we are white, 1 if black (root.move.who is the opponent)
 	  std::cerr << "Green zone; komi = " << global::komi << ", perspective = " << perspective << ", ratchet = " << global::komi_ratchet << std::endl;
 	  if (global::komi*perspective < global::komi_ratchet) {
@@ -155,7 +244,7 @@ MonteCarlo::runSimulations(Game pos, int max_iter_count, int thread_no)
 	    global::komi += (montec::root.move.who == 1) ? -2 : 2;
 	    std::cerr << global::komi << std::endl;
 	  }
-	} else if (montec::root.t.value_sum > montec::root.t.playouts * (1-pos.decrease_komi_threshhold)) {  // red zone
+	} else if (montec::root.t.value_sum > montec::root.t.playouts * (1-montec::decrease_komi_threshhold)) {  // red zone
 	  int perspective = 2*montec::root.move.who - 3;   // -1 if we are white, 1 if black (root.move.who is the opponent)
 	  std::cerr << "Red zone; komi = " << global::komi << ", perspective = " << perspective << ", ratchet = " << global::komi_ratchet << std::endl;
 	  if (global::komi*perspective > 0) {
@@ -170,7 +259,7 @@ MonteCarlo::runSimulations(Game pos, int max_iter_count, int thread_no)
     /*
       if (montec::iterations >= komi_change_at) {
 	komi_change_at *= 4;
-	if (montec::root.t.value_sum < montec::root.t.playouts * (1-pos.increase_komi_threshhold)) {
+	if (montec::root.t.value_sum < montec::root.t.playouts * (1-montec::increase_komi_threshhold)) {
 	  std::cerr << "Changing komi from " << global::komi << " to ";
 	  global::komi += (montec::root.move.who == 1) ? -1 : 1;
 	  std::cerr << global::komi << std::endl;
@@ -178,7 +267,8 @@ MonteCarlo::runSimulations(Game pos, int max_iter_count, int thread_no)
       }
     */
     }
-    tmp.descend(alloc, &montec::root, 1, true);
+    unsigned seed = thread_no + threads_count * i;
+    descend(alloc, &montec::root, seed);
     i++;  montec::iterations++;
     if (montec::iterations >= max_iter_count || montec::finish_sim) {
       break;
@@ -210,6 +300,7 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
   montec::root = Treenode();
   montec::root.move = pos.getLastMove();
   montec::root.parent = &montec::root;
+  montec::root.game_ptr = std::make_shared<Game>(pos);  
   std::cerr << "Descend starts, komi==" << global::komi << std::endl;
 #ifdef DEBUG_SGF
   assert(0);  // SGF write is not thread-safe
@@ -218,10 +309,10 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
   montec::iterations = 0;  montec::finish_sim = false;  montec::finish_threads = false;
   montec::generateMovesCount = 0;
   montec::threads_to_be_finished = threads;
-  std::vector< std::future<int> > concurrent;
+  std::vector<std::future<int>> concurrent;
   concurrent.reserve(threads);
   for (int t=0; t<threads; t++) {
-    concurrent.push_back( std::async(std::launch::async,  [=] { return runSimulations(pos, iter_count, t); }) );
+    concurrent.push_back( std::async(std::launch::async,  [=] { return runSimulations(iter_count, t, threads); }) );
   }
   auto time_begin = std::chrono::high_resolution_clock::now();
   if (msec > 0) {

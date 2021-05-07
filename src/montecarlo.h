@@ -35,8 +35,13 @@ class MonteCarlo {
 public:
   MonteCarlo();
   std::string findBestMove(Game &pos, int iter_count);
-  int runSimulations(Game pos, int max_iter_count, int thread_no);
   std::string findBestMoveMT(Game &pos, int threads, int iter_count, int msec);
+private:
+  int runSimulations(int max_iter_count, unsigned thread_no, unsigned threads_count);
+  Treenode* selectBestChild(Treenode *node) const;
+  std::shared_ptr<Game> getCopyOfGame(Treenode *node) const;
+  void expandNode(TreenodeAllocator &alloc, Treenode *node, Game* game, int depth) const;
+  void descend(TreenodeAllocator &alloc, Treenode *node, unsigned seed);
 };
 
 namespace montec {

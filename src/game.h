@@ -98,6 +98,7 @@ struct Treenode {
   Treenode* parent;
   //std::vector<Treenode> children;
   std::atomic<Treenode*> children;
+  std::shared_ptr<Game> game_ptr{nullptr};
   Movestats t;
   Movestats amaf;
   Movestats prior;
@@ -207,6 +208,7 @@ class Game {
   std::map<pti, WormDescr> descr;
 public:
   AllThreats threats[2];
+  static const int VIRTUAL_LOSS = 1;
 private:
   std::vector<OneConnection> connects[2];
   Score score[2];
@@ -245,8 +247,6 @@ private:
   static const int COEFF_URGENT = 4;
   static const int COEFF_NONURGENT = 1;
   //
-  static const int MC_EXPAND_THRESHOLD = 8;
-  static const int VIRTUAL_LOSS = 1;
 #ifdef DEBUG_SGF
 public:
   static SgfTree sgf_tree;
@@ -314,9 +314,6 @@ private:
   int checkDame(pti p) const;
   std::vector<pti> getPatt3extraValues() const;
 public:
-  static const constexpr real_t increase_komi_threshhold = 0.75;
-  static const constexpr real_t decrease_komi_threshhold = 0.15;
-  static const int start_increasing = 200;
   Game() = delete;
   Game(SgfSequence seq, int max_moves);
   int whoNowMoves() { return nowMoves; };
@@ -366,7 +363,7 @@ public:
   Move getLastMove() const;
   Move getLastButOneMove() const;
   real_t randomPlayout();
-  void descend(TreenodeAllocator &alloc, Treenode *node, int depth, bool expand);
+  void rollout(Treenode *node, int depth);
 
   bool isDame_directCheck(pti p, int who) const;
   bool isDame_directCheck_symm(pti p) const;

@@ -42,7 +42,6 @@
 #include <stdexcept>
 #include <cctype>  // iswhite()
 #include <chrono>  // chrono::high_resolution_clock, only to measure elapsed time
-#include <mutex>
 
 #include <boost/container/small_vector.hpp>
 
@@ -54,7 +53,6 @@
 #include "threats.h"
 #include "game.h"
 #include "montecarlo.h"
-#include "get_cnn_prob.h"
 #include "group_neighbours.h"
 
 Coord coord(15,15);
@@ -75,7 +73,6 @@ Pattern52 patt52_edge({});
 Pattern52 patt52_inner({});
 int komi;
 int komi_ratchet;
-std::mutex cnn_mutex;
 }
 
 /********************************************************************************************************
@@ -3022,158 +3019,107 @@ Game::checkBorderOneSide(pti ind, pti viter, pti vnorm, int who) const
 }
 
 void
-Game::descend(TreenodeAllocator &alloc, Treenode *node, int depth, bool expand)
+Game::rollout(Treenode *node, int depth)
 {
-  constexpr int max_depth_for_cnn = 3;
-  if (node->children == nullptr && (expand || (node->t.playouts - node->prior.playouts) >= MC_EXPAND_THRESHOLD)) {
-    //std::cerr << " expand: node->move = " << coord.showPt(node->move.ind) << std::endl;
-    generateListOfMoves(alloc, node, depth, node->move.who ^ 3);
-    if (node->children == nullptr) {
-      if (depth > max_depth_for_cnn) {
-	node->children = alloc.getLastBlock();
-      } else {
-	auto lastBlock = alloc.getLastBlock();
-	const std::lock_guard<std::mutex> lock(global::cnn_mutex);
-	if (node->children == nullptr) {
-	  updatePriors(*this, lastBlock, depth);
-	  node->children = lastBlock;
+  // experiment: add loses to amaf inside opp enclosures; first remember empty points
+  // TODO: at this point we already do not know all empty points, there could be enclosures in
+  //       the generateMoves-playout phase. Solution: save empty points at findBestMove.
+  //       BUT on the other hand, sometimes it's good to play in opp's terr to reduce it.
+  std::vector<pti> amafboard(coord.getSize(), 0);
+  const int amaf_empty = -5;
+  for (auto i=coord.first; i<=coord.last; i++) {
+    if (whoseDotMarginAt(i) == 0) amafboard[i] = amaf_empty;
+  }
+  // we are at leaf, playout...
+  auto nmoves = history.size();
+  real_t v = randomPlayout();
+  auto lastWho = node->move.who;
+  //auto endmoves = std::min(history.size(), nmoves + 50);
+  auto endmoves = history.size();
+  const int distance_rave = 3;
+  const int distance_rave_TERR =  8;
+  const int amaf_ENCL_BORDER = 16;
+  const int distance_rave_SHIFT = 5;
+  const int distance_rave_MASK  = 7;
+  {
+    int distance_rave_threshhold = (endmoves - nmoves + 2) / distance_rave;
+    int distance_rave_current = distance_rave_threshhold / 2;
+    int distance_rave_weight = distance_rave + 1;
+    for (auto i=nmoves; i<endmoves; i++) {
+      lastWho ^= 3;
+      amafboard[history[i] & history_move_MASK] = lastWho | (distance_rave_weight << distance_rave_SHIFT) |
+	( (history[i] & HISTORY_TERR) ? distance_rave_TERR : 0 ) |
+	( (history[i] & HISTORY_ENCL_BORDER) ? amaf_ENCL_BORDER : 0);
+      if (--distance_rave_current == 0) {
+	distance_rave_current = distance_rave_threshhold;
+	if (distance_rave_weight > 1) --distance_rave_weight;
+      }
+      assert(coord.dist[history[i] & history_move_MASK] >= 1 || (whoseDotMarginAt(history[i] & history_move_MASK) == lastWho));
+    }
+    // experiment: add loses to amaf inside opp enclosures
+    for (auto i=coord.first; i<=coord.last; i++) {
+      if (amafboard[i] == amaf_empty) {
+	int who = whoseDotMarginAt(i);
+	if (who == 0) {
+	  // here add inside territories, it's important when playouts stop playing before the end
+	  if (threats[0].is_in_terr[i] > 0) who = 1;
+	  else if (threats[1].is_in_terr[i] > 0) who = 2;
+	  else who = -1;  // dame!
+	}
+	if (who) {
+	  amafboard[i] = who-3;  // == -(opponent of encl owner) or -4 for dame
+	} else {
+	  amafboard[i] = 0;
 	}
       }
     }
-    else {
-      alloc.getLastBlock();
-    }
-#ifndef NDEBUG
-    if (node == node->parent) {
-      assert(checkRootListOfMovesCorrectness(node->children));
-    }
-#endif
   }
-  if (node->children != nullptr) {
-    // select one of the children
-    Treenode *best = nullptr;
-    real_t bestv = -1e5;
+  // save playout outcome to t and amaf statistics
+  for(;;) {
+    auto move_ind = node->move.ind;
+    auto move_who = node->move.who;
+    auto adjusted_value = (move_who == 1) ? v : 1-v;
+    node->t.playouts += 1 - VIRTUAL_LOSS;  // add 1 new playout and undo virtual loss
+    node->t.value_sum = node->t.value_sum.load() + adjusted_value;
+    if (node == node->parent) {
+      // we are at root
+      node->t.playouts += VIRTUAL_LOSS;  // in root we do not add virtual loss, but we 'undid' it, so we have to add it again
+      break;
+    }
+    amafboard[move_ind] = move_who | ((distance_rave+1) << distance_rave_SHIFT);  // before 'for' loop, so that it counts also in amaf
+    node = node->parent;
     Treenode *ch = node->children;
-    for(;;) {
-      assert(ch->amaf.playouts + ch->t.playouts > 0);
-      real_t value = ch->getValue();
-      //if (ch->move.who == 2) value = -value;
-      if (value > bestv) {
-	bestv = value;
-	best = ch;
+    for (;;) {
+      if (amafboard[ch->move.ind] < 0) {
+	if (ch->move.who == -amafboard[ch->move.ind]) {
+	  ch->amaf.playouts += 2;  // add 2 loses
+	  //ch->amaf.value_sum += 0;
+	} else if (amafboard[ch->move.ind] == -4) {
+	  // dame, add 1 playout (?)
+	  ch->amaf.playouts += 1;
+	  ch->amaf.value_sum = ch->amaf.value_sum.load() + adjusted_value;
+	}
+      } else if ((amafboard[ch->move.ind] & distance_rave_MASK) == ch->move.who) {
+	if (ch->move.enclosures.empty() or (amafboard[ch->move.ind] & amaf_ENCL_BORDER)) {  // we want to avoid situation when in ch there is enclosure, but in amaf not (anymore?)
+	  int count = amafboard[ch->move.ind] >> distance_rave_SHIFT;
+	  ch->amaf.playouts += count;
+	  ch->amaf.value_sum = ch->amaf.value_sum.load() + adjusted_value*count;
+	}
+      } else if (adjusted_value < 0.2 &&
+		 (amafboard[ch->move.ind] & distance_rave_MASK) == 3 - ch->move.who) {  // inside encl, == 0 possible when there was enclosure in the generateListOfMoves-playout phase
+	// v114+: add also losses for playing inside opp's (reduced) territory -- sometimes
+	//  there is an opp terr which always may be reduced, then opp will mostly play there, but it does not usually make sense
+	//  that we play
+	if (amafboard[ch->move.ind] & distance_rave_TERR) {
+	  int count = amafboard[ch->move.ind] >> distance_rave_SHIFT;
+	  ch->amaf.playouts += count;
+	  ch->amaf.value_sum = ch->amaf.value_sum.load() + adjusted_value*count;
+	}
       }
       if (ch->isLast()) break;
       ch++;
     }
-    if (best != nullptr) {
-      makeMove(best->move);
-      best->t.playouts += VIRTUAL_LOSS;
-      descend(alloc, best, depth+1, false);
-      return;
-    }
-  }
-
-  {
-    // experiment: add loses to amaf inside opp enclosures; first remember empty points
-    // TODO: at this point we already do not know all empty points, there could be enclosures in
-    //       the generateMoves-playout phase. Solution: save empty points at findBestMove.
-    //       BUT on the other hand, sometimes it's good to play in opp's terr to reduce it.
-    std::vector<pti> amafboard(coord.getSize(), 0);
-    const int amaf_empty = -5;
-    for (auto i=coord.first; i<=coord.last; i++) {
-      if (whoseDotMarginAt(i) == 0) amafboard[i] = amaf_empty;
-    }
-    // we are at leaf, playout...
-    auto nmoves = history.size();
-    real_t v = randomPlayout();
-    auto lastWho = node->move.who;
-    //auto endmoves = std::min(history.size(), nmoves + 50);
-    auto endmoves = history.size();
-    const int distance_rave = 3;
-    const int distance_rave_TERR =  8;
-    const int amaf_ENCL_BORDER = 16;
-    const int distance_rave_SHIFT = 5;
-    const int distance_rave_MASK  = 7;
-    {
-      int distance_rave_threshhold = (endmoves - nmoves + 2) / distance_rave;
-      int distance_rave_current = distance_rave_threshhold / 2;
-      int distance_rave_weight = distance_rave + 1;
-      for (auto i=nmoves; i<endmoves; i++) {
-	lastWho ^= 3;
-	amafboard[history[i] & history_move_MASK] = lastWho | (distance_rave_weight << distance_rave_SHIFT) |
-	  ( (history[i] & HISTORY_TERR) ? distance_rave_TERR : 0 ) |
-	  ( (history[i] & HISTORY_ENCL_BORDER) ? amaf_ENCL_BORDER : 0);
-	if (--distance_rave_current == 0) {
-	  distance_rave_current = distance_rave_threshhold;
-	  if (distance_rave_weight > 1) --distance_rave_weight;
-	}
-	assert(coord.dist[history[i] & history_move_MASK] >= 1 || (whoseDotMarginAt(history[i] & history_move_MASK) == lastWho));
-      }
-      // experiment: add loses to amaf inside opp enclosures
-      for (auto i=coord.first; i<=coord.last; i++) {
-	if (amafboard[i] == amaf_empty) {
-	  int who = whoseDotMarginAt(i);
-	  if (who == 0) {
-	    // here add inside territories, it's important when playouts stop playing before the end
-	    if (threats[0].is_in_terr[i] > 0) who = 1;
-	    else if (threats[1].is_in_terr[i] > 0) who = 2;
-	    else who = -1;  // dame!
-	  }
-	  if (who) {
-	    amafboard[i] = who-3;  // == -(opponent of encl owner) or -4 for dame
-	  } else {
-	    amafboard[i] = 0;
-	  }
-	}
-      }
-    }
-    // save playout outcome to t and amaf statistics
-    for(;;) {
-      auto move_ind = node->move.ind;
-      auto move_who = node->move.who;
-      auto adjusted_value = (move_who == 1) ? v : 1-v;
-      node->t.playouts += 1 - VIRTUAL_LOSS;  // add 1 new playout and undo virtual loss
-      node->t.value_sum = node->t.value_sum.load() + adjusted_value;
-      if (node == node->parent) {
-	// we are at root
-	node->t.playouts += VIRTUAL_LOSS;  // in root we do not add virtual loss, but we 'undid' it, so we have to add it again
-	break;
-      }
-      amafboard[move_ind] = move_who | ((distance_rave+1) << distance_rave_SHIFT);  // before 'for' loop, so that it counts also in amaf
-      node = node->parent;
-      Treenode *ch = node->children;
-      for (;;) {
-	if (amafboard[ch->move.ind] < 0) {
-	  if (ch->move.who == -amafboard[ch->move.ind]) {
-	    ch->amaf.playouts += 2;  // add 2 loses
-	    //ch->amaf.value_sum += 0;
-	  } else if (amafboard[ch->move.ind] == -4) {
-	    // dame, add 1 playout (?)
-	    ch->amaf.playouts += 1;
-	    ch->amaf.value_sum = ch->amaf.value_sum.load() + adjusted_value;
-	  }
-	} else if ((amafboard[ch->move.ind] & distance_rave_MASK) == ch->move.who) {
-	  if (ch->move.enclosures.empty() or (amafboard[ch->move.ind] & amaf_ENCL_BORDER)) {  // we want to avoid situation when in ch there is enclosure, but in amaf not (anymore?)
-	    int count = amafboard[ch->move.ind] >> distance_rave_SHIFT;
-	    ch->amaf.playouts += count;
-	    ch->amaf.value_sum = ch->amaf.value_sum.load() + adjusted_value*count;
-	  }
-	} else if (adjusted_value < 0.2 &&
-		   (amafboard[ch->move.ind] & distance_rave_MASK) == 3 - ch->move.who) {  // inside encl, == 0 possible when there was enclosure in the generateListOfMoves-playout phase
-	  // v114+: add also losses for playing inside opp's (reduced) territory -- sometimes
-	  //  there is an opp terr which always may be reduced, then opp will mostly play there, but it does not usually make sense
-	  //  that we play
-	  if (amafboard[ch->move.ind] & distance_rave_TERR) {
-	    int count = amafboard[ch->move.ind] >> distance_rave_SHIFT;
-	    ch->amaf.playouts += count;
-	    ch->amaf.value_sum = ch->amaf.value_sum.load() + adjusted_value*count;
-	  }
-	}
-	if (ch->isLast()) break;
-	ch++;
-      }
-      //amafboard[move_ind] = move_who;
-    } // while (node != node->parent);
+    //amafboard[move_ind] = move_who;
   }
 }
 
