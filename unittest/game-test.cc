@@ -267,7 +267,6 @@ INSTANTIATE_TEST_CASE_P(
         IsometryFixture7,
         ::testing::Values(0,1,2,3,4,5,6,7));
 
-
 TEST(Threats2mTest, miaiIsFoundWhenTwoSecondMovesAreInsideTerr_zagram355111_after_move107)
 {
   // It seems everything is correct here, but we should add prior for semeai threats2m.
@@ -287,5 +286,41 @@ TEST(Threats2mTest, miaiIsFoundWhenTwoSecondMovesAreInsideTerr_zagram355111_afte
   EXPECT_EQ(1, count);
 }
 
+bool hasOverlappingEnclosures(const Move& move)
+{
+  if (move.enclosures.size() <= 1) return false;
+  std::vector<int> interior_count(coord.getSize(), 0);
+  for (const auto &encl : move.enclosures) {
+    for (const auto pt : encl->interior) {
+      ++interior_count[pt];
+      if (interior_count[pt] >= 2) {
+	std::cout << "Point " << coord.showPt(pt) << " is in 2 enclosures! Move: " << move.show() << std::endl;
+	return true;
+      }
+    }
+  }
+  return false;
+}
+
+TEST(getEnclMoves, shouldNotFindOverlappingEnclosures_eido_u0O9GbZR)
+{
+  std::string sgf{"(;SZ[20]PB[kropla_1df1ee076aa_nocnn]PW[kropla_1df1ee076aa_nocnn_noThr2mTurnoff];B[dg];W[hj];B[js];W[bo];B[gb];W[dp];B[jk];W[jf];B[ff];W[dj];B[ks];W[ji];B[ko];W[ej];B[qn];W[il];B[hc];W[km];B[in];W[gi];B[hm];W[ik];B[mn];W[am];B[fr];W[dm];B[qk];W[mk];B[ll];W[mh];B[ml];W[lj];B[ol];W[pi];B[qg];W[cq];B[mb];W[hg];B[ri];W[ns];B[es];W[nk];B[nl];W[go];B[oj];W[ok];B[pj];W[os];B[mr];W[nr];B[mq];W[pk];B[sg];W[bh];B[pl];W[ge];B[bf];W[nq];B[qj];W[od];B[ob];W[id];B[sm];W[bg];B[cf];W[hd];B[ld];W[mf];B[jn];W[ne];B[kl];W[gp];B[bl];W[kj];B[gm];W[fn];B[jj];W[ij];B[bk];W[fe];B[ee];W[np];B[fm];W[en];B[hq];W[th];B[sh];W[hp];B[jb];W[ip];B[dl];W[el];B[em];W[cm];B[dk];W[ci];B[ek];W[tk];B[bm];W[jm];B[fj];W[fi];B[ni];W[ed];B[mi];W[lh];B[be];W[nh];B[li];W[ki];B[bn];W[iq];B[co];W[dn];B[bp];W[ir];B[gs];W[is];B[it];W[bq];B[do];W[ep];B[fk];W[cl];B[ck];W[cp];B[ao.aobpcobnao];W[dh];B[eo];W[kc];B[fo];W[gn];B[fp];W[kq];B[lp];W[rl];B[ht];W[lr];B[ls];W[ql];B[sk];W[mo];B[ln];W[rn];B[rm];W[qm];B[pn];W[lo];B[kn];W[ms];B[gq.blbmbncodoeofofpgqfrgshtitjskslsmrmqlpkojninhmgmfmemdlckbl];W[lc];B[mc];W[md];B[jc];W[jd];B[oh];W[nj];B[oi];W[sl];B[tl];W[sj];B[rk];W[so];B[om];W[ss];B[qp];W[qq];B[jl];W[im];B[pp];W[pq];B[qt];W[og];B[mj];W[lk];B[pg];W[fc];B[eg];W[de];B[ef];W[cd];B[of];W[kd];B[gf];W[cg];B[df];W[ng];B[hf];W[pf];B[ig];W[if];B[qf];W[pe];B[no];W[mp];B[eh];W[oo];B[ei];W[nn.monpoonnmo];B[gg];W[kg];B[hh.gghhighfgg];W[ii];B[gj];W[hi];B[di];W[cj];B[he];W[qe];B[gc];W[gd];B[tj];W[ti];B[si];W[le.kdlemdlckd];B[ie];W[ch];B[db];W[po];B[qo];W[qs];B[re];W[rd];B[sd];W[sn];B[rp.ompnqnrmsmtlskrkqkplom];W[sc];B[rc];W[qd];B[sb];W[se];B[tc.rcsdtcsbrc];W[rf.qerfserdqe];B[te];W[rq];B[bb];W[kb];B[ka];W[fb];B[fa];W[pb];B[pa];W[qc];B[qa];W[la];B[lb];W[cb];B[eb];W[ca];B[cc];W[fd];B[bc];W[ad];B[bd];W[sf];B[tf];W[ra];B[nb];W[mm];B[lm];W[rb];B[qb];W[nm.mfngogpfpeodnemf];B[ib];W[ha];B[sq];W[sp];B[sr];W[tg];B[cs];W[ft];B[ds];W[ga];B[bs];W[aq];B[rr];W[rs];B[qr];W[ps];B[dr];W[eq];B[pr];W[oq];B[ai];W[hb])"};
+  unsigned isometry = 0;
+  Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+  TreenodeAllocator alloc;
+  Treenode root;
+  root.parent = &root;
+  const int whoseMove = 1;
+  const int depth = 1;
+  game.generateListOfMoves(alloc, &root, depth, whoseMove);
+  root.children = alloc.getLastBlock();
+  Treenode *ch = root.children;
+  for(;;) {
+    std::cout << ch->move.show() << std::endl;
+    EXPECT_FALSE(hasOverlappingEnclosures(ch->move));
+    if (ch->isLast()) break;
+    ch++;
+  }
+}
 
 } // namespace
