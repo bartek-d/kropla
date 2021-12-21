@@ -436,10 +436,27 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
   return res;
 }
 
+void
+getSgfAndMsec(std::string &s, int &msec)
+{
+  // remove parameter(s) at the end
+  std::size_t last_paren = s.rfind(")");
+  if (last_paren != std::string::npos) {
+    std::string params = s.substr(last_paren + 1);
+    s = s.substr(0, last_paren+1);
+    std::cerr << "Parameters provided: '" << params << "'." <<std::endl;
+    int converted = atoi(params.c_str());
+    if (converted > 0) {
+      std::cerr << "  interpreted as new msec = " << converted << std::endl;
+      msec = converted;
+    }
+  }
+}
 
 void
 play_engine(Game &game, std::string &s, int threads_count, int iter_count, int msec)
 {
+  getSgfAndMsec(s, msec);
   for (;;) {
     {
       MonteCarlo mc;
@@ -460,6 +477,8 @@ play_engine(Game &game, std::string &s, int threads_count, int iter_count, int m
       }
       n += buf;
     } while (n.find(")") == std::string::npos);
+    getSgfAndMsec(n, msec);
+
     if (s.substr(0, s.length()-1) == n.substr(0, s.length()-1) and n.find(";", s.length()-1) != std::string::npos) {
       // the same beginning, add new moves
       game.show();
