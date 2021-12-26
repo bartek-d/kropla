@@ -31,6 +31,7 @@
 #include <atomic>
 #include <future>
 #include <memory>
+#include <array>
 
 #include <condition_variable>
 #include <mutex>
@@ -48,8 +49,13 @@ std::atomic<int> threads_to_be_finished{0};
 
 std::atomic<int64_t> iterations(0);
 std::atomic<int64_t> generateMovesCount{0};
+std::array<std::atomic<int64_t>, 10> generateMovesCount_depths{0,0,0,0,0 ,0,0,0,0,0};
+std::atomic<int64_t> cnnReads{0};
+std::atomic<int64_t> redundantGenerateMovesCount{0};
 
 std::mutex cnn_mutex;
+std::condition_variable cnn_condvar;
+std::mutex cnn_condvar_mutex;
 
 bool finish_threads(false);
 constexpr int start_increasing = 200;
@@ -178,19 +184,40 @@ MonteCarlo::expandNode(TreenodeAllocator &alloc, Treenode *node, Game* game, int
 {
   constexpr int max_depth_for_cnn = 3;
   game->generateListOfMoves(alloc, node, depth, node->move.who ^ 3);
+  ++montec::generateMovesCount_depths[ std::min<int>(depth, montec::generateMovesCount_depths.size()-1)];
   if (node->children == nullptr) {
     if (depth > max_depth_for_cnn) {
       node->children = alloc.getLastBlock();
     } else {
       auto lastBlock = alloc.getLastBlock();
-      const std::lock_guard<std::mutex> lock(montec::cnn_mutex);
+      std::unique_lock<std::mutex> lock(montec::cnn_mutex, std::defer_lock);
+      bool is_lock_acquired = false;
+
+      for (;;) {
+	if ((is_lock_acquired = lock.try_lock()) == true) break;
+	// we use CV so that we may skip acquiring 'lock' if node->children != nullptr
+	// (it could happen that another thread took the lock to read cnn for another position,
+	//  and without CV we would still wait for cnn to be free)
+	std::unique_lock<std::mutex> lock_cv(montec::cnn_condvar_mutex);
+	montec::cnn_condvar.wait(lock_cv);
+	if (node->children != nullptr) break;
+      }
+
       if (node->children == nullptr) {
+	++montec::cnnReads;
 	updatePriors(*game, lastBlock, depth);
 	node->children = lastBlock;
       }
+
+      if (is_lock_acquired) {
+	lock.unlock();
+	montec::cnn_condvar.notify_all();
+      }
+
     }
   }
   else {
+    ++montec::redundantGenerateMovesCount;
     alloc.getLastBlock();
   }
 #ifndef NDEBUG
@@ -308,6 +335,9 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
 
   montec::iterations = 0;  montec::finish_sim = false;  montec::finish_threads = false;
   montec::generateMovesCount = 0;
+  montec::redundantGenerateMovesCount = 0;
+  std::fill(montec::generateMovesCount_depths.begin(), montec::generateMovesCount_depths.end(), 0);
+  montec::cnnReads = 0;
   montec::threads_to_be_finished = threads;
   std::vector<std::future<int>> concurrent;
   concurrent.reserve(threads);
@@ -413,7 +443,13 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
     for (int i=0; i<n; i++) {
       real_playouts += montec::root.children[i].t.playouts - montec::root.children[i].prior.playouts;
     }
-    std::cerr << "Real saved playouts: " << real_playouts << "; generateMovesCount: " << montec::generateMovesCount << std::endl;
+    std::cerr << "Real saved playouts: " << real_playouts
+	      << "; generateMovesCount: " << montec::generateMovesCount
+	      << "; redundantGenerateMovesCount: " << montec::redundantGenerateMovesCount
+	      << "; cnnReads: " << montec::cnnReads << std::endl;
+    std::cerr << " Expand nodes at depths:";
+    for (const auto &e : montec::generateMovesCount_depths) std::cerr << " " << e;
+    std::cerr << std::endl;
   }
 
   std::string res = "";
