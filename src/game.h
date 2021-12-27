@@ -106,13 +106,16 @@ struct Treenode {
   uint32_t flags;
   static const uint32_t LAST_CHILD = 1;
   static const uint32_t IS_DAME = 2;
+  static const uint32_t IS_INSIDE_TERR_NO_ATARI = 4;   // move is inside someone's terr, but does not save from/create atari
   real_t getValue() const;
   bool operator<(const Treenode& other) const;
   void markAsLast() { flags |= LAST_CHILD; }
   void markAsNotLast() { flags &= ~LAST_CHILD; }
-  bool isLast() { return (flags & LAST_CHILD) !=0; }
+  bool isLast() const { return (flags & LAST_CHILD) !=0; }
   void markAsDame() { flags |= IS_DAME; }
-  bool isDame() { return (flags & IS_DAME) != 0; }
+  bool isDame() const { return (flags & IS_DAME) != 0; }
+  void markAsInsideTerrNoAtari() { flags |= IS_INSIDE_TERR_NO_ATARI; }
+  bool isInsideTerrNoAtari() const { return (flags & IS_INSIDE_TERR_NO_ATARI) != 0; }
   const Treenode* getBestChild() const;
   std::string show() const;
   std::string getMoveSgf() const;

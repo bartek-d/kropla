@@ -237,7 +237,7 @@ Treenode::getValue() const
     constexpr real_t C = 0.1;
     ucb_term = C * std::sqrt(std::log(N+1) / (n + 0.1));
   }
-  if (t.playouts > 0 && amaf.playouts>0) {
+  if (t.playouts > 0 and amaf.playouts>0) {
     const real_t mc_sims_equiv = move.enclosures.empty() ? MC_SIMS_EQUIV_RECIPR : MC_SIMS_ENCL_EQUIV_RECIPR;
     real_t beta = amaf.playouts / (amaf.playouts + t.playouts + t.playouts* mc_sims_equiv * amaf.playouts);
     value = beta * amaf.value_sum / amaf.playouts + (1-beta) * t.value_sum / t.playouts;
@@ -248,7 +248,7 @@ Treenode::getValue() const
       value = amaf.value_sum / amaf.playouts;
     }
   }
-  return value + ucb_term;
+  return value + ucb_term + (isInsideTerrNoAtari() ? -0.1 : 0.0);
 }
 
 
@@ -278,7 +278,7 @@ Treenode::getBestChild() const
 std::string
 Treenode::show() const
 {
-  return move.show() + " " + t.show() + ", prior: " + prior.show() +  ", amaf: " + amaf.show();
+  return move.show() + " " + t.show() + ", prior: " + prior.show() +  ", amaf: " + amaf.show() + ", flags: " + std::to_string(flags);
 }
 
 std::string
@@ -5302,6 +5302,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
       tn.move.enclosures.insert(tn.move.enclosures.end(), neutral_encl_moves.begin(), neutral_encl_moves.end());
       if (is_in_opp_te) {
 	// note:  (threats[who-1].is_in_border[i] > 0) possible only for territory threats (i.e., we build a new territory)
+	tn.markAsInsideTerrNoAtari();
 	int min_terr_size = std::numeric_limits<int>::max();
 	for (auto &t : threats[2-who].threats) {
 	  if (t.type & ThreatConsts::TERR) {
@@ -5331,9 +5332,9 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 	    out << "touch=-80 ";
 #endif
 	  } else {
-	    tn.t.playouts += 7;    // add lost simulation
+	    tn.t.playouts += 14;    // add lost simulation
 #ifndef NDEBUG
-	    out << "touch=-7 ";
+	    out << "touch=-14 ";
 #endif
 	  }
 	}
@@ -5363,6 +5364,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 	} else {  // not in the border of an opp's threat
 	  if (is_in_our_te) {
 	    // inside our enclosure, add lost simulations
+	    tn.markAsInsideTerrNoAtari();
 	    if (threats[who-1].is_in_border[i] == 0) {
 	      tn.t.playouts += 25;
 #ifndef NDEBUG
