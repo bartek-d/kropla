@@ -248,7 +248,7 @@ Treenode::getValue() const
       value = amaf.value_sum / amaf.playouts;
     }
   }
-  return value + ucb_term + (isInsideTerrNoAtari() ? -0.1 : 0.0);
+  return value + ucb_term + (isInsideTerrNoAtari() ? -0.02 : 0.0);
 }
 
 
@@ -5293,6 +5293,19 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
 #endif
 
       }
+    } else {
+      int min_terr_size = threats[is_in_opp_te ? 2-who : who-1].getMinAreaOfThreatEnclosingPoint(i);
+      // in territory, maybe a good reduction possible
+      const auto &whose_threats2m = is_in_opp_te ? threats[who-1].threats2m : threats[2-who].threats2m;
+      for (const auto &t : whose_threats2m) {
+	if (t.where0 == i) {
+	  if (t.min_win2) {
+	    int num = 1 + 2*std::min(min_terr_size, 10);
+	    tn.t.playouts += num;  tn.t.value_sum = tn.t.value_sum.load() + num;  // add won simulations
+	  }
+	  break;
+	}
+      }
     }
     // captures
     if (std::find(ml_special_moves.begin(), ml_special_moves.end(), i) == ml_special_moves.end()) {
@@ -5303,20 +5316,7 @@ Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent, int depth,
       if (is_in_opp_te) {
 	// note:  (threats[who-1].is_in_border[i] > 0) possible only for territory threats (i.e., we build a new territory)
 	tn.markAsInsideTerrNoAtari();
-	int min_terr_size = std::numeric_limits<int>::max();
-	for (auto &t : threats[2-who].threats) {
-	  if (t.type & ThreatConsts::TERR) {
-	    if (t.terr_points < min_terr_size && t.encl->isInInterior(i)) {
-	      min_terr_size = t.terr_points;
-	      if (min_terr_size <= 2) break;
-	    }
-	  } else {  // ENCL
-	    if (t.terr_points+1 < min_terr_size && t.encl->isInInterior(i)) {
-	      min_terr_size = t.terr_points+1;
-	      if (min_terr_size <= 2) break;
-	    }
-	  }
-	}
+	int min_terr_size = threats[2-who].getMinAreaOfThreatEnclosingPoint(i);
 	if (connects[who-1][i].groups_id[0] == 0) {
 	  // dot does not touch any our dot
 	  tn.t.playouts += 100 - std::min(min_terr_size, 20);    // add lost simulations

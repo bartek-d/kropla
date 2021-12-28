@@ -506,6 +506,25 @@ AllThreats::removeMarked2moves()
   }
 }
 
+int
+AllThreats::getMinAreaOfThreatEnclosingPoint(pti ind) const
+{
+  int min_terr_size = std::numeric_limits<int>::max();
+  for (const auto &t : threats) {
+    if (t.type & ThreatConsts::TERR) {
+      if (t.terr_points < min_terr_size && t.encl->isInInterior(ind)) {
+	min_terr_size = t.terr_points;
+	if (min_terr_size == 1) break;
+      }
+    } else {  // ENCL
+      if (t.terr_points+1 < min_terr_size && t.encl->isInInterior(ind)) {
+	min_terr_size = t.terr_points+1;
+	if (min_terr_size == 1) break;
+      }
+    }
+  }
+  return min_terr_size;
+}
 
 std::string
 ThrInfo::show() const

@@ -98,6 +98,7 @@ struct AllThreats {
   AllThreats() : is_in_encl(coord.getSize(), 0), is_in_terr(coord.getSize(), 0), is_in_border(coord.getSize(), 0),
 		 is_in_2m_encl(coord.getSize(), 0), is_in_2m_miai(coord.getSize(), 0) {};
   //AllThreats(const AllThreats& other);
+  int getMinAreaOfThreatEnclosingPoint(pti ind) const;
   int addThreat2moves(pti ind0, pti ind1, bool safe0, bool safe1, int who, Threat &t);
   void changeEnclToTerr(const Threat& t);
   void removeMarkedAndAtPoint2moves(pti ind);
