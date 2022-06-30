@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
     play_engine(game, s, threads_count, iter_count, msec);
     break;
   case Mode::sgf_move:
-    findAndPrintBestMove(game, iter_count);
+    findAndPrintBestMove(game, threads_count, iter_count);
     break;
   case Mode::interactive:
     playInteractively(game, threads_count, iter_count);

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 
 project(kropla)
-set(CMAKE_CXX_FLAGS "-s -Wall -std=c++17 -O3 -DNDEBUG -msse3")
+set(CMAKE_CXX_FLAGS "-g -Wall -std=c++17 -O0 -DNDEBUG -msse3")
 #add_compile_options(-s -Wall -std=c++17 -O3 -DNDEBUG -msse3)
 #set(CMAKE_CXX_FLAGS "-s  -std=c++17 -O3 -DNDEBUG -msse3")
 #set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc  -Wall -std=c++17 -O3 -DNDEBUG -msse3 -DSPEED_TEST")

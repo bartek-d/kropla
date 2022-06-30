@@ -415,7 +415,7 @@ MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count, int msec)
     montec::root.children[n-1].markAsLast();
   }
   std::cerr << "Sort ends, root.children.size()==" << n << ", root value = " << montec::root.t.value_sum/montec::root.t.playouts << ", root playouts = " << montec::root.t.playouts << std::endl;
-  constexpr int max_moves = 100;
+  constexpr int max_moves = 400;
   for (int i=0; i<max_moves && i<n; i++) {
     std::cerr << montec::root.children[i].show() << std::endl;
     if (i==0) {
@@ -537,12 +537,11 @@ play_engine(Game &game, std::string &s, int threads_count, int iter_count, int m
 
 
 void
-findAndPrintBestMove(Game &game, int iter_count)
+findAndPrintBestMove(Game &game, int threads_count, int iter_count)
 {
   MonteCarlo mc;
   start_time = std::chrono::high_resolution_clock::now();
-  auto best_move = mc.findBestMove(game, iter_count);
-  //auto best_move = mc.findBestMoveMT(game, threads_count, iter_count, 0);
+  auto best_move = threads_count <= 0 ? mc.findBestMove(game, iter_count) : mc.findBestMoveMT(game, threads_count, iter_count, 0);
   auto end_time = std::chrono::high_resolution_clock::now();
   std::cerr << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count()
 	    << " mikros" << std::endl;

@@ -57,7 +57,7 @@ void
 play_engine(Game &game, std::string &s, int threads_count, int iter_count, int msec);
 
 void
-findAndPrintBestMove(Game &game, int iter_count);
+findAndPrintBestMove(Game &game, int threads_count, int iter_count);
 
 void
 playInteractively(Game &game, int threads_count, int iter_count);
