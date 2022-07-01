@@ -40,7 +40,7 @@ Threat::addShortcuts(pti ind0, pti ind1)
   assert(encl->border[0] == encl->border[encl->border.size()-1]);
   for (pti ind : {ind0, ind1}) {
     unsigned nr=0;
-    while (encl->border[nr] != ind && nr < encl->border.size()) nr++;
+    while (encl->border[nr] != ind and nr < encl->border.size()) nr++;
     pti prev, next;
     if (nr > 0) {
       assert(nr+1 < encl->border.size());  // this should hold because border[0] == border[border.size()-1]
@@ -52,7 +52,7 @@ Threat::addShortcuts(pti ind0, pti ind1)
     }
     for (int i=0; i<4; i++) {
       pti nb = ind + coord.nb4[i];
-      if (coord.isInNeighbourhood(nb, prev) && coord.isInNeighbourhood(nb, next)) {  // && !shortcuts.contains(nb)) {
+      if (coord.isInNeighbourhood(nb, prev) and coord.isInNeighbourhood(nb, next)) {  // and !shortcuts.contains(nb)) {
 	//shortcuts.insert(nb);
 	assert(count<4);
 	shortcuts[count++] = nb;
@@ -74,7 +74,7 @@ void removeMarkedThreats(std::vector<Threat> &thr_list)
   int s = thr_list.size();
   for (int i=0; i<s; ++i) {
     if (thr_list[i].type & ThreatConsts::TO_REMOVE) {
-      do { --s; } while (i<s && (thr_list[s].type & ThreatConsts::TO_REMOVE));
+      do { --s; } while (i<s and (thr_list[s].type & ThreatConsts::TO_REMOVE));
       if (i<s) std::swap(thr_list[i], thr_list[s]);
     }
   }
@@ -101,7 +101,7 @@ Threat2m::removeMarked()
   int s = thr_list.size();
   for (int i=0; i<s; ++i) {
     if (thr_list[i].type & ThreatConsts::TO_REMOVE) {
-      do { --s; } while (i<s && (thr_list[s].type & ThreatConsts::TO_REMOVE));
+      do { --s; } while (i<s and (thr_list[s].type & ThreatConsts::TO_REMOVE));
       if (i<s) std::swap(thr_list[i], thr_list[s]);
     }
   }
@@ -114,7 +114,7 @@ void removeEmptyThreats2m(std::vector<Threat2m> &thr_list)
   int s = thr_list.size();
   for (int i=0; i<s; ++i) {
     if (thr_list[i].thr_list.empty()) {
-      do { --s; } while (i<s && thr_list[s].thr_list.empty());
+      do { --s; } while (i<s and thr_list[s].thr_list.empty());
       if (i<s) std::swap(thr_list[i], thr_list[s]);
     }
   }
@@ -149,7 +149,7 @@ void
 AllThreats::addThreat2moves_toStats(Threat2m &t2, Threat &t)
 {
   assert(!t2.is_in_encl2.empty());
-  if (t2.win_move_count >= 2 || (t2.win_move_count == 1 && t.opp_dots==0)) {
+  if (t2.win_move_count >= 2 || (t2.win_move_count == 1 and t.opp_dots==0)) {
     // miai possibility
     if (t2.flags & Threat2mconsts::FLAG_SAFE) {
       for (pti p : t.encl->interior) {
@@ -159,7 +159,7 @@ AllThreats::addThreat2moves_toStats(Threat2m &t2, Threat &t)
 	}
 	bool was_not = (t2.is_in_encl2[p] < Threat2mconsts::ENCL2_INSIDE_THRESHOLD);
 	t2.is_in_encl2[p] += Threat2mconsts::ENCL2_INSIDE_ADD;
-	if (was_not && t2.is_in_encl2[p] >= Threat2mconsts::ENCL2_INSIDE_THRESHOLD)
+	if (was_not and t2.is_in_encl2[p] >= Threat2mconsts::ENCL2_INSIDE_THRESHOLD)
 	  is_in_2m_encl[p]++;
       }
     } else {
@@ -174,7 +174,7 @@ AllThreats::addThreat2moves_toStats(Threat2m &t2, Threat &t)
       for (pti p : t.encl->interior) {
 	bool was_not = (t2.is_in_encl2[p] < Threat2mconsts::ENCL2_INSIDE_THRESHOLD);
 	t2.is_in_encl2[p] += Threat2mconsts::ENCL2_INSIDE_ADD;
-	if (was_not && t2.is_in_encl2[p] >= Threat2mconsts::ENCL2_INSIDE_THRESHOLD)
+	if (was_not and t2.is_in_encl2[p] >= Threat2mconsts::ENCL2_INSIDE_THRESHOLD)
 	  is_in_2m_encl[p]++;
       }
     } else {
@@ -189,7 +189,7 @@ void
 AllThreats::addThreat2moves_toMiai(Threat2m &t2, Threat &t)
 {
   assert(!t2.is_in_encl2.empty());
-  if (t2.win_move_count >= 2 || (t2.win_move_count == 1 && t.opp_dots==0)) {
+  if (t2.win_move_count >= 2 || (t2.win_move_count == 1 and t.opp_dots==0)) {
     // miai possibility
     if (t2.flags & Threat2mconsts::FLAG_SAFE) {
       for (pti p : t.encl->interior) {
@@ -333,7 +333,7 @@ AllThreats::subtractThreat2moves(Threat2m &t2, const Threat& t)
     for (pti p : t.encl->interior) {
       bool was = (t2.is_in_encl2[p] >= Threat2mconsts::ENCL2_INSIDE_THRESHOLD);
       t2.is_in_encl2[p] -= Threat2mconsts::ENCL2_INSIDE_ADD;
-      if (was && t2.is_in_encl2[p] < Threat2mconsts::ENCL2_INSIDE_THRESHOLD &&
+      if (was and t2.is_in_encl2[p] < Threat2mconsts::ENCL2_INSIDE_THRESHOLD and
 	  (t2.flags & Threat2mconsts::FLAG_SAFE)) {
 	is_in_2m_encl[p]--;
       }
@@ -387,7 +387,7 @@ void
 AllThreats::changeFlagSafe(Threat2m &t2)
 {
   t2.flags ^= Threat2mconsts::FLAG_SAFE;
-  if (t2.thr_list.size()>=2 && t2.win_move_count>=1) {
+  if (t2.thr_list.size()>=2 and t2.win_move_count>=1) {
     pti change = (t2.flags & Threat2mconsts::FLAG_SAFE) ? 1 : -1;
     for (int ind=coord.first; ind<=coord.last; ind++) {
       if (t2.is_in_encl2[ind] & Threat2mconsts::ENCL2_MIAI)
@@ -512,12 +512,12 @@ AllThreats::getMinAreaOfThreatEnclosingPoint(pti ind) const
   int min_terr_size = std::numeric_limits<int>::max();
   for (const auto &t : threats) {
     if (t.type & ThreatConsts::TERR) {
-      if (t.terr_points < min_terr_size && t.encl->isInInterior(ind)) {
+      if (t.terr_points < min_terr_size and t.encl->isInInterior(ind)) {
 	min_terr_size = t.terr_points;
 	if (min_terr_size == 1) break;
       }
     } else {  // ENCL
-      if (t.terr_points+1 < min_terr_size && t.encl->isInInterior(ind)) {
+      if (t.terr_points+1 < min_terr_size and t.encl->isInInterior(ind)) {
 	min_terr_size = t.terr_points+1;
 	if (min_terr_size == 1) break;
       }
