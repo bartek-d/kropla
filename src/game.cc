@@ -2084,15 +2084,15 @@ Game::checkThreat2moves_encl(Threat* thr, pti where0, int who)
 }
 
 int
-Game::addThreat2moves(pti ind0, pti ind1, int who, std::shared_ptr<Enclosure> &encl)
+Game::addThreat2moves(pti ind0, pti ind1, int who, Enclosure &&encl)
 {
   Threat t;
   t.type = ThreatConsts::ENCL;
-  t.zobrist_key = encl->zobristKey(who);
-  t.encl = encl;
-  auto tmp = countDotsTerrInEncl(*encl, 3-who);
+  t.zobrist_key = encl.zobristKey(who);
+  auto tmp = countDotsTerrInEncl(encl, 3-who);
   t.opp_dots = std::get<0>(tmp);
   t.terr_points = std::get<1>(tmp);
+  t.encl = std::make_shared<Enclosure>(std::move(encl));
   return threats[who-1].addThreat2moves(ind0, ind1, isSafeFor(ind0, who), isSafeFor(ind1, who), who, t);
 }
 
@@ -2224,10 +2224,10 @@ Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
 	for (int i=count; i>0; --i) {
 	  pti pt = newthr[newthr.size() - i];
 	  assert(coord.dist[pt] >= 1 && whoseDotMarginAt(pt) != who);
-	  std::shared_ptr<Enclosure> encl = std::make_shared<Enclosure>(findSimpleEnclosure(pt, MASK_DOT, who));
+	  Enclosure encl = findSimpleEnclosure(pt, MASK_DOT, who);
 	  //if (!encl->isEmpty()) was_one = true;
-	  if (!encl->isEmpty() && encl->isInBorder(ind) && encl->isInBorder(ind0) && encl->isInBorder(ind1)) {
-	    addThreat2moves(ind0, ind1, who, encl);
+	  if (!encl.isEmpty() && encl.isInBorder(ind) && encl.isInBorder(ind0) && encl.isInBorder(ind1)) {
+	    addThreat2moves(ind0, ind1, who, std::move(encl));
 	    //was_one = true;
 	    debug_sing_smallt2m++;
 	    goto one_found;
@@ -2236,11 +2236,10 @@ Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
 	// none was found, second pass: find non-simple enclosure
 	for (int i=count; i>0; --i) {
 	  pti pt = newthr[newthr.size() - i];
-	  std::shared_ptr<Enclosure> encl = std::make_shared<Enclosure>(findNonSimpleEnclosure(pt, MASK_DOT, who));
-									//findEnclosure(pt, MASK_DOT, who));  // findNonSimpleEnclosure(pt, MASK_DOT, who));
+	  Enclosure encl = findNonSimpleEnclosure(pt, MASK_DOT, who);
 	  //if (!encl->isEmpty()) was_one = true;
-	  if (!encl->isEmpty() && encl->isInBorder(ind) && encl->isInBorder(ind0) && encl->isInBorder(ind1)) {
-	    addThreat2moves(ind0, ind1, who, encl);
+	  if (!encl.isEmpty() && encl.isInBorder(ind) && encl.isInBorder(ind0) && encl.isInBorder(ind1)) {
+	    addThreat2moves(ind0, ind1, who, std::move(encl));
 	    //was_one = true;
 	    debug_sing_larget2m++;
 	    goto one_found;
@@ -2262,10 +2261,10 @@ Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who)
 	  assert(!newthr.empty());
 	  pti pt = newthr.back();  newthr.pop_back();
 	  assert(coord.dist[pt] >= 1 && whoseDotMarginAt(pt) != who);
-	  std::shared_ptr<Enclosure> encl = std::make_shared<Enclosure>(findEnclosure(pt, MASK_DOT, who));
+	  Enclosure encl = findEnclosure(pt, MASK_DOT, who);
 	  //if (!encl->isEmpty()) was_one = true;
-	  if (!encl->isEmpty() && encl->isInBorder(ind) && encl->isInBorder(ind0) && encl->isInBorder(ind1)) {
-	    addThreat2moves(ind0, ind1, who, encl);
+	  if (!encl.isEmpty() && encl.isInBorder(ind) && encl.isInBorder(ind0) && encl.isInBorder(ind1)) {
+	    addThreat2moves(ind0, ind1, who, std::move(encl));
 	    //was_one = true;
 	    /*
 	    if (debug_count >=2 && debug_probably_1_encl) {

@@ -279,7 +279,7 @@ private:
   std::shared_ptr<Enclosure> checkThreat_terr(Threat* thr, pti p, int who);
   void checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who);
   void checkThreat2moves_encl(Threat* thr, pti where0, int who);
-  int addThreat2moves(pti ind0, pti ind1, int who, std::shared_ptr<Enclosure> &encl);
+  int addThreat2moves(pti ind0, pti ind1, int who, Enclosure &&encl);
   void checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind, int who);
   void addThreat(Threat&& t, int who);
   void removeMarked(int who);
