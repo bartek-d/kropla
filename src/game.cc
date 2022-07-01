@@ -2935,7 +2935,7 @@ Game::getSimplifyingEnclAndPriorities(int who)
 	ti.move = t.where;
 	ti.won_dots = t.opp_dots;
 	ti.priority_value = ti.calculatePriorityValue();
-	ml_priorities.push_back(ti);
+	ml_priorities.push_back(std::move(ti));
       }
     }
   }
@@ -4642,14 +4642,14 @@ Game::countTerritory(int now_moves) const
       // for enclosures, do not use B dots which are inside W's terr
       auto encl = findEnclosure(marks, i, ct_B | ct_NOT_TERR_W, ct_B | ct_NOT_TERR_W);
       if (!encl.isEmpty()) {
-	poolsB.push_back(encl);
+	poolsB.push_back(std::move(encl));
       }
     }
     if ((marks[i] & (ct_W | ct_NOT_TERR_W)) == 0 && coord.dist[i]>=0) {
       // for enclosures, do not use W dots which are inside B's terr
       auto encl = findEnclosure(marks, i, ct_W | ct_NOT_TERR_B, ct_W | ct_NOT_TERR_B);
       if (!encl.isEmpty()) {
-	poolsW.push_back(encl);
+	poolsW.push_back(std::move(encl));
       }
     }
   }
