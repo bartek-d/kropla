@@ -1858,46 +1858,29 @@ Game::checkThreat_encl(Threat* thr, int who)
       if (!done[j]) {
 	pti nb = where + coord.nb4[j];
 	if (whoseDotMarginAt(nb) != who and coord.dist[nb] >= 1) {
-	  Threat t;
-	  t.encl = std::make_shared<Enclosure>(findEnclosure(nb, MASK_DOT, who));
-	  if (!t.encl->isEmpty() and !t.encl->isInInterior(where)) {
-	    t.type = ThreatConsts::ENCL;
-	    t.where = where;
-	    auto zobr = t.zobrist_key = t.encl->zobristKey(who);
+	  Enclosure encl = findEnclosure(nb, MASK_DOT, who);
+	  if (!encl.isEmpty() and !encl.isInInterior(where)) {
+	    const auto zobr = encl.zobristKey(who);
 	    // if some next neighbour has been enclosed, mark it as done
 	    for (int k=j+1; k<4; k++) {
-	      if (t.encl->isInInterior(where + coord.nb4[k]))
+	      if (encl.isInInterior(where + coord.nb4[k]))
 		done[k]=1;
 	    }
-#ifndef NDEBUG
-	    //std::cerr << "Zagrozenie mozliwe do dodania: " << who << " w " << coord.showPt(where) << std::endl;
-#endif
 	    Threat *thrfz = threats[who-1].findThreatZobrist(zobr);
 	    if (thrfz == nullptr) {
-	      auto tmp = countDotsTerrInEncl(*t.encl, 3-who);
+	      auto tmp = countDotsTerrInEncl(encl, 3-who);
+	      Threat t;
+	      t.type = ThreatConsts::ENCL;
+	      t.where = where;
 	      t.opp_dots = std::get<0>(tmp);
+	      t.zobrist_key = zobr;
 	      t.terr_points = std::get<1>(tmp);
+	      t.encl = std::make_shared<Enclosure>(std::move(encl));
 	      //std::tie<t.opp_dots, t.terr_points>
 	      addThreat(std::move(t), who);
-#ifndef NDEBUG
-	      //std::cerr << "Zagrozenie dodane" << std::endl;
-#endif
 	    } else {
 	      thrfz->type &= ~(ThreatConsts::TO_CHECK | ThreatConsts::TO_REMOVE);
-#ifndef NDEBUG
-	      //std::cerr << "Zagrozenie NIEDODANE" << std::endl;
-	      //if (where == coord.ind(24, 23)) std::cerr << t.show() << std::endl;
-#endif
 	    }
-	  }
-	  else { // debug
-#ifndef NDEBUG
-	    /*
-	      if (!t.encl->isEmpty()) {
-	      std::cerr << "Zagrozenie ODRZUCONE w " << coord.showPt(where) << std::endl;
-	      //if (where == coord.ind(24, 23)) std::cerr << t.show() << std::endl;
-	      }*/
-#endif
 	  }
 	}
       }
