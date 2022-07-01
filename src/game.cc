@@ -1911,10 +1911,10 @@ Game::checkThreat_terr(Threat* thr, pti p, int who, std::vector<int8_t>* done)
 	t.type = ThreatConsts::TERR;
 	t.where = 0;
 	t.zobrist_key = zobr;
-	t.encl = std::make_shared<Enclosure>(std::move(encl));
-	auto tmp = countDotsTerrInEncl(*t.encl, 3-who);
+	auto tmp = countDotsTerrInEncl(encl, 3-who);
 	t.opp_dots = std::get<0>(tmp);
 	t.terr_points = std::get<1>(tmp);
+	t.encl = std::make_shared<Enclosure>(std::move(encl));
 	addThreat(std::move(t), who);
       }
     }
@@ -1992,16 +1992,19 @@ Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
 	if (pt == last_pt) break;
 	last_pt = pt;
 	interior >>= 3;
-	Threat t;
-	t.encl = std::make_shared<Enclosure>(findEnclosure(pt, MASK_DOT, who));
-	if (!t.encl->isEmpty() and !t.encl->isInInterior(where)) {
-	  t.type = ThreatConsts::ENCL;
-	  t.where = where;
-	  auto zobr = t.zobrist_key = t.encl->zobristKey(who);
+
+	Enclosure encl = findEnclosure(pt, MASK_DOT, who);
+	if (!encl.isEmpty() and !encl.isInInterior(where)) {
+	  auto zobr = encl.zobristKey(who);
 	  if (threats[who-1].findThreatZobrist(zobr) == nullptr) {
-	    auto tmp = countDotsTerrInEncl(*t.encl, 3-who);
+	    Threat t;
+	    t.type = ThreatConsts::ENCL;
+	    t.where = where;
+	    t.zobrist_key = zobr;
+	    auto tmp = countDotsTerrInEncl(encl, 3-who);
 	    t.opp_dots = std::get<0>(tmp);
 	    t.terr_points = std::get<1>(tmp);
+	    t.encl = std::make_shared<Enclosure>(std::move(encl));
 	    addThreat(std::move(t), who);
 	  }
 	  /* for debugging */
