@@ -36,8 +36,8 @@
 struct Enclosure {
   std::vector<pti> interior;
   std::vector<pti> border;
-  Enclosure(std::vector<pti> const &i, std::vector<pti> const &b) : interior(i), border(b) {};
-  Enclosure(std::vector<pti> &&i, std::vector<pti> &&b) : interior(std::move(i)), border(std::move(b)) {};
+  Enclosure(std::vector<pti> const &i, std::vector<pti> const &b) : interior(i), border(b) {}
+  Enclosure(std::vector<pti> &&i, std::vector<pti> &&b) : interior(std::move(i)), border(std::move(b)) {}
   /* set version seems to be slower:
   std::set<pti,std::greater<pti>> interior;
   std::set<pti,std::greater<pti>> border;
@@ -46,6 +46,11 @@ struct Enclosure {
   */
   Enclosure() = default;
   ~Enclosure() = default;
+  Enclosure(Enclosure&&) = default;
+  Enclosure(const Enclosure&) = default;
+  Enclosure& operator=(Enclosure&&) = default;
+  Enclosure& operator=(const Enclosure&) = default;
+
   bool isInInterior(pti p) const;
   bool isInBorder(pti p) const;
   bool isEmpty() const;
