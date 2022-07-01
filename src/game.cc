@@ -1888,25 +1888,30 @@ Game::checkThreat_encl(Threat* thr, int who)
   }
 }
 
-std::shared_ptr<Enclosure>
-Game::checkThreat_terr(Threat* thr, pti p, int who)
+void
+Game::checkThreat_terr(Threat* thr, pti p, int who, std::vector<int8_t>* done)
 /// Try to enclose point [p] by who.
 /// @param[in] thr  Threat with a territory to check, it may happen that the territory found will be the same
 ///                 and we will just change thr.type (reset REMOVE flag) instead of saving new one.
 {
-  Threat t;
-  std::shared_ptr<Enclosure> en = t.encl = std::make_shared<Enclosure>(findEnclosure(p, MASK_DOT, who));
-  if (!t.encl->isEmpty()) {
-    t.type = ThreatConsts::TERR;
-    t.where = 0;
-    auto zobr = t.zobrist_key = t.encl->zobristKey(who);
-    if (thr and t.zobrist_key == thr->zobrist_key) {
+  Enclosure encl = findEnclosure(p, MASK_DOT, who);
+  if (!encl.isEmpty()) {
+    if (done != nullptr) {
+      for (auto i : encl.interior) (*done)[i] = 1;
+    }
+    auto zobr = encl.zobristKey(who);
+    if (thr and zobr == thr->zobrist_key) {
       thr->type &= ~(ThreatConsts::TO_CHECK | ThreatConsts::TO_REMOVE);  //  thr->type = ThreatConsts::TERR;
     } else {
       Threat *tz = threats[who-1].findThreatZobrist(zobr);
       if (tz != nullptr) {
 	tz->type  &= ~(ThreatConsts::TO_CHECK | ThreatConsts::TO_REMOVE);  // may be redundant, but it's as fast to do as to check
       } else {
+	Threat t;
+	t.type = ThreatConsts::TERR;
+	t.where = 0;
+	t.zobrist_key = zobr;
+	t.encl = std::make_shared<Enclosure>(std::move(encl));
 	auto tmp = countDotsTerrInEncl(*t.encl, 3-who);
 	t.opp_dots = std::get<0>(tmp);
 	t.terr_points = std::get<1>(tmp);
@@ -1914,7 +1919,6 @@ Game::checkThreat_terr(Threat* thr, pti p, int who)
       }
     }
   }
-  return en;
 }
 
 void
@@ -1946,10 +1950,7 @@ Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
 	std::shared_ptr<Enclosure> encl = thr->encl;     // thr may be invalidated by adding new threats in checkThreat_terr
 	for (auto p : encl->interior)
 	  if (!done[p] and whoseDotMarginAt(p) != who) {
-	    std::shared_ptr<Enclosure> en = checkThreat_terr(&threats[who-1].threats[tn], p, who);   // try to enclose p; cannot use *thr because it can be invalidated
-	    if (!en->isEmpty()) {
-	      for (auto i : en->interior) done[i] = 1;
-	    }
+	    checkThreat_terr(&threats[who-1].threats[tn], p, who, &done);   // try to enclose p; cannot use *thr because it can be invalidated
 	  }
       }
     }

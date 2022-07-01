@@ -276,7 +276,7 @@ private:
   std::vector<pti> findThreats2moves_preDot(pti ind, int who);
   SmallMultimap<7, 7> getEmptyPointsCloseToIndTouchingSomeOtherGroup(const SmallMultiset<pti, 4>& connected_groups, pti ind, int who) const;
   void checkThreat_encl(Threat* thr, int who);
-  std::shared_ptr<Enclosure> checkThreat_terr(Threat* thr, pti p, int who);
+  void checkThreat_terr(Threat* thr, pti p, int who, std::vector<int8_t>* done = nullptr);
   void checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who);
   void checkThreat2moves_encl(Threat* thr, pti where0, int who);
   int addThreat2moves(pti ind0, pti ind1, int who, Enclosure &&encl);
