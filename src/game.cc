@@ -3200,6 +3200,24 @@ Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure> > &encl_moves, std::ve
       Threat *thr = threats[who-1].findThreatZobrist(it->zobrist_key);
       assert(thr != nullptr);
       */
+      if (it != ml_priority_vect.begin() and threats[who-1].is_in_terr[move]) {
+	// eido_u0O9GbZR problem, we played inside terr and now may have overlapping threats,
+	// ignore those that contain prev threats or is contained in prev threat
+	bool is_contained = false;
+	auto some_point_inside_it = it->thr_pointer->encl->interior.at(0);
+	for (auto otherIt = ml_priority_vect.begin(); otherIt != it; ++otherIt) {
+	  if (otherIt->thr_pointer->encl->isInInterior(some_point_inside_it)) {
+	    is_contained = true;
+	    break;
+	  }
+	  auto some_point_inside_other = otherIt->thr_pointer->encl->interior.at(0);
+	  if (it->thr_pointer->encl->isInInterior(some_point_inside_other)) {
+	    is_contained = true;
+	    break;
+	  }
+	}
+	if (is_contained) continue;
+      }
       if (it->priority_value > 0) {
 	encl_moves.push_back(it->thr_pointer->encl);
 	encl_zobrists_0 ^= it->thr_pointer->zobrist_key;
