@@ -26,6 +26,7 @@
 #include "sgf.h"
 #include "patterns.h"
 #include "allpattgen.h"
+#include "string_utils.h"
 
 #include <highfive/H5DataSet.hpp>
 #include <highfive/H5DataSpace.hpp>
@@ -42,7 +43,8 @@
 
 constexpr int MOVES_USED = 3;
 constexpr int PLANES = 7;
-constexpr int BSIZE = 20;
+constexpr int BSIZEX = 39;
+constexpr int BSIZEY = 32;
 constexpr int TAB_SIZE = 16384;
 
 // using Board = float[PLANES][BSIZE][BSIZE];
@@ -50,7 +52,7 @@ constexpr int TAB_SIZE = 16384;
 class DataCollector {
   using Array4dim = boost::multi_array<float, 4>;
   using Array1dim = boost::multi_array<int, 1>;
-  Array4dim data{boost::extents[TAB_SIZE][PLANES][BSIZE][BSIZE]};
+  Array4dim data{boost::extents[TAB_SIZE][PLANES][BSIZEX][BSIZEY]};
   std::array<Array1dim, MOVES_USED> data_labels;
   int curr_size = 0;
   int file_no = 1;
@@ -105,7 +107,7 @@ void DataCollector::dump()
 DataCollector::~DataCollector()
 {
   if (curr_size == 0) return;
-  data.resize(boost::extents[curr_size][PLANES][BSIZE][BSIZE]);
+  data.resize(boost::extents[curr_size][PLANES][BSIZEX][BSIZEY]);
   for (int m=0; m<MOVES_USED; ++m)
     data_labels[m].resize(boost::extents[curr_size]);
   dump();
@@ -132,10 +134,11 @@ void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
   game.show();
   std::cerr << "Move " << move.show() << " was about to play." << std::endl;
   */
-  for (unsigned isometry = 0; isometry < 8; ++isometry) {
+  const unsigned max_isometry = (BSIZEX == BSIZEY) ? 8 : 4;
+  for (unsigned isometry = 0; isometry < max_isometry; ++isometry) {
     auto data = collector.getCurrentArray();
-    for (int x = 0; x < BSIZE; ++x)
-      for (int y = 0; y < BSIZE; ++y) {
+    for (int x = 0; x < BSIZEX; ++x)
+      for (int y = 0; y < BSIZEY; ++y) {
 	int p_orig = coord.ind(x, y);
 	int p = applyIsometry(p_orig, isometry);
 	int on_move = game.whoNowMoves();
@@ -180,7 +183,7 @@ void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
     }
     for (int m=0; m<MOVES_USED; ++m) {
       int move_isom = applyIsometry(moves.at(m).ind, isometry);
-      int label = coord.x[move_isom] * BSIZE + coord.y[move_isom];
+      int label = coord.x[move_isom] * BSIZEY + coord.y[move_isom];
       collector.save(m, label);
     }
   }
@@ -226,7 +229,7 @@ void gatherDataFromSgfSequence(SgfSequence &seq,
 			       const std::map<int, bool> &whichSide)
 {
   const auto [x, y] = getSize(seq[0]);
-  if (x != BSIZE or y != BSIZE) {
+  if (x != BSIZEX or y != BSIZEY) {
     std::cout << "  ... size: " << x << "x" << y << std::endl;
     return;
   }
@@ -304,8 +307,8 @@ int main(int argc, char* argv[]) {
       continue;
     auto blue = seq[0].findProp("PB")->second[0];
     auto red = seq[0].findProp("PW")->second[0];
-    auto blueRank = std::stoi(seq[0].findProp("BR")->second[0]);
-    auto redRank = std::stoi(seq[0].findProp("WR")->second[0]);
+    auto blueRank = robust_stoi(seq[0].findProp("BR")->second[0]);
+    auto redRank = robust_stoi(seq[0].findProp("WR")->second[0]);
     bool blueOk = (allowedPlayers.find(blue) != allowedPlayers.end() or blueRank >= min_rank) and (forbiddenPlayers.find(blue) ==forbiddenPlayers.end());
     bool redOk = (allowedPlayers.find(red) != allowedPlayers.end() or redRank >= min_rank) and (forbiddenPlayers.find(red) ==forbiddenPlayers.end());
     std::cout << sgf_file << " -- game: " << blue << " [" << blueRank << "] -- " << red << " [" << redRank << "]  ";

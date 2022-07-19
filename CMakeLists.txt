@@ -102,7 +102,7 @@ target_link_libraries(kropla Threads::Threads ${CNN_lib})
 add_executable(gather src/game.cc src/game.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/generatedata.cc src/allpattgen.cc src/allpattgen.h  src/safety.cc src/safety.h src/montecarlo.cc src/montecarlo.h  ${CNN_src})
 target_link_libraries(gather Threads::Threads ${CNN_lib})
 
-add_executable(extract src/game.cc src/game.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/extract.cc src/safety.cc src/safety.h ${CNN_src})
+add_executable(extract src/game.cc src/game.h src/game_utils.h src/string_utils.h src/string_utils.cc src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/extract.cc src/safety.cc src/safety.h ${CNN_src})
 target_link_libraries(extract Threads::Threads HighFive ${CNN_lib})
 
 if(NOT USE_CNN)
@@ -115,6 +115,7 @@ add_executable(runUnitTests
   unittest/board-test.cc
   unittest/game-test.cc
   unittest/utils-test.cc
+  unittest/string-utils-test.cc
   unittest/safety-test.cc
   unittest/patt-test.cc
  unittest/utils.cc
@@ -124,6 +125,8 @@ add_executable(runUnitTests
  src/game.cc
  src/game.h
  src/game_utils.h
+ src/string_utils.h 
+ src/string_utils.cc
  src/board.h
  src/board.cc
  src/sgf.cc
