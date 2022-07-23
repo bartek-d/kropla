@@ -249,6 +249,7 @@ private:
   //
   static const int COEFF_URGENT = 4;
   static const int COEFF_NONURGENT = 1;
+  bool must_surround{false};
   //
 #ifdef DEBUG_SGF
 public:
@@ -318,7 +319,7 @@ private:
   std::vector<pti> getPatt3extraValues() const;
 public:
   Game() = delete;
-  Game(SgfSequence seq, int max_moves);
+  Game(SgfSequence seq, int max_moves, bool must_surround = false);
   int whoNowMoves() { return nowMoves; };
   void replaySgfSequence(SgfSequence seq, int max_moves);
   void placeDot(int x, int y, int who);

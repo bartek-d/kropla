@@ -1,6 +1,6 @@
 /********************************************************************************************************
  kropla -- a program to play Kropki; file extract.cc -- main file for extracting trainign data for NN.
-    Copyright (C) 2021 Bartek Dyda,
+    Copyright (C) 2021, 2022 Bartek Dyda,
     email: bartekdyda (at) protonmail (dot) com
 
     Some parts are inspired by Pachi http://pachi.or.cz/
@@ -226,7 +226,8 @@ std::pair<unsigned, unsigned> getSize(SgfNode& node)
 }
 
 void gatherDataFromSgfSequence(SgfSequence &seq,
-			       const std::map<int, bool> &whichSide)
+			       const std::map<int, bool> &whichSide,
+			       bool must_surround)
 {
   const auto [x, y] = getSize(seq[0]);
   if (x != BSIZEX or y != BSIZEY) {
@@ -236,7 +237,7 @@ void gatherDataFromSgfSequence(SgfSequence &seq,
   const unsigned start_from = 5;
   const unsigned go_to = std::min<unsigned>((x*y*3) / 5,     // use moves until 60% of board is full
 					    seq.size() - MOVES_USED);
-  Game game(SgfSequence(seq.begin(), seq.begin() + start_from), go_to);
+  Game game(SgfSequence(seq.begin(), seq.begin() + start_from), go_to, must_surround);
   for (unsigned i = start_from; i < go_to; ++i) {
     if (whichSide.at(game.whoNowMoves())) {
       std::vector<Move> subsequentMoves;
@@ -266,8 +267,8 @@ std::set<std::string> readLines(const std::string& filename)
 
 
 int main(int argc, char* argv[]) {
-  if (argc < 4) {
-    std::cerr << "at least 3 parameters needed, players_file out_file sgf_file(s)" << std::endl;
+  if (argc < 3) {
+    std::cerr << "at least 3 parameters needed, players_file sgf_file(s)" << std::endl;
     return 1;
   }
 
@@ -292,9 +293,7 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  std::string out_file{argv[2]};
-
-  for (int nfile = 3; nfile < argc; ++nfile) {
+  for (int nfile = 2; nfile < argc; ++nfile) {
     std::string sgf_file{argv[nfile]};
     std::ifstream t(sgf_file);
     std::stringstream buffer;
@@ -305,6 +304,12 @@ int main(int argc, char* argv[]) {
     auto seq = parser.parseMainVar();
     if (seq[0].findProp("PB") == seq[0].props.end() or seq[0].findProp("PW") == seq[0].props.end() or seq[0].findProp("BR") == seq[0].props.end() or seq[0].findProp("WR") == seq[0].props.end())
       continue;
+    bool must_surround = false;
+    {
+      auto res = seq[0].findProp("RU");
+      if (res != seq[0].props.end() and res->second[0] == "russian")
+	must_surround = true;
+    }
     auto blue = seq[0].findProp("PB")->second[0];
     auto red = seq[0].findProp("PW")->second[0];
     auto blueRank = robust_stoi(seq[0].findProp("BR")->second[0]);
@@ -313,7 +318,7 @@ int main(int argc, char* argv[]) {
     bool redOk = (allowedPlayers.find(red) != allowedPlayers.end() or redRank >= min_rank) and (forbiddenPlayers.find(red) ==forbiddenPlayers.end());
     std::cout << sgf_file << " -- game: " << blue << " [" << blueRank << "] -- " << red << " [" << redRank << "]  ";
     if (blueOk and redOk) {
-      gatherDataFromSgfSequence(seq, {{1, blueOk}, {2, redOk}});
+      gatherDataFromSgfSequence(seq, {{1, blueOk}, {2, redOk}}, must_surround);
     } else {
       std::cout << "omitted." << std::endl;
     }

@@ -602,7 +602,8 @@ Game::initWorm()
   }
 }
 
-Game::Game(SgfSequence seq, int max_moves)
+Game::Game(SgfSequence seq, int max_moves, bool must_surround)
+  : must_surround{must_surround}
 {
   assert(Pattern3extra::MASK_DOT == MASK_DOT);
   global::komi = 0;
@@ -4853,6 +4854,8 @@ Game::extractSgfMove(std::string m, int who) const
   Move move;
   move.ind = coord.sgfToPti(m);
   if (whoseDotMarginAt(move.ind)) {
+    show();
+    std::cerr << "Trying to play at " << coord.showPt(move.ind) << std::endl;
     throw std::runtime_error("makeSgfMove error: trying to play at an occupied point");
   }
 #ifndef NDEBUG
@@ -4896,7 +4899,6 @@ Game::makeSgfMove(std::string m, int who)
   } else {
     makeMoveWithPointsToEnclose(move, points_to_enclose);
   }
-
 
   /*
   if (m == "ek") {
@@ -5018,6 +5020,21 @@ Game::makeMove(Move &m)
     placeDot(coord.x[m.ind], coord.y[m.ind], m.who);
     for (auto &encl : m.enclosures) {
       makeEnclosure(*encl, true);
+    }
+    if (must_surround) {
+      int corner_right_bottom = coord.ind(coord.wlkx-2, coord.wlky-2);
+      int opponent = 3 - m.who;
+      for (int i=coord.ind(1,1); i<= corner_right_bottom; ++i) {
+	if (isInTerr(i, m.who) and whoseDotMarginAt(i) == opponent) {
+	  Enclosure encl = findEnclosure(i, MASK_DOT, m.who);
+	  if (!encl.isEmpty()) {
+	    show();
+	    std::cerr << "Enclosure:" << std::endl << encl.show() << std::endl;
+	    std::cerr << "-------------------------------------------------------------" << std::endl;
+	    makeEnclosure(encl, true);
+	  }
+	}
+      }
     }
     safety_soft.updateAfterMove(this, update_soft_safety, m.ind);
     update_soft_safety = 0;
