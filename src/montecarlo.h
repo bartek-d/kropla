@@ -25,40 +25,47 @@
 #pragma once
 
 #include <atomic>
+#include <memory>
+#include <string>
 
 /********************************************************************************************************
   Montecarlo class for Monte Carlo search.
 *********************************************************************************************************/
 class Game;
+struct Treenode;
+class TreenodeAllocator;
 
-class MonteCarlo {
-public:
-  MonteCarlo();
-  std::string findBestMove(Game &pos, int iter_count);
-  std::string findBestMoveMT(Game &pos, int threads, int iter_count, int msec);
-private:
-  int runSimulations(int max_iter_count, unsigned thread_no, unsigned threads_count);
-  Treenode* selectBestChild(Treenode *node) const;
-  std::shared_ptr<Game> getCopyOfGame(Treenode *node) const;
-  void expandNode(TreenodeAllocator &alloc, Treenode *node, Game* game, int depth) const;
-  void descend(TreenodeAllocator &alloc, Treenode *node, unsigned seed);
+class MonteCarlo
+{
+   public:
+    MonteCarlo();
+    std::string findBestMove(Game &pos, int iter_count);
+    std::string findBestMoveMT(Game &pos, int threads, int iter_count,
+                               int msec);
+
+   private:
+    int runSimulations(int max_iter_count, unsigned thread_no,
+                       unsigned threads_count);
+    Treenode *selectBestChild(Treenode *node) const;
+    std::shared_ptr<Game> getCopyOfGame(Treenode *node) const;
+    void expandNode(TreenodeAllocator &alloc, Treenode *node, Game *game,
+                    int depth) const;
+    void descend(TreenodeAllocator &alloc, Treenode *node, unsigned seed);
 };
 
-namespace montec {
+namespace montec
+{
 extern Treenode root;
 extern std::atomic<bool> finish_sim;
 extern bool finish_threads;
 extern std::atomic<int> threads_to_be_finished;
 extern std::atomic<int64_t> iterations;
 extern std::atomic<int64_t> generateMovesCount;
-}
+}  // namespace montec
 
-void
-play_engine(Game &game, std::string &s, int threads_count, int iter_count, int msec);
+void play_engine(Game &game, std::string &s, int threads_count, int iter_count,
+                 int msec);
 
-void
-findAndPrintBestMove(Game &game, int threads_count, int iter_count);
+void findAndPrintBestMove(Game &game, int threads_count, int iter_count);
 
-void
-playInteractively(Game &game, int threads_count, int iter_count);
-
+void playInteractively(Game &game, int threads_count, int iter_count);

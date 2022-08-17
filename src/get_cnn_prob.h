@@ -24,9 +24,10 @@
 
 #pragma once
 
-#include "game.h"
-#include <vector>
 #include <utility>
+#include <vector>
+
+#include "game.h"
 
 std::pair<bool, std::vector<float>> getCnnInfo(Game& game);
 void updatePriors(Game& game, Treenode* children, int depth);

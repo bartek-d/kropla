@@ -29,133 +29,160 @@
 */
 
 #include "get_cnn_prob.h"
+
 #include "caffe/mcaffe.h"
 
 //#include "board.h"
 
 #include <boost/multi_array.hpp>
-
-#include <iostream>
-#include <fstream>
-#include <string>
 #include <cmath>
+#include <fstream>
+#include <iostream>
 #include <mutex>
+#include <string>
 
-namespace {
+namespace
+{
 MCaffe cnn;
-std::mutex caffe_mutex; 
+std::mutex caffe_mutex;
 bool madeQuiet = false;
 int planes = 10;
 using Array3dim = boost::multi_array<float, 3>;
 constexpr int DEFAULT_CNN_BOARD_SIZE = 20;
-}
+}  // namespace
 
-std::pair<bool, std::vector<float>> getCnnInfo(Game& game) try
+std::pair<bool, std::vector<float>> getCnnInfo(Game& game)
+try
 {
-  if (not madeQuiet) {
-    cnn.quiet_caffe("kropla");
-    madeQuiet = true;
-  }
-  if (coord.wlkx != coord.wlky) {
-    return {false, {}};
-  }
-  const std::lock_guard<std::mutex> lock(caffe_mutex);
-  if (not cnn.caffe_ready()) {
-    std::string number_of_planes{};
-    std::string model_file_name{};
-    std::string weights_file_name{};
-    std::ifstream t("cnn.config");
-    if (std::getline(t, number_of_planes))
-      if (std::getline(t, model_file_name))
-	std::getline(t, weights_file_name);
-    planes = std::stoi(number_of_planes);
-    if (planes != 7 and planes != 10 and planes != 20) {
-      std::cerr << "Unsupported number of planes (" << planes << "), assuming 10." << std::endl;
-      planes = 10;
+    if (not madeQuiet)
+    {
+        cnn.quiet_caffe("kropla");
+        madeQuiet = true;
     }
-    cnn.caffe_init(coord.wlkx, model_file_name, weights_file_name, DEFAULT_CNN_BOARD_SIZE);
-  }
-  Array3dim data{boost::extents[planes][coord.wlkx][coord.wlky]};
-  for (int x = 0; x < coord.wlkx; ++x)
-    for (int y = 0; y < coord.wlky; ++y) {
-      int p = coord.ind(x, y);
-      int on_move = game.whoNowMoves();
-      int opponent = 3 - on_move;
-      data[0][x][y] = (game.whoseDotMarginAt(p) == 0) ? 1.0f : 0.0f;
-      data[1][x][y] = (game.whoseDotMarginAt(p) == on_move) ? 1.0f : 0.0f;
-      data[2][x][y] = (game.whoseDotMarginAt(p) == opponent) ? 1.0f : 0.0f;
-      data[3][x][y] = game.isInTerr(p, on_move) > 0 ? 1.0f : 0.0f;
-      data[4][x][y] = game.isInTerr(p, opponent) > 0 ? 1.0f : 0.0f;
-      data[5][x][y] = std::min(game.isInEncl(p, on_move), 2) * 0.5f;
-      data[6][x][y] = std::min(game.isInEncl(p, opponent), 2) * 0.5f;
-      if (planes == 7) continue;
-      data[7][x][y] = std::min(game.isInBorder(p, on_move), 2) * 0.5f;
-      data[8][x][y] = std::min(game.isInBorder(p, opponent), 2) * 0.5f;
-      data[9][x][y] = std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
-      if (planes == 10) continue;
-      //	data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
-      //	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
-      data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
-      //	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
-      data[11][x][y] = 1;
-      data[12][x][y] = 0;  // where for thr such that opp_dots>0
-      data[13][x][y] = 0;  // where for thr such that opp_dots>0
-      data[14][x][y] = 0;  // where0 for thr2 such that minwin2 > 0 and isSafe
-      data[15][x][y] = 0;  // where0 for thr2 such that minwin2 > 0 and isSafe
-      data[16][x][y] = (game.threats[on_move-1].is_in_2m_encl[p] > 0) ? 1.0f : 0.0f;
-      data[17][x][y] = (game.threats[opponent-1].is_in_2m_encl[p] > 0) ? 1.0f : 0.0f;
-      data[18][x][y] = (game.threats[on_move-1].is_in_2m_miai[p] > 1) ? 1.0f : 0.0f;
-      data[19][x][y] = (game.threats[opponent-1].is_in_2m_miai[p] > 1) ? 1.0f : 0.0f;
+    if (coord.wlkx != coord.wlky)
+    {
+        return {false, {}};
     }
-  
-  auto res = cnn.caffe_get_data(static_cast<float*>(&data[0][0][0]), coord.wlkx, planes, coord.wlky);
-  std::vector<float> probs(coord.getSize(), 0.0f);
-  for (int x = 0; x < coord.wlkx; ++x) {
-    for (int y = 0; y < coord.wlky; ++y) {
-      probs[coord.ind(x, y)] = res[x * coord.wlky + y];
+    const std::lock_guard<std::mutex> lock(caffe_mutex);
+    if (not cnn.caffe_ready())
+    {
+        std::string number_of_planes{};
+        std::string model_file_name{};
+        std::string weights_file_name{};
+        std::ifstream t("cnn.config");
+        if (std::getline(t, number_of_planes))
+            if (std::getline(t, model_file_name))
+                std::getline(t, weights_file_name);
+        planes = std::stoi(number_of_planes);
+        if (planes != 7 and planes != 10 and planes != 20)
+        {
+            std::cerr << "Unsupported number of planes (" << planes
+                      << "), assuming 10." << std::endl;
+            planes = 10;
+        }
+        cnn.caffe_init(coord.wlkx, model_file_name, weights_file_name,
+                       DEFAULT_CNN_BOARD_SIZE);
     }
-  }
-  return {true, probs};
+    Array3dim data{boost::extents[planes][coord.wlkx][coord.wlky]};
+    for (int x = 0; x < coord.wlkx; ++x)
+        for (int y = 0; y < coord.wlky; ++y)
+        {
+            int p = coord.ind(x, y);
+            int on_move = game.whoNowMoves();
+            int opponent = 3 - on_move;
+            data[0][x][y] = (game.whoseDotMarginAt(p) == 0) ? 1.0f : 0.0f;
+            data[1][x][y] = (game.whoseDotMarginAt(p) == on_move) ? 1.0f : 0.0f;
+            data[2][x][y] =
+                (game.whoseDotMarginAt(p) == opponent) ? 1.0f : 0.0f;
+            data[3][x][y] = game.isInTerr(p, on_move) > 0 ? 1.0f : 0.0f;
+            data[4][x][y] = game.isInTerr(p, opponent) > 0 ? 1.0f : 0.0f;
+            data[5][x][y] = std::min(game.isInEncl(p, on_move), 2) * 0.5f;
+            data[6][x][y] = std::min(game.isInEncl(p, opponent), 2) * 0.5f;
+            if (planes == 7) continue;
+            data[7][x][y] = std::min(game.isInBorder(p, on_move), 2) * 0.5f;
+            data[8][x][y] = std::min(game.isInBorder(p, opponent), 2) * 0.5f;
+            data[9][x][y] = std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
+            if (planes == 10) continue;
+            //	data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
+            //	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
+            data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
+            //	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
+            data[11][x][y] = 1;
+            data[12][x][y] = 0;  // where for thr such that opp_dots>0
+            data[13][x][y] = 0;  // where for thr such that opp_dots>0
+            data[14][x][y] =
+                0;  // where0 for thr2 such that minwin2 > 0 and isSafe
+            data[15][x][y] =
+                0;  // where0 for thr2 such that minwin2 > 0 and isSafe
+            data[16][x][y] =
+                (game.threats[on_move - 1].is_in_2m_encl[p] > 0) ? 1.0f : 0.0f;
+            data[17][x][y] =
+                (game.threats[opponent - 1].is_in_2m_encl[p] > 0) ? 1.0f : 0.0f;
+            data[18][x][y] =
+                (game.threats[on_move - 1].is_in_2m_miai[p] > 1) ? 1.0f : 0.0f;
+            data[19][x][y] =
+                (game.threats[opponent - 1].is_in_2m_miai[p] > 1) ? 1.0f : 0.0f;
+        }
+
+    auto res = cnn.caffe_get_data(static_cast<float*>(&data[0][0][0]),
+                                  coord.wlkx, planes, coord.wlky);
+    std::vector<float> probs(coord.getSize(), 0.0f);
+    for (int x = 0; x < coord.wlkx; ++x)
+    {
+        for (int y = 0; y < coord.wlky; ++y)
+        {
+            probs[coord.ind(x, y)] = res[x * coord.wlky + y];
+        }
+    }
+    return {true, probs};
 }
-catch (const CaffeException& exc) {
-  std::cerr << "Failed to load cnn" << std::endl;
-  return {false, {}};
+catch (const CaffeException& exc)
+{
+    std::cerr << "Failed to load cnn" << std::endl;
+    return {false, {}};
 }
 
 void updatePriors(Game& game, Treenode* children, int depth)
 {
-  const auto [is_cnn_available, probs] = getCnnInfo(game);
-  std::cerr << "Trying to update priors from CNN: " << is_cnn_available << std::endl;
-  if (not is_cnn_available) return;
-  float max = 0.0f;
-  for (auto *ch = children; true; ++ch) {
-    if (not ch->isDame() and probs[ch->move.ind] > max) {
-      max = probs[ch->move.ind];
+    const auto [is_cnn_available, probs] = getCnnInfo(game);
+    std::cerr << "Trying to update priors from CNN: " << is_cnn_available
+              << std::endl;
+    if (not is_cnn_available) return;
+    float max = 0.0f;
+    for (auto* ch = children; true; ++ch)
+    {
+        if (not ch->isDame() and probs[ch->move.ind] > max)
+        {
+            max = probs[ch->move.ind];
+        }
+        if (ch->isLast()) break;
     }
-    if (ch->isLast()) break;
-  }
-  if (max == 0.0f) {
-    std::cerr << "Max is 0.0f, CNN does not work?" << std::endl;
-    return;
-  }
-  const float prior_max = (depth == 1) ? 800.0f : (depth == 2 ? 400.0f : 200.0f);
-  for (auto *ch = children; true; ++ch) {
-    float prob = probs[ch->move.ind];
-    if (prob > 0.001f) {
-      prob = std::sqrt(prob);
-      /*
-	if (not ch->isDame()) {
-	prob = std::sqrt(prob);
-	} else {
-	prob *= prob;
-	} */
-      const int32_t value = prob * prior_max;
-      ch->t.playouts += value;
-      ch->t.value_sum = ch->t.value_sum.load() + value;
-      ch->prior.playouts += value;
-      ch->prior.value_sum = ch->prior.value_sum.load() + value;
+    if (max == 0.0f)
+    {
+        std::cerr << "Max is 0.0f, CNN does not work?" << std::endl;
+        return;
     }
-    if (ch->isLast()) break;
-  }
-  std::cerr << "Updated priors from CNN!" << std::endl;
+    const float prior_max =
+        (depth == 1) ? 800.0f : (depth == 2 ? 400.0f : 200.0f);
+    for (auto* ch = children; true; ++ch)
+    {
+        float prob = probs[ch->move.ind];
+        if (prob > 0.001f)
+        {
+            prob = std::sqrt(prob);
+            /*
+              if (not ch->isDame()) {
+              prob = std::sqrt(prob);
+              } else {
+              prob *= prob;
+              } */
+            const int32_t value = prob * prior_max;
+            ch->t.playouts += value;
+            ch->t.value_sum = ch->t.value_sum.load() + value;
+            ch->prior.playouts += value;
+            ch->prior.value_sum = ch->prior.value_sum.load() + value;
+        }
+        if (ch->isLast()) break;
+    }
+    std::cerr << "Updated priors from CNN!" << std::endl;
 }

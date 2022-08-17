@@ -23,42 +23,56 @@
 *********************************************************************************************************/
 
 #include "group_neighbours.h"
+
 #include "game.h"
 
-GroupNeighbours::GroupNeighbours(Game& game, std::vector<uint8_t>& neighbours, pti group_id, pti forbidden_point, uint8_t mask, int who)
+GroupNeighbours::GroupNeighbours(Game& game, std::vector<uint8_t>& neighbours,
+                                 pti group_id, pti forbidden_point,
+                                 uint8_t mask, int who)
 {
-  for (int i = coord.first; i<=coord.last; ++i)
-    if (game.whoseDotMarginAt(i) == 0 and not coord.isInNeighbourhood(i, forbidden_point)) {
-      std::array<pti, 4> groups = game.connects[who-1][i].groups_id;
-      addPointIfItIsNeighbour(groups, group_id, neighbours, mask, i);
-    }
+    for (int i = coord.first; i <= coord.last; ++i)
+        if (game.whoseDotMarginAt(i) == 0 and
+            not coord.isInNeighbourhood(i, forbidden_point))
+        {
+            std::array<pti, 4> groups = game.connects[who - 1][i].groups_id;
+            addPointIfItIsNeighbour(groups, group_id, neighbours, mask, i);
+        }
 }
 
 bool GroupNeighbours::isGroupClose(pti group_id) const
 {
-  return std::find(neighbour_groups.begin(), neighbour_groups.end(), group_id) != neighbour_groups.end();
+    return std::find(neighbour_groups.begin(), neighbour_groups.end(),
+                     group_id) != neighbour_groups.end();
 }
 
-void GroupNeighbours::addPointIfItIsNeighbour(const std::array<pti, 4>& groups, pti group_id, std::vector<uint8_t>& neighbours, uint8_t mask, pti i)
+void GroupNeighbours::addPointIfItIsNeighbour(const std::array<pti, 4>& groups,
+                                              pti group_id,
+                                              std::vector<uint8_t>& neighbours,
+                                              uint8_t mask, pti i)
 {
-  for (int j=0; j<4; ++j) {
-    pti g = groups[j];
-    if (g == 0) return;
-    if (g == group_id) {
-      neighbours_list.push_back(i);
-      neighbours[i] |= mask;
-      addNeighbourGroups(groups, group_id);
+    for (int j = 0; j < 4; ++j)
+    {
+        pti g = groups[j];
+        if (g == 0) return;
+        if (g == group_id)
+        {
+            neighbours_list.push_back(i);
+            neighbours[i] |= mask;
+            addNeighbourGroups(groups, group_id);
+        }
     }
-  }
 }
 
-void GroupNeighbours::addNeighbourGroups(const std::array<pti, 4>& groups, pti group_id)
+void GroupNeighbours::addNeighbourGroups(const std::array<pti, 4>& groups,
+                                         pti group_id)
 {
-  for (int j=0; j<4; ++j) {
-    pti g = groups[j];
-    if (g == 0) return;
-    if (g == group_id) continue;
-    if (std::find(neighbour_groups.begin(), neighbour_groups.end(), g) == neighbour_groups.end())
-      neighbour_groups.push_back(g);
-  }
+    for (int j = 0; j < 4; ++j)
+    {
+        pti g = groups[j];
+        if (g == 0) return;
+        if (g == group_id) continue;
+        if (std::find(neighbour_groups.begin(), neighbour_groups.end(), g) ==
+            neighbour_groups.end())
+            neighbour_groups.push_back(g);
+    }
 }

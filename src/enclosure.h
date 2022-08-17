@@ -21,47 +21,57 @@
 
 #pragma once
 
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "board.h"
 #include "sgf.h"
-#include <vector>
-#include <string>
-#include <memory>
 
 /********************************************************************************************************
   Enclosure class
 *********************************************************************************************************
-  There are two lists: interior, border with the list of interior, border points of the enclosure.
-  (getInteriorSize() == 0) indicates no enclosure (empty enclosure).
+  There are two lists: interior, border with the list of interior, border points
+of the enclosure. (getInteriorSize() == 0) indicates no enclosure (empty
+enclosure).
 *********************************************************************************************************/
-struct Enclosure {
-  std::vector<pti> interior;
-  std::vector<pti> border;
-  Enclosure(std::vector<pti> const &i, std::vector<pti> const &b) : interior(i), border(b) {}
-  Enclosure(std::vector<pti> &&i, std::vector<pti> &&b) : interior(std::move(i)), border(std::move(b)) {}
-  /* set version seems to be slower:
-  std::set<pti,std::greater<pti>> interior;
-  std::set<pti,std::greater<pti>> border;
+struct Enclosure
+{
+    std::vector<pti> interior;
+    std::vector<pti> border;
+    Enclosure(std::vector<pti> const &i, std::vector<pti> const &b)
+        : interior(i), border(b)
+    {
+    }
+    Enclosure(std::vector<pti> &&i, std::vector<pti> &&b)
+        : interior(std::move(i)), border(std::move(b))
+    {
+    }
+    /* set version seems to be slower:
+    std::set<pti,std::greater<pti>> interior;
+    std::set<pti,std::greater<pti>> border;
 
-  Enclosure(std::vector<pti> i, std::vector<pti> b) : interior(i.begin(), i.end()), border(b.begin(), b.end()) {};
-  */
-  Enclosure() = default;
-  ~Enclosure() = default;
-  Enclosure(Enclosure&&) = default;
-  Enclosure(const Enclosure&) = default;
-  Enclosure& operator=(Enclosure&&) = default;
-  Enclosure& operator=(const Enclosure&) = default;
+    Enclosure(std::vector<pti> i, std::vector<pti> b) : interior(i.begin(),
+    i.end()), border(b.begin(), b.end()) {};
+    */
+    Enclosure() = default;
+    ~Enclosure() = default;
+    Enclosure(Enclosure &&) = default;
+    Enclosure(const Enclosure &) = default;
+    Enclosure &operator=(Enclosure &&) = default;
+    Enclosure &operator=(const Enclosure &) = default;
 
-  bool isInInterior(pti p) const;
-  bool isInBorder(pti p) const;
-  bool isEmpty() const;
-  pti getBorderElement() const;
-  pti getInteriorElement() const;
-  int getInteriorSize() const;
-  uint64_t zobristKey(int who) const;
-  bool checkShortcut(pti p1, pti x) const;
-  bool checkIfRedundant(pti p1) const;
-  std::string show() const;
-  std::string toSgfString() const;
+    bool isInInterior(pti p) const;
+    bool isInBorder(pti p) const;
+    bool isEmpty() const;
+    pti getBorderElement() const;
+    pti getInteriorElement() const;
+    int getInteriorSize() const;
+    uint64_t zobristKey(int who) const;
+    bool checkShortcut(pti p1, pti x) const;
+    bool checkIfRedundant(pti p1) const;
+    std::string show() const;
+    std::string toSgfString() const;
 };
 
 extern Enclosure empty_enclosure;
@@ -69,13 +79,16 @@ extern Enclosure empty_enclosure;
 /********************************************************************************************************
   Move class
 *********************************************************************************************************/
-struct Move {
-  std::vector<std::shared_ptr<Enclosure> > enclosures;
-  uint64_t zobrist_key{0};
-  pti ind;
-  pti who {-1};
-  bool operator==(const Move& other) const { return zobrist_key == other.zobrist_key; };
-  SgfProperty toSgfString() const;
-  std::string show() const;
+struct Move
+{
+    std::vector<std::shared_ptr<Enclosure> > enclosures;
+    uint64_t zobrist_key{0};
+    pti ind;
+    pti who{-1};
+    bool operator==(const Move &other) const
+    {
+        return zobrist_key == other.zobrist_key;
+    };
+    SgfProperty toSgfString() const;
+    std::string show() const;
 };
-

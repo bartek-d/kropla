@@ -24,21 +24,21 @@
 
 #include "string_utils.h"
 
+#include <algorithm>
 #include <charconv>
 #include <string_view>
-#include <algorithm>
 
 int robust_stoi(const std::string& s)
 {
-  // find a sequence of digits
-  const auto begin = std::find_if(s.begin(), s.end(), [](auto c) { return std::isdigit(c); });
-  if (begin == s.end())
+    // find a sequence of digits
+    const auto begin = std::find_if(s.begin(), s.end(),
+                                    [](auto c) { return std::isdigit(c); });
+    if (begin == s.end()) return -1;
+    const auto end = std::find_if(begin, s.end(),
+                                  [](auto c) { return not std::isdigit(c); });
+    // convert
+    int result;
+    auto [ptr, ec] = std::from_chars(&*begin, &*end, result);
+    if (ec == std::errc()) return result;
     return -1;
-  const auto end = std::find_if(begin, s.end(), [](auto c) { return not std::isdigit(c); });
-  // convert
-  int result;
-  auto [ptr, ec] = std::from_chars(&*begin, &*end, result);
-  if (ec == std::errc())
-    return result;
-  return -1;
 }

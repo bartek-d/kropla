@@ -19,28 +19,30 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
 
-#if !defined(__COMMAND_H)
-#define __COMMAND_H
+#pragma once
 
-#include <exception>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
-class CommandParser {
-  std::vector<std::string> parsed;
-  std::string buf;
-  std::string::size_type pos;
-  int eatWS();
-  int parseCommandName();
-  void parseUint();
-  void parseCoord();
-  bool isEOL() const { return pos == buf.length(); };
-  std::string spaces(int n) const;
-public:
-  std::vector<std::string> parse(std::string b);
-  class CPException : public std::runtime_error {
-  public:
-  CPException(const std::string& error_message) : std::runtime_error(error_message) {};
-  };
+class CommandParser
+{
+    std::vector<std::string> parsed;
+    std::string buf;
+    std::string::size_type pos;
+    int eatWS();
+    int parseCommandName();
+    void parseUint();
+    void parseCoord();
+    bool isEOL() const { return pos == buf.length(); };
+    std::string spaces(int n) const;
+
+   public:
+    std::vector<std::string> parse(std::string b);
+    class CPException : public std::runtime_error
+    {
+       public:
+        CPException(const std::string& error_message)
+            : std::runtime_error(error_message){};
+    };
 };
-
-
-#endif

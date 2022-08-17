@@ -26,9 +26,7 @@
 
 std::pair<bool, std::vector<float>> getCnnInfo(Game& game)
 {
-  return {false, {}};
+    return {false, {}};
 }
 
-void updatePriors(Game& game, Treenode* children, int depth)
-{}
-
+void updatePriors(Game& game, Treenode* children, int depth) {}

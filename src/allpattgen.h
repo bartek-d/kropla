@@ -24,12 +24,12 @@
 
 #pragma once
 
-#include "patterns.h"
 #include <set>
+
+#include "patterns.h"
 
 std::string getPattStr(const pattern3_t p);
 bool checkBottomEdge(const std::string& ps);
 bool checkCommonFate(const std::string& ps);
 
-std::set<pattern3_t>
-generateAllPossibleSmallest();
+std::set<pattern3_t> generateAllPossibleSmallest();

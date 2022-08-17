@@ -24,53 +24,56 @@
 
 #pragma once
 
-#include "board.h"
-
-#include <tuple>
 #include <array>
+#include <tuple>
 #include <vector>
+
+#include "board.h"
 
 class Game;
 
-class Safety {
-public:
-  using ValueForBoth = std::array<pti, 2>;
-  using GoodMoves = std::array<std::vector<pti>, 2>;
-  Safety();
-  struct Info {
-    float saf[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-    float& getPlayersDir(int who, int dir)
+class Safety
+{
+   public:
+    using ValueForBoth = std::array<pti, 2>;
+    using GoodMoves = std::array<std::vector<pti>, 2>;
+    Safety();
+    struct Info
     {
-      return saf[2*who + dir];
-    }
-    float getPlayersDir(int who, int dir) const
-    {
-      return saf[2*who + dir];
-    }
-    float getSum() const { return saf[0] + saf[1] + saf[2] + saf[3]; }
-  };
-  void init(Game* game);
-  float getSafetyOf(pti p) const { return safety[p].getSum(); }
-  void updateAfterMove(Game* game, int what_to_update, pti last_move = 0);
-  void updateAfterMoveWithoutAnyChangeToSafety();
-  const GoodMoves& getCurrentlyAddedSugg() const;
-  const GoodMoves& getPreviouslyAddedSugg() const;
-  const std::vector<ValueForBoth>& getMoveValues() const;
-  bool isDameFor(int who, pti where) const;
-  int getUpdateValueForAllMargins() const;
-  int getUpdateValueForMarginsContaining(pti p) const;
-private:
-  void findMoveValues(Game* game);
-  bool computeSafety(Game* game, int what_to_update);
-  void initSafetyForMargin(Game* game, pti p, pti v, pti n, int direction_is_clockwise, bool &something_changed);
-  void markMoveForBoth(pti where, pti value);
-  void markMoveForPlayer(int who, pti where, pti value);
-  void markMovesAsOld();
-  void removeOldMoves();
-  void findMoveValuesForMargin(Game* game, pti p, pti last_p, pti v, pti n, int v_is_clockwise);
-  bool areThereNoFreePointsAtTheEdgeNearPoint(Game *game, pti p) const;
-  std::vector<Info> safety{};
-  std::vector<ValueForBoth> move_value{};
-  GoodMoves justAddedMoveSugg{};
-  GoodMoves prevAddedMoveSugg{};
+        float saf[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+        float& getPlayersDir(int who, int dir) { return saf[2 * who + dir]; }
+        float getPlayersDir(int who, int dir) const
+        {
+            return saf[2 * who + dir];
+        }
+        float getSum() const { return saf[0] + saf[1] + saf[2] + saf[3]; }
+    };
+    void init(Game* game);
+    float getSafetyOf(pti p) const { return safety[p].getSum(); }
+    void updateAfterMove(Game* game, int what_to_update, pti last_move = 0);
+    void updateAfterMoveWithoutAnyChangeToSafety();
+    const GoodMoves& getCurrentlyAddedSugg() const;
+    const GoodMoves& getPreviouslyAddedSugg() const;
+    const std::vector<ValueForBoth>& getMoveValues() const;
+    bool isDameFor(int who, pti where) const;
+    int getUpdateValueForAllMargins() const;
+    int getUpdateValueForMarginsContaining(pti p) const;
+
+   private:
+    void findMoveValues(Game* game);
+    bool computeSafety(Game* game, int what_to_update);
+    void initSafetyForMargin(Game* game, pti p, pti v, pti n,
+                             int direction_is_clockwise,
+                             bool& something_changed);
+    void markMoveForBoth(pti where, pti value);
+    void markMoveForPlayer(int who, pti where, pti value);
+    void markMovesAsOld();
+    void removeOldMoves();
+    void findMoveValuesForMargin(Game* game, pti p, pti last_p, pti v, pti n,
+                                 int v_is_clockwise);
+    bool areThereNoFreePointsAtTheEdgeNearPoint(Game* game, pti p) const;
+    std::vector<Info> safety{};
+    std::vector<ValueForBoth> move_value{};
+    GoodMoves justAddedMoveSugg{};
+    GoodMoves prevAddedMoveSugg{};
 };
