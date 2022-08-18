@@ -405,10 +405,10 @@ class Game
                                                     bool optimise = true) const;
     std::pair<Move, std::vector<std::string>> extractSgfMove(std::string m,
                                                              int who) const;
-    void makeSgfMove(std::string m, int who);
-    void makeMove(Move& m);
-    void makeMoveWithPointsToEnclose(Move& m,
-                                     std::vector<std::string> to_enclose);
+    void makeSgfMove(const std::string& m, int who);
+    void makeMove(const Move& m);
+    void makeMoveWithPointsToEnclose(
+        const Move& m, const std::vector<std::string>& to_enclose);
 
     bool isDotAt(pti ind) const
     {

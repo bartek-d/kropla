@@ -38,7 +38,7 @@ class CommandParser
     std::string spaces(int n) const;
 
    public:
-    std::vector<std::string> parse(std::string b);
+    std::vector<std::string> parse(const std::string& b);
     class CPException : public std::runtime_error
     {
        public:

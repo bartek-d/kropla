@@ -6387,7 +6387,7 @@ std::pair<Move, std::vector<std::string>> Game::extractSgfMove(std::string m,
     return {move, points_to_enclose};
 }
 
-void Game::makeSgfMove(std::string m, int who)
+void Game::makeSgfMove(const std::string &m, int who)
 {
     auto [move, points_to_enclose] = extractSgfMove(m, who);
     if (points_to_enclose.empty())
@@ -6519,7 +6519,7 @@ void Game::makeSgfMove(std::string m, int who)
     //#endif
 }
 
-void Game::makeMove(Move &m)
+void Game::makeMove(const Move &m)
 {
     if (m.ind != 0)
     {
@@ -6558,8 +6558,8 @@ void Game::makeMove(Move &m)
     }
 }
 
-void Game::makeMoveWithPointsToEnclose(Move &m,
-                                       std::vector<std::string> to_enclose)
+void Game::makeMoveWithPointsToEnclose(
+    const Move &m, const std::vector<std::string> &to_enclose)
 {
     if (m.ind != 0)
     {
@@ -6568,7 +6568,7 @@ void Game::makeMoveWithPointsToEnclose(Move &m,
         {
             makeEnclosure(*encl, true);
         }
-        for (auto &e : to_enclose)
+        for (const auto &e : to_enclose)
         {
             Enclosure encl =
                 findEnclosure(coord.sgfToPti(e), MASK_DOT, nowMoves);
