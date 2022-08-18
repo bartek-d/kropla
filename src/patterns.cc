@@ -42,14 +42,12 @@ class WildcardReplacer
 };
 
 WildcardReplacer::WildcardReplacer(std::string s, int length, bool with_atari)
+    : orig_str{s}, replaced{}, end{false}
 {
     static const std::map<char, std::string> wildcards = {
         {'?', ".YQ#|@"}, {'*', ".YQ|@"}, {'x', ".Q#@"},  {'o', ".Y#|"},
         {'X', "Y|"},     {'O', "Q@"},    {'y', ".Q#|@"}, {'q', ".Y#|@"},
         {'=', ".YQ#@"},  {'0', ".YQ#|"}};
-    orig_str = s;
-    replaced = "";
-    end = false;
     current.assign(length, 0);
     for (int i = 0; i < length; ++i)
     {
