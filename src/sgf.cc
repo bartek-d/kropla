@@ -235,7 +235,7 @@ void SgfTree::addChild(std::vector<SgfProperty> &&prs, bool as_first)
         cursor.lock()->children.push_back(std::make_shared<SgfNode>(node));
 }
 
-void SgfTree::addComment(std::string cmt) { comment = cmt; }
+void SgfTree::addComment(const std::string &cmt) { comment = cmt; }
 
 void SgfTree::addProperty(SgfProperty prop)
 {
@@ -276,7 +276,7 @@ void SgfTree::makePartialMove(SgfProperty move)
     partial_move = move;
 }
 
-void SgfTree::makePartialMove_addEncl(std::string sgf_encl)
+void SgfTree::makePartialMove_addEncl(const std::string &sgf_encl)
 {
     assert(!partial_move.first.empty());
     partial_move.second[0] += sgf_encl;

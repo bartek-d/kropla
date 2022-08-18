@@ -751,7 +751,7 @@ real_t Pattern52::getValue(pattern52_t p, int who) const
         return values[reverseColour(p)];
 }
 
-void Pattern52::generate(std::vector<std::string> vs)
+void Pattern52::generate(const std::vector<std::string> &vs)
 {
     for (unsigned i = 0; i < vs.size() - 1; i += 2)
     {

@@ -33,13 +33,13 @@
 *********************************************************************************************************/
 
 Svg::Svg(int x, int y)
+    : xx{x},
+      yy{y},
+      margin{30},
+      grid{20},
+      sizex{(x - 1) * grid + 2 * margin},
+      sizey{(y - 1) * grid + 2 * margin}
 {
-    xx = x;
-    yy = y;
-    margin = 30;
-    grid = 20;
-    sizex = (x - 1) * grid + 2 * margin;
-    sizey = (y - 1) * grid + 2 * margin;
     svg_prefix = R"delim(<svg version="1.1"
      baseProfile="full"
      width="WIDTH" height="HEIGHT"

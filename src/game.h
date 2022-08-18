@@ -74,7 +74,7 @@ struct OneConnection
     std::array<pti, 4> groups_id{
         0, 0, 0, 0};  // id's of connected groups, the same may appear more than
                       // once, 0-filled at the end if necessary
-    int code{0};  // code of the neighbourhood used by coord.connections_tab
+    int code{0};      // code of the neighbourhood used by coord.connections_tab
     // int() and != are mainly for debugging, to print and check connections
     operator int() const
     {

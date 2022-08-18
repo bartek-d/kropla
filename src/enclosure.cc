@@ -73,7 +73,7 @@ bool Enclosure::checkShortcut(pti p1, pti x) const
     if (!coord.isInNeighbourhood(p1, x)) return false;
     assert(border[0] == border[border.size() - 1]);
     unsigned nr = 0;
-    while (border[nr] != p1 && nr < border.size()) nr++;
+    while (nr < border.size() and border[nr] != p1) ++nr;
     if (nr > 0)
     {
         assert(nr + 1 < border.size());  // this should hold because border[0]
@@ -98,7 +98,7 @@ bool Enclosure::checkIfRedundant(pti p1) const
 {
     assert(border[0] == border[border.size() - 1]);
     unsigned nr = 0;
-    while (border[nr] != p1 && nr < border.size()) nr++;
+    while (nr < border.size() and border[nr] != p1) nr++;
     if (nr > 0)
     {
         assert(nr + 1 < border.size());  // this should hold because border[0]

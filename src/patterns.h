@@ -113,8 +113,8 @@ struct Pattern3extra
     void reflect();
     void reverseColour();
     void parseConditions(std::string s, pattern3_val value);
-    Pattern3extra() { scored_point = NO_SCORED_POINT; };
-    bool isScored() const { return scored_point != NO_SCORED_POINT; };
+    Pattern3extra() : scored_point{NO_SCORED_POINT} {}
+    bool isScored() const { return scored_point != NO_SCORED_POINT; }
     bool operator==(const Pattern3extra &other) const;
     std::string show() const;
 };
@@ -129,7 +129,7 @@ struct Pattern3full
     void rotate();
     void reflect();
     void reverseColour();
-    Pattern3full() : extra(){};
+    Pattern3full() : extra{} {}
 };
 
 /********************************************************************************************************
@@ -200,8 +200,8 @@ class Pattern52
 
    public:
     real_t getValue(pattern52_t p, int who) const;
-    void generate(std::vector<std::string> vs);
+    void generate(const std::vector<std::string> &vs);
     std::string show(pattern52_t p) const;
     void showCode() const;
-    Pattern52(std::array<real_t, 0x40000> v) { values = v; };
+    Pattern52(const std::array<real_t, 0x40000> &v) : values{v} {}
 };

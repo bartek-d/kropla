@@ -80,11 +80,11 @@ class SgfTree
     SgfTree();
     void changeBoardSize(int x, int y);
     void addChild(std::vector<SgfProperty>&& prs, bool as_first = false);
-    void addComment(std::string cmt);
+    void addComment(const std::string& cmt);
     void addProperty(SgfProperty prop);
     void makeMove(SgfProperty move);
     void makePartialMove(SgfProperty move);
-    void makePartialMove_addEncl(std::string sgf_encl);
+    void makePartialMove_addEncl(const std::string& sgf_encl);
     void finishPartialMove();
     void saveCursor();
     void restoreCursor();

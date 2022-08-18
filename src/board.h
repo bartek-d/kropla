@@ -58,9 +58,9 @@ const std::string white_b = "\033[47m";
 *********************************************************************************************************/
 class Svg
 {
-    int margin, grid, dot_size, sizex,
-        sizey;  // parameters set by the constructor
     int xx, yy;
+    int margin, grid;
+    int sizex, sizey;
     std::string svg_prefix, svg_bkgrd, svg_grid, svg_dots, svg_suffix;
 
    public:
@@ -260,9 +260,10 @@ template <typename Container>
 std::string Coord::showColouredBoardWithDots(Container const &b)
 {
     std::stringstream out;
-    std::string ascii_dots[3] = {
-        "\u2027 ", "\u25cf ", "\u25cf "};  // \u2022 = 'BULLET'  \u25cf = Black
-                                           // Circle, \u2027 = Hyphenation Point
+    std::string ascii_dots[4] = {
+        "\u2027 ", "\u25cf ", "\u25cf ",
+        "\u25cf "};  // \u2022 = 'BULLET'  \u25cf = Black
+                     // Circle, \u2027 = Hyphenation Point
     for (int y = -2; y < wlky; y++)
     {
         for (int x = -1; x < wlkx; x++)

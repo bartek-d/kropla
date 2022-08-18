@@ -40,7 +40,7 @@ void Threat::addShortcuts(pti ind0, pti ind1)
     for (pti ind : {ind0, ind1})
     {
         unsigned nr = 0;
-        while (encl->border[nr] != ind and nr < encl->border.size()) nr++;
+        while (nr < encl->border.size() and encl->border[nr] != ind) nr++;
         pti prev, next;
         if (nr > 0)
         {
