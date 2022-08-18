@@ -8538,11 +8538,14 @@ bool Game::checkWormCorrectness() const
         // check pairs
         for (auto &d2 : descr)
         {
-            if ((std::find(d1.second.neighb.begin(), d1.second.neighb.end(),
-                           d2.first) == d1.second.neighb.end()) !=
+            bool not_in_neighb =
+                (std::find(d1.second.neighb.begin(), d1.second.neighb.end(),
+                           d2.first) == d1.second.neighb.end());
+            bool not_in_test =
                 (std::find(test_descr.at(d1.first).neighb.begin(),
                            test_descr.at(d1.first).neighb.end(),
-                           d2.first) == test_descr.at(d1.first).neighb.end()))
+                           d2.first) == test_descr.at(d1.first).neighb.end());
+            if (not_in_neighb != not_in_test)
             {
                 std::cerr << "blad" << std::endl;
                 return false;
