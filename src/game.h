@@ -145,6 +145,7 @@ struct Treenode
     const Treenode* getBestChild() const;
     std::string show() const;
     std::string getMoveSgf() const;
+    Treenode() = default;
     Treenode& operator=(const Treenode&);
     Treenode(const Treenode& other) { *this = other; }
 };
