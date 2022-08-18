@@ -46,7 +46,7 @@ typedef std::vector<SgfNode> SgfSequence;
 class SgfParser
 {
     std::string input;
-    unsigned pos;
+    unsigned pos{0};
     const static int eof = -1;
     int eatChar();
     int checkChar() const;
@@ -57,11 +57,7 @@ class SgfParser
     SgfNode node();
 
    public:
-    SgfParser(std::string s)
-    {
-        input = s;
-        pos = 0;
-    };
+    SgfParser(const std::string& s) : input{s} {}
     SgfSequence parseMainVar();
 };
 

@@ -103,13 +103,8 @@ struct OneConnection
 
 struct Movestats
 {
-    std::atomic<int32_t> playouts;
-    std::atomic<real_t> value_sum;
-    Movestats()
-    {
-        playouts = 0;
-        value_sum = 0;
-    };
+    std::atomic<int32_t> playouts{0};
+    std::atomic<real_t> value_sum{0};
     const Movestats& operator+=(const Movestats& other);
     Movestats& operator=(const Movestats&);
     bool operator<(const Movestats& other) const;
@@ -121,15 +116,15 @@ struct Movestats
 *********************************************************************************************************/
 struct Treenode
 {
-    Treenode* parent;
+    Treenode* parent{nullptr};
     // std::vector<Treenode> children;
-    std::atomic<Treenode*> children;
+    std::atomic<Treenode*> children{nullptr};
     std::shared_ptr<Game> game_ptr{nullptr};
     Movestats t;
     Movestats amaf;
     Movestats prior;
     Move move;
-    uint32_t flags;
+    uint32_t flags{0};
     static const uint32_t LAST_CHILD = 1;
     static const uint32_t IS_DAME = 2;
     static const uint32_t IS_INSIDE_TERR_NO_ATARI =
@@ -150,12 +145,6 @@ struct Treenode
     const Treenode* getBestChild() const;
     std::string show() const;
     std::string getMoveSgf() const;
-    Treenode()
-    {
-        flags = 0;
-        children = nullptr;
-        parent = nullptr;
-    }
     Treenode& operator=(const Treenode&);
     Treenode(const Treenode& other) { *this = other; }
 };

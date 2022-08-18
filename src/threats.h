@@ -164,21 +164,17 @@ struct ThrInfo
     std::vector<pti> saved_worms;  // list of our saved worms, to calculated
                                    // saved_dots correctly
     uint64_t zobrist_key;
-    const Threat *thr_pointer;
-    pti type;
-    pti move;
-    pti lost_terr_points, won_dots, saved_dots, priority_value;
+    const Threat *thr_pointer{nullptr};
+    pti type{0};
+    pti move{0};
+    pti lost_terr_points{0};
+    pti won_dots{0};
+    pti saved_dots{0};
+    pti priority_value{0};
     bool operator<(const ThrInfo &other) const
     {
         return priority_value > other.priority_value;
     };  // warning: > to sort descending!
-    ThrInfo()
-    {
-        thr_pointer = nullptr;
-        type = 0;
-        move = 0;
-        lost_terr_points = won_dots = saved_dots = priority_value = 0;
-    };
     std::string show() const;
     pti calculatePriorityValue() const;
 };

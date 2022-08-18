@@ -129,13 +129,13 @@ class Coord
     template <typename Container>
     std::string showFullBoard(Container const &b);
     std::string showPt(pti p) const;
-    int sgfToX(std::string s) const;
-    int sgfToY(std::string s) const;
-    pti sgfToPti(std::string s) const;
+    int sgfToX(const std::string &s) const;
+    int sgfToY(const std::string &s) const;
+    pti sgfToPti(const std::string &s) const;
     int sgfCoordToInt(char s) const;
     std::string indToSgf(pti p) const;
     std::string numberToLetter(pti p) const;
-    bool isOnBoardSgf(std::string pt) const;
+    bool isOnBoardSgf(const std::string &pt) const;
     std::string dindToStr(pti p) const;
 };
 

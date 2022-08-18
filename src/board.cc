@@ -38,18 +38,20 @@ Svg::Svg(int x, int y)
       margin{30},
       grid{20},
       sizex{(x - 1) * grid + 2 * margin},
-      sizey{(y - 1) * grid + 2 * margin}
-{
-    svg_prefix = R"delim(<svg version="1.1"
+      sizey{(y - 1) * grid + 2 * margin},
+      svg_prefix{R"delim(<svg version="1.1"
      baseProfile="full"
      width="WIDTH" height="HEIGHT"
      xmlns="http://www.w3.org/2000/svg">
-   <rect width="100%" height="100%" fill="rgb(255,255,255)" />  <!-- " in comment to please the editor -->)delim";
+   <rect width="100%" height="100%" fill="rgb(255,255,255)" />  <!-- " in comment to please the editor -->)delim"},
+      svg_bkgrd{},
+      svg_dots{},
+      svg_suffix{"</svg>"}
+{
     svg_prefix.replace(svg_prefix.find("WIDTH"), std::string("WIDTH").length(),
                        std::to_string(sizex));
     svg_prefix.replace(svg_prefix.find("HEIGHT"),
                        std::string("HEIGHT").length(), std::to_string(sizey));
-    svg_suffix = "</svg>";
     std::stringstream out;
     for (int i = 0; i < x; i++)
     {
@@ -66,8 +68,6 @@ Svg::Svg(int x, int y)
             << "\" stroke=\"rgb(238,238,238)\" stroke-width=\"1\"/>\n";
     }
     svg_grid = out.str();
-    svg_bkgrd = "";
-    svg_dots = "";
 }
 
 void Svg::drawDot(int i, int j, int who)
@@ -275,11 +275,14 @@ std::string Coord::showPt(pti p) const
     return out.str();
 }
 
-int Coord::sgfToX(std::string s) const { return sgfCoordToInt(s.at(0)); }
+int Coord::sgfToX(const std::string& s) const { return sgfCoordToInt(s.at(0)); }
 
-int Coord::sgfToY(std::string s) const { return sgfCoordToInt(s.at(1)); }
+int Coord::sgfToY(const std::string& s) const { return sgfCoordToInt(s.at(1)); }
 
-pti Coord::sgfToPti(std::string s) const { return ind(sgfToX(s), sgfToY(s)); }
+pti Coord::sgfToPti(const std::string& s) const
+{
+    return ind(sgfToX(s), sgfToY(s));
+}
 
 int Coord::sgfCoordToInt(char s) const
 {
@@ -306,7 +309,7 @@ std::string Coord::numberToLetter(pti p) const
     return std::string({crd.at(p)});
 }
 
-bool Coord::isOnBoardSgf(std::string pt) const
+bool Coord::isOnBoardSgf(const std::string& pt) const
 {
     return (sgfToX(pt) < coord.wlkx) && (sgfToY(pt) < coord.wlky);
 }
