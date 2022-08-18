@@ -5067,7 +5067,7 @@ std::vector<pti> Game::findImportantMoves(pti who)
     {
         pti point;
         float value;
-        PointValue(pti p, float v) point{p}, value{v} {}
+        PointValue(pti p, float v) : point{p}, value{v} {}
         bool operator<(const PointValue &other) const
         {
             return value > other.value;
@@ -5167,7 +5167,7 @@ float Game::floodFillCost(int who) const
     {
         pti point;
         float cost;
-        PointCost(pti p, float c) point{p}, cost{c} {}
+        PointCost(pti p, float c) : point{p}, cost{c} {}
         bool operator<(const PointCost &other) const
         {
             return cost > other.cost;
