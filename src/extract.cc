@@ -87,10 +87,15 @@ void DataCollector::dump()
         HighFive::File file(filename, HighFive::File::ReadWrite |
                                           HighFive::File::Create |
                                           HighFive::File::Truncate);
+        // gzip config
+        HighFive::DataSetCreateProps dsprops;
+        dsprops.add(HighFive::Chunking(
+            std::vector<hsize_t>{1, PLANES, BSIZEX, BSIZEY}));
+        dsprops.add(HighFive::Deflate(9));
         // Create the dataset
         const std::string DATASET_NAME("bdata");
         HighFive::DataSet dataset = file.createDataSet<float>(
-            DATASET_NAME, HighFive::DataSpace::From(data));
+            DATASET_NAME, HighFive::DataSpace::From(data), dsprops);
         dataset.write(data);
 
         for (int m = 0; m < MOVES_USED; ++m)
