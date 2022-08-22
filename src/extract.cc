@@ -188,21 +188,27 @@ void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
         for (int player = 0; player < 2; ++player)
         {
             int which2 = (player + 1 == game.whoNowMoves()) ? 14 : 15;
-            for (auto& t : game.threats[player].threats2m)
+            if (which2 < PLANES)
             {
-                if (t.min_win2 && t.isSafe())
+                for (auto& t : game.threats[player].threats2m)
                 {
-                    data[which2][coord.x[t.where0]][coord.y[t.where0]] =
-                        1.0f - std::pow(0.75f, t.min_win2);
+                    if (t.min_win2 && t.isSafe())
+                    {
+                        data[which2][coord.x[t.where0]][coord.y[t.where0]] =
+                            1.0f - std::pow(0.75f, t.min_win2);
+                    }
                 }
             }
             int which = (player + 1 == game.whoNowMoves()) ? 12 : 13;
-            for (auto& t : game.threats[player].threats)
+            if (which < PLANES)
             {
-                if (t.where && t.singular_dots)
+                for (auto& t : game.threats[player].threats)
                 {
-                    data[which][coord.x[t.where]][coord.y[t.where]] =
-                        1.0f - std::pow(0.75f, t.singular_dots);
+                    if (t.where && t.singular_dots)
+                    {
+                        data[which][coord.x[t.where]][coord.y[t.where]] =
+                            1.0f - std::pow(0.75f, t.singular_dots);
+                    }
                 }
             }
         }
