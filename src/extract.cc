@@ -24,6 +24,7 @@ trainign data for NN. Copyright (C) 2021, 2022 Bartek Dyda, email: bartekdyda
 
 #include <array>
 #include <boost/multi_array.hpp>
+#include <cstring>
 #include <fstream>
 #include <highfive/H5DataSet.hpp>
 #include <highfive/H5DataSpace.hpp>
@@ -35,17 +36,63 @@ trainign data for NN. Copyright (C) 2021, 2022 Bartek Dyda, email: bartekdyda
 
 #include "allpattgen.h"
 #include "game.h"
+#include "gzip.hpp"
 #include "patterns.h"
 #include "sgf.h"
 #include "string_utils.h"
 
 constexpr int MOVES_USED = 3;
-constexpr int PLANES = 7;
-constexpr int BSIZEX = 39;
-constexpr int BSIZEY = 32;
-constexpr int TAB_SIZE = 16384;
+constexpr int PLANES = 20;
+constexpr int BSIZEX = 20;
+constexpr int BSIZEY = 20;
+
+constexpr std::size_t size_of_boards =
+    std::size_t(PLANES) * BSIZEX * BSIZEY * sizeof(float);
+constexpr std::size_t size_of_labels = MOVES_USED * sizeof(int);
+
+constexpr int MAX_FILE_SIZE = 2'100'000'000;
+
+constexpr int getTabSize()
+{
+    int approximation = MAX_FILE_SIZE / (size_of_boards + size_of_labels);
+    constexpr int block_size = 4096;
+    return (approximation / block_size) * block_size;
+}
+
+constexpr int TAB_SIZE = getTabSize();
+constexpr int THRESHOLD = TAB_SIZE * 200;
 
 // using Board = float[PLANES][BSIZE][BSIZE];
+
+struct Datum
+{
+    using Array3dim = boost::multi_array<float, 3>;
+    Array3dim boards{boost::extents[PLANES][BSIZEX][BSIZEY]};
+    std::array<int, MOVES_USED> labels;
+    std::vector<char> serialise() const;
+};
+
+std::vector<char> Datum::serialise() const
+{
+    std::vector<char> res;
+    res.resize(size_of_boards + size_of_labels);
+    memcpy(&res[0], boards.origin(), size_of_boards);
+    memcpy(&res[size_of_boards], &labels[0], size_of_labels);
+    return zip(res);
+}
+
+template <typename BoardsArr, typename LabelsSaver>
+void unserialise_to(BoardsArr board_arr, LabelsSaver saver,
+                    const std::vector<char>& what)
+{
+    memcpy(board_arr.origin(), &what[0], size_of_boards);
+    for (int i = 0; i < MOVES_USED; ++i)
+    {
+        int value;
+        memcpy(&value, &what[size_of_boards + sizeof(int) * i], sizeof(int));
+        saver(i, value);
+    }
+}
 
 class DataCollector
 {
@@ -65,7 +112,7 @@ class DataCollector
     void save(int move, int label);
     void dump();
     ~DataCollector();
-} collector;
+};
 
 auto DataCollector::getCurrentArray() { return data[curr_size]; }
 
@@ -125,6 +172,74 @@ DataCollector::~DataCollector()
     dump();
 }
 
+class CompressedData
+{
+    std::deque<std::vector<char>> cont;
+    std::default_random_engine dre{};
+    std::uniform_int_distribution<uint64_t> di;
+    DataCollector collector{};
+    void permute_last();
+    void save_last();
+
+   public:
+    CompressedData()
+        : di{std::numeric_limits<uint64_t>::min(),
+             std::numeric_limits<uint64_t>::max()}
+    {
+    }
+    void save(std::vector<char> s);
+    void dump();
+    ~CompressedData();
+} compressed_data;
+
+void CompressedData::permute_last()
+{
+    int low =
+        std::max(0, static_cast<int>(cont.size()) - static_cast<int>(TAB_SIZE));
+    for (int i = cont.size() - 1; i >= low; --i)
+    {
+        int swap_with = di(dre) % (i + 1);
+        if (i != swap_with)
+        {
+            std::swap(cont[i], cont[swap_with]);
+        }
+    }
+}
+
+void CompressedData::save_last()
+{
+    int count = std::min<int>(cont.size(), TAB_SIZE);
+    for (int i = 0; i < count; ++i)
+    {
+        unserialise_to(
+            collector.getCurrentArray(),
+            [&](int move, int label) { collector.save(move, label); },
+            unzip(cont.back()));
+        cont.pop_back();
+    }
+}
+
+void CompressedData::save(std::vector<char> s)
+{
+    cont.emplace_back(std::move(s));
+    if (cont.size() >= THRESHOLD)
+    {
+        permute_last();
+        save_last();
+    }
+}
+
+CompressedData::~CompressedData() { dump(); }
+
+void CompressedData::dump()
+{
+    while (not cont.empty())
+    {
+        permute_last();
+        save_last();
+    }
+}
+
 int applyIsometry(int p, unsigned isometry)
 // isometry & 1: reflect w/r to Y
 // isometry & 2: reflect w/r to X
@@ -148,7 +263,8 @@ void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
     const unsigned max_isometry = (BSIZEX == BSIZEY) ? 8 : 4;
     for (unsigned isometry = 0; isometry < max_isometry; ++isometry)
     {
-        auto data = collector.getCurrentArray();
+        Datum datum;
+        auto& data = datum.boards;  // collector.getCurrentArray();
         for (int x = 0; x < BSIZEX; ++x)
             for (int y = 0; y < BSIZEY; ++y)
             {
@@ -216,8 +332,12 @@ void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
         {
             int move_isom = applyIsometry(moves.at(m).ind, isometry);
             int label = coord.x[move_isom] * BSIZEY + coord.y[move_isom];
-            collector.save(m, label);
+            // collector.save(m, label);
+            datum.labels[m] = label;
         }
+
+        auto s = datum.serialise();
+        compressed_data.save(std::move(s));
     }
 }
 
@@ -316,6 +436,8 @@ std::set<std::string> readLines(const std::string& filename)
 
 int main(int argc, char* argv[])
 {
+    std::cout << "TAB_SIZE = " << TAB_SIZE << ", THRESHOLD = " << THRESHOLD
+              << std::endl;
     if (argc < 3)
     {
         std::cerr << "at least 3 parameters needed, players_file sgf_file(s)"
@@ -389,4 +511,5 @@ int main(int argc, char* argv[])
             std::cout << "omitted." << std::endl;
         }
     }
+    compressed_data.dump();
 }
