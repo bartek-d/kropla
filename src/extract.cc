@@ -180,6 +180,7 @@ class CompressedData
     DataCollector collector{};
     void permute_last();
     void save_last();
+    int64_t count = 0;
 
    public:
     CompressedData()
@@ -221,6 +222,7 @@ void CompressedData::save_last()
 
 void CompressedData::save(std::vector<char> s)
 {
+    if (++count % 10000 == 0) std::cout << "..." << count << std::endl;
     cont.emplace_back(std::move(s));
     if (cont.size() >= THRESHOLD)
     {
@@ -281,25 +283,45 @@ void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
                 data[4][x][y] = game.isInTerr(p, opponent) > 0 ? 1.0f : 0.0f;
                 data[5][x][y] = std::min(game.isInEncl(p, on_move), 2) * 0.5f;
                 data[6][x][y] = std::min(game.isInEncl(p, opponent), 2) * 0.5f;
-                /*
-                data[7][x][y] = std::min(game.isInBorder(p, on_move), 2) * 0.5f;
-                data[8][x][y] = std::min(game.isInBorder(p, opponent), 2) *
-                0.5f; data[9][x][y] = std::min(game.getTotalSafetyOf(p), 2.0f) *
-                0.5f; data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
-                //	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
-                data[11][x][y] = 1;
-                data[12][x][y] = 0;  // where for thr such that opp_dots>0
-                data[13][x][y] = 0;  // where for thr such that opp_dots>0
-                data[14][x][y] = 0;  // where0 for thr2 such that minwin2 > 0
-                and isSafe data[15][x][y] = 0;  // where0 for thr2 such that
-                minwin2 > 0 and isSafe data[16][x][y] =
-                (game.threats[on_move-1].is_in_2m_encl[p] > 0) ? 1.0f : 0.0f;
-                data[17][x][y] = (game.threats[opponent-1].is_in_2m_encl[p] > 0)
-                ? 1.0f : 0.0f; data[18][x][y] =
-                (game.threats[on_move-1].is_in_2m_miai[p] > 1) ? 1.0f : 0.0f;
-                data[19][x][y] = (game.threats[opponent-1].is_in_2m_miai[p] > 1)
-                ? 1.0f : 0.0f;
-                */
+                if (PLANES > 7)
+                {
+                    data[7][x][y] =
+                        std::min(game.isInBorder(p, on_move), 2) * 0.5f;
+                    data[8][x][y] =
+                        std::min(game.isInBorder(p, opponent), 2) * 0.5f;
+                    data[9][x][y] =
+                        std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
+                    if (PLANES > 10)
+                    {
+                        data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
+                        //	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
+                        data[11][x][y] = 1;
+                        data[12][x][y] =
+                            0;  // where for thr such that opp_dots>0
+                        data[13][x][y] =
+                            0;  // where for thr such that opp_dots>0
+                        data[14][x][y] = 0;  // where0 for thr2 such that
+                                             // minwin2 > 0 and isSafe
+                        data[15][x][y] = 0;  // where0 for thr2 such that
+                                             // minwin2 > 0 and isSafe
+                        data[16][x][y] =
+                            (game.threats[on_move - 1].is_in_2m_encl[p] > 0)
+                                ? 1.0f
+                                : 0.0f;
+                        data[17][x][y] =
+                            (game.threats[opponent - 1].is_in_2m_encl[p] > 0)
+                                ? 1.0f
+                                : 0.0f;
+                        data[18][x][y] =
+                            (game.threats[on_move - 1].is_in_2m_miai[p] > 1)
+                                ? 1.0f
+                                : 0.0f;
+                        data[19][x][y] =
+                            (game.threats[opponent - 1].is_in_2m_miai[p] > 1)
+                                ? 1.0f
+                                : 0.0f;
+                    }
+                }
             }
         for (int player = 0; player < 2; ++player)
         {
