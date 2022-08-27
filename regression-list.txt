@@ -1,0 +1,20 @@
+# test 1
+
+name=zagram352494:49
+
+sgf=(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[13]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=0]HA[2]AB[jd][dj]PB[bot Amelia]PW[*TblHk]TM[60]OT[10]BL[72]WL[75]DT[2021-01-16]RE[W+R];W[gg]WL[70];B[ih]BL[66.7];W[gh]WL[75.4];B[hf]BL[64.4];W[kc]WL[81.8];B[gf]BL[62.6];W[cc]WL[89.8];B[ff]BL[61];W[ck]WL[98];B[eg]BL[56.7];W[kk]WL[104.7];B[hj]BL[55.6];W[hl]WL[110.4];B[fi]BL[52.2];W[fl]WL[117.8];B[jg]BL[47];W[lf]WL[122.1];B[gd]BL[42.4];W[hb]WL[129.2];B[gi]BL[39.3];W[bh]WL[129.3];B[hc]BL[36.4];W[lb]WL[110.3];B[cf]BL[33.2];W[bf]WL[112.5];B[ch]BL[29.7];W[bl]WL[118.1];B[be]BL[31.4];W[bb]WL[109.9];B[ce]BL[28.4];W[ll]WL[112.7];B[ii]BL[30.3];W[bg]WL[101];B[cg]BL[34.1];W[ae]WL[107.7];B[gb]BL[34.6];W[ga]WL[109.3];B[ib]BL[34.2];W[ha]WL[116.1];B[dd]BL[32.9];W[ia]WL[121];B[kd]BL[30.2];W[ld]WL[122.1];B[eb]BL[33.7];W[jb]WL[129.6];B[fb]BL[33.5];W[id]WL[112.8];B[ic]BL[33.5];W[fa]WL[121])
+
+move=ea 10
+move=da 10
+move=db 10
+move=dc 9
+move=bd 10
+move=ad 9
+move=bc 9
+move=cb 9
+move=ca 10
+
+time=1000
+
+end
+
