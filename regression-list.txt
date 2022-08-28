@@ -18,3 +18,118 @@ time=1000
 
 end
 
+
+
+name=zagram352706:119
+
+sgf=(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[13]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=0]HA[2]AB[jd][dj]PB[bot Amelia]PW[май]TM[60]OT[10]BL[72]WL[75]DT[2021-01-21]RE[W+1];W[gf]WL[70];B[gh]BL[67];W[hg]WL[67.2];B[hh]BL[66];W[ig]WL[71.9];B[ih]BL[65.1];W[ei]WL[67.3];B[fg]BL[63.8];W[hj]WL[74.5];B[jh]BL[62.8];W[fj]WL[77.3];B[ff]BL[61.5];W[kf]WL[70.9];B[ge]BL[60.5];W[if]WL[67];B[kg]BL[59.5];W[lf]WL[59.3];B[jf]BL[54.3];W[je]WL[65.9];B[jg]BL[53.3];W[ie]WL[74];B[id]BL[48.4];W[ke]WL[79.3];B[gg]BL[47.7];W[hf]WL[38.8];B[fe]BL[43];W[gi]WL[38.2];B[di]BL[41.1];W[eh]WL[44.4];B[dh]BL[41.2];W[eg]WL[48.3];B[dg]BL[41.4];W[ef]WL[38.4];B[ee]BL[33.2];W[bg]WL[40.8];B[df]BL[32.9];W[ce]WL[43.5];B[ej]BL[33.1];W[fi]WL[50];B[fk]BL[32.7];W[gk]WL[54.6];B[gl]BL[29.4];W[fl]WL[46.4];B[ek]BL[33];W[hl]WL[54.1];B[gm]BL[33.1];W[hi]WL[55.4];B[hd]BL[30.5];W[ik]WL[54.4];B[jj]BL[31.9];W[ij]WL[54.6];B[el]BL[30.5];W[fm]WL[57.9];B[fc]BL[31.6];W[hb]WL[54.3];B[cd]BL[31.4];W[dc]WL[53.5];B[dd]BL[32.7];W[ec]WL[52.8];B[fb]BL[32.3];W[ed]WL[52.3];B[cb]BL[31.8];W[db]WL[54.3];B[jb]BL[29.7];W[ib]WL[55.5];B[be]BL[33.2];W[cc]WL[44.3];B[bh]BL[32.9];W[bf]WL[47.7];B[cf]BL[32.6];W[bd]WL[46.5];B[fd.becfdfeeddcdbe]BL[30.3];W[bb]WL[40.3];B[ca]BL[33.2];W[gc]WL[35.1];B[kd]BL[30.1];W[bi]WL[33.9];B[bj]BL[31.9];W[ah]WL[37.7];B[ch]BL[31.9];W[ai]WL[46.3];B[li]BL[24.6];W[lh]WL[45.3];B[lg]BL[27.8];W[mh]WL[48.9];B[il]BL[27.9];W[jl]WL[46.5];B[im]BL[31.9];W[jk]WL[53.4];B[ji]BL[29.7];W[hm]WL[51.9];B[ld]BL[31];W[le]WL[55.5];B[cl]BL[33.7];W[bk]WL[55.4];B[gb]BL[31.2];W[hc]WL[36.5];B[kk]BL[28.8];W[cj]WL[31.9];B[aj]BL[31.7];W[ck]WL[38.9];B[lb]BL[30.9];W[mc]WL[38.7];B[lc]BL[34.9];W[ka]WL[42.8];B[kb]BL[34.4];W[ic]WL[44.6];B[lk]BL[31.6];W[kh]WL[38.9];B[ki]BL[32.2];W[mj]WL[46];B[lj]BL[29.6];W[jc]WL[48.3];B[km]BL[31];W[jm]WL[53.8];B[lm]BL[33.3];W[ac]WL[55.1];B[bm]BL[30.7];W[bl]WL[58.7])
+
+move=ad 10
+move=kl 10
+move=ml 10
+move=da 10
+
+time=5000
+
+end
+
+
+
+name=zagram352706:149
+
+sgf=(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[13]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=0]HA[2]AB[jd][dj]PB[bot Amelia]PW[май]TM[60]OT[10]BL[72]WL[75]DT[2021-01-21]RE[W+1];W[gf]WL[70];B[gh]BL[67];W[hg]WL[67.2];B[hh]BL[66];W[ig]WL[71.9];B[ih]BL[65.1];W[ei]WL[67.3];B[fg]BL[63.8];W[hj]WL[74.5];B[jh]BL[62.8];W[fj]WL[77.3];B[ff]BL[61.5];W[kf]WL[70.9];B[ge]BL[60.5];W[if]WL[67];B[kg]BL[59.5];W[lf]WL[59.3];B[jf]BL[54.3];W[je]WL[65.9];B[jg]BL[53.3];W[ie]WL[74];B[id]BL[48.4];W[ke]WL[79.3];B[gg]BL[47.7];W[hf]WL[38.8];B[fe]BL[43];W[gi]WL[38.2];B[di]BL[41.1];W[eh]WL[44.4];B[dh]BL[41.2];W[eg]WL[48.3];B[dg]BL[41.4];W[ef]WL[38.4];B[ee]BL[33.2];W[bg]WL[40.8];B[df]BL[32.9];W[ce]WL[43.5];B[ej]BL[33.1];W[fi]WL[50];B[fk]BL[32.7];W[gk]WL[54.6];B[gl]BL[29.4];W[fl]WL[46.4];B[ek]BL[33];W[hl]WL[54.1];B[gm]BL[33.1];W[hi]WL[55.4];B[hd]BL[30.5];W[ik]WL[54.4];B[jj]BL[31.9];W[ij]WL[54.6];B[el]BL[30.5];W[fm]WL[57.9];B[fc]BL[31.6];W[hb]WL[54.3];B[cd]BL[31.4];W[dc]WL[53.5];B[dd]BL[32.7];W[ec]WL[52.8];B[fb]BL[32.3];W[ed]WL[52.3];B[cb]BL[31.8];W[db]WL[54.3];B[jb]BL[29.7];W[ib]WL[55.5];B[be]BL[33.2];W[cc]WL[44.3];B[bh]BL[32.9];W[bf]WL[47.7];B[cf]BL[32.6];W[bd]WL[46.5];B[fd.becfdfeeddcdbe]BL[30.3];W[bb]WL[40.3];B[ca]BL[33.2];W[gc]WL[35.1];B[kd]BL[30.1];W[bi]WL[33.9];B[bj]BL[31.9];W[ah]WL[37.7];B[ch]BL[31.9];W[ai]WL[46.3];B[li]BL[24.6];W[lh]WL[45.3];B[lg]BL[27.8];W[mh]WL[48.9];B[il]BL[27.9];W[jl]WL[46.5];B[im]BL[31.9];W[jk]WL[53.4];B[ji]BL[29.7];W[hm]WL[51.9];B[ld]BL[31];W[le]WL[55.5];B[cl]BL[33.7];W[bk]WL[55.4];B[gb]BL[31.2];W[hc]WL[36.5];B[kk]BL[28.8];W[cj]WL[31.9];B[aj]BL[31.7];W[ck]WL[38.9];B[lb]BL[30.9];W[mc]WL[38.7];B[lc]BL[34.9];W[ka]WL[42.8];B[kb]BL[34.4];W[ic]WL[44.6];B[lk]BL[31.6];W[kh]WL[38.9];B[ki]BL[32.2];W[mj]WL[46];B[lj]BL[29.6];W[jc]WL[48.3];B[km]BL[31];W[jm]WL[53.8];B[lm]BL[33.3];W[ac]WL[55.1];B[bm]BL[30.7];W[bl]WL[58.7];B[cm]BL[32.4];W[ad]WL[58.2];B[aa]BL[29.2];W[ab]WL[60.6];B[da]BL[30.5];W[dk]WL[37.9];B[ae]BL[32.7];W[ag]WL[42.8];B[af]BL[29.6];W[ea]WL[48.5];B[ak]BL[31.6];W[eb]WL[48];B[ml]BL[28.9];W[kl]WL[54.6];B[am]BL[30.8];W[ci]WL[55.7];B[gd]BL[33.6];W[ja]WL[53];B[ll]BL[34.2];W[mk]WL[59.4];B[dm]BL[34.9];W[em]WL[66.7];B[dl]BL[35];W[al]WL[74];B[ba]BL[35.2];W[ga]WL[79.2];B[kj]BL[35.2];W[mi]WL[85.1];B[cg]BL[35.9];W[fh]WL[91.9])
+
+move=fa 10
+move=ha 10
+move=ia 10
+move=la 10
+move=ma 10
+move=mb 10
+move=kc 10
+move=he 10
+move=ii 10
+move=md 10
+move=me 10
+move=mf 10
+move=mg 10
+move=mm 10
+
+time=2000
+
+end
+
+
+
+name=zagram353022:27
+
+sgf=(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[13]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=0]HA[2]AB[jd][dj]PB[bot Amelia]PW[pomocnik]TM[60]OT[10]BL[72]WL[75]DT[2021-01-31]RE[W+R];W[fg]WL[70];B[hg]BL[67];W[gh]WL[76.8];B[hh]BL[62.5];W[gj]WL[82.5];B[gf]BL[58.1];W[hi]WL[89.7];B[ff]BL[57.2];W[ii]WL[93.7];B[eg]BL[56.2];W[eh]WL[100.9];B[dg]BL[55.3];W[ej]WL[93.6];B[jg]BL[51];W[di]WL[99.6];B[gg]BL[46.5];W[fh]WL[106.4];B[ee]BL[42];W[fk]WL[113.4];B[ib]BL[34.6];W[fb]WL[108.4];B[gc]BL[34.7];W[fc]WL[114.8];B[fd]BL[31.4];W[kf]WL[119.9];B[gb]BL[32.7];W[jf]WL[126.6])
+
+move=if 10
+move=lf 8
+move=ie 8
+
+time=10000
+
+end
+
+
+name=zagram353022:63
+
+sgf=(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[13]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=0]HA[2]AB[jd][dj]PB[bot Amelia]PW[pomocnik]TM[60]OT[10]BL[72]WL[75]DT[2021-01-31]RE[W+R];W[fg]WL[70];B[hg]BL[67];W[gh]WL[76.8];B[hh]BL[62.5];W[gj]WL[82.5];B[gf]BL[58.1];W[hi]WL[89.7];B[ff]BL[57.2];W[ii]WL[93.7];B[eg]BL[56.2];W[eh]WL[100.9];B[dg]BL[55.3];W[ej]WL[93.6];B[jg]BL[51];W[di]WL[99.6];B[gg]BL[46.5];W[fh]WL[106.4];B[ee]BL[42];W[fk]WL[113.4];B[ib]BL[34.6];W[fb]WL[108.4];B[gc]BL[34.7];W[fc]WL[114.8];B[fd]BL[31.4];W[kf]WL[119.9];B[gb]BL[32.7];W[jf]WL[126.6];B[jh]BL[32.2];W[ie]WL[129.4];B[if]BL[31.5];W[je]WL[137.7];B[lf]BL[34.3];W[le]WL[144.1];B[ji]BL[31.6];W[jj]WL[149.4];B[dh]BL[29.4];W[ci]WL[154.6];B[id]BL[31.3];W[he]WL[160.2];B[hd]BL[33.7];W[hf]WL[167.3];B[ig]BL[33.6];W[ge]WL[168.9];B[lh]BL[31];W[kg]WL[162.4];B[lg]BL[32.4];W[ck]WL[166];B[bj]BL[29.9];W[cj]WL[173.8];B[kj]BL[31.4];W[jk]WL[175.8];B[db]BL[28.9];W[eb]WL[182.4];B[dc]BL[30];W[fl]WL[177.3];B[hl]BL[32.5];W[hk]WL[174.8];B[il]BL[29.8];W[ik]WL[181.3];B[bb]BL[31.2];W[bd]WL[186.1];B[ad]BL[34.2];W[be]WL[192.6];B[ae]BL[31.4])
+
+
+move=cf 10
+move=dl 10
+move=kd 10
+move=ld 10
+move=bf 10
+
+time=10000
+
+end
+
+
+
+name=zagram353068:39
+
+sgf=(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[13]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=0]HA[2]AB[jd][dj]PB[bot Amelia]PW[*MONKEY]TM[60]OT[10]BL[72]WL[75]DT[2021-02-02]RE[W+R];W[gf]WL[70];B[hh]BL[67.2];W[if]WL[76.5];B[fg]BL[64.5];W[ff]WL[83.2];B[eg]BL[62.4];W[fc]WL[88.7];B[ef]BL[59.9];W[ee]WL[93.4];B[gg]BL[58];W[hf]WL[88.6];B[ih]BL[55.9];W[ed]WL[93.5];B[jg]BL[51.3];W[id]WL[93.5];B[jf]BL[50.2];W[ie]WL[96.2];B[je]BL[45.8];W[ib]WL[98.1];B[fk]BL[40.6];W[hk]WL[103.3];B[ik]BL[37.8];W[gk]WL[108.2];B[fl]BL[36.6];W[hl]WL[113.5];B[jc]BL[36.1];W[ic]WL[120.3];B[gj]BL[33.1];W[hj]WL[127.1];B[ce]BL[30.1];W[ci]WL[132.2];B[bh]BL[31.2];W[bj]WL[138];B[di]BL[34.8];W[ch]WL[142.6];B[bi]BL[32.4];W[cj]WL[150];B[il]BL[29];W[hm]WL[148.9])
+
+move=gi 9
+move=hi 10
+
+time=5000
+
+end
+
+
+
+name=zagram353087:101
+
+sgf=(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[13]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=0]HA[2]AB[jd][dj]PB[bot Amelia]PW[pomocnik]TM[60]OT[10]BL[72]WL[75]DT[2021-02-03]RE[W+R];W[gg]WL[70];B[fi]BL[67.4];W[hh]WL[63];B[eg]BL[63];W[ff]WL[70.3];B[ef]BL[61.9];W[fd]WL[76.4];B[gj]BL[57.1];W[ee]WL[83.1];B[ii]BL[52.3];W[ie]WL[86];B[jg]BL[49];W[ig]WL[91.4];B[jf]BL[46.5];W[if]WL[99.2];B[je]BL[43.3];W[id]WL[107.2];B[cf]BL[39.7];W[de]WL[114.8];B[jh]BL[39.2];W[ci]WL[111.9];B[di]BL[37.9];W[ch]WL[116.6];B[df]BL[37.9];W[dh]WL[114.2];B[fh]BL[37.7];W[eh]WL[118.2];B[fg]BL[36.4];W[fb]WL[104.6];B[ic]BL[36.5];W[hc]WL[112.5];B[cj]BL[36.2];W[ib]WL[116];B[jc]BL[36.4];W[ha]WL[123.7];B[ga]BL[33.3];W[gb]WL[131.1];B[ce]BL[30.3];W[cd]WL[135.3];B[fl]BL[31.3];W[el]WL[136.1];B[lh]BL[33.5];W[kk]WL[136.3];B[ll]BL[30.5];W[kl]WL[138.7];B[bj]BL[32];W[bh]WL[143.3];B[km]BL[29.4];W[il]WL[147];B[jl]BL[31];W[jk]WL[154.6];B[jm]BL[31.2];W[hk]WL[161.2];B[im]BL[33.1];W[hm]WL[168.7];B[cl]BL[30.2];W[dl]WL[175.2];B[hj]BL[31.4];W[cb]WL[173.1];B[kj]BL[28.9];W[lk]WL[173.6];B[mk]BL[30.6];W[lj]WL[181.1];B[bc]BL[32.5];W[cc]WL[187.3];B[ah]BL[29.9];W[bg]WL[189.3];B[ag]BL[31.6];W[bf]WL[193.4];B[mj]BL[33.5];W[li]WL[199.2];B[mi]BL[30.7];W[ei]WL[174.4];B[af]BL[31.9];W[be]WL[177.7];B[bd]BL[29.2];W[ae]WL[183.9];B[ea]BL[30.8];W[eb]WL[186.7];B[gk]BL[33.5];W[hl]WL[189.2];B[gh]BL[30.7];W[gf]WL[194.4];B[ih]BL[31.8];W[hg]WL[201.8];B[da]BL[28.9];W[db]WL[202];B[lb]BL[31.3];W[ki]WL[141.6];B[lg]BL[33.2];W[jj.jjkkljkijj]WL[138.2];B[ej]BL[29.9];W[ek]WL[128];B[ia]BL[30.9];W[jb]WL[129.4];B[md]BL[28.3];W[kb]WL[129.7];B[kc]BL[30.9];W[me]WL[135];B[le]BL[33.4];W[mf]WL[135.7])
+
+move=lf 10
+move=kh 10
+move=mc 10
+move=ij 4
+move=ak 5
+move=bl 5
+move=dk 5
+move=hi 10
+move=fk 10
+
+time=5000
+
+end
+
+
+name=zagram353657:37
+sgf=(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[13]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=0]HA[2]AB[jd][dj]PB[bot Amelia]PW[Friend]TM[60]OT[10]BL[72]WL[75]DT[2021-02-22]RE[W+R];W[gg]WL[70];B[eh]BL[66.9];W[gj]WL[60.4];B[he]BL[61.9];W[ge]WL[55];B[gd]BL[57.4];W[fe]WL[62.7];B[ig]BL[52.5];W[hf]WL[63.4];B[gh]BL[50.8];W[if]WL[56];B[jg]BL[46.9];W[hd]WL[41.3];B[ie]BL[44.1];W[hc]WL[47.1];B[jf]BL[44];W[id]WL[25.6];B[je]BL[43.6];W[fb]WL[34.7];B[hg]BL[40.3];W[gf]WL[42.5];B[df]BL[36.8];W[jj]WL[28.4];B[hj]BL[33.4];W[gi]WL[12.9];B[fh]BL[33];W[hi]WL[20.1];B[ii]BL[33.2];W[hh]WL[20];B[gk]BL[32.3];W[ih]WL[21.6];B[ji]BL[29];W[jh]WL[25];B[ki]BL[32];W[kh]WL[33];B[fd]BL[32];W[ee]WL[39.1])
+
+move=de 10
+move=ce 10
+
+time=10000
+
+end
+
+
