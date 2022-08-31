@@ -5,6 +5,7 @@ from threading  import Thread
 from queue import Queue, Empty
 import sys
 import time
+import re
 
 def enqueue_output_o(out, queue):
     f = open("log_o.txt", "a+t")
@@ -74,6 +75,7 @@ def runSingleTestOnce(test, *args):
     answer = None
     timeout = 0.1
     block = True
+    loop_count = 0
     while True:
         time.sleep(0.65)
         while True:
@@ -93,6 +95,9 @@ def runSingleTestOnce(test, *args):
                     break
         if answer is not None:
             break
+        loop_count += 1
+        if loop_count > 90:
+            raise Exception("timeout")
     process.stdin.write('END\n')
     process.stdin.flush()
     moves = answer.split(';')
@@ -100,8 +105,9 @@ def runSingleTestOnce(test, *args):
     ai_move = moves[-1][2:lastBracket]
     score = getScoreForMove(ai_move, test)
 
-    tout.join()
-    terr.join()
+    join_timeout = 5
+    tout.join(join_timeout)
+    terr.join(join_timeout)
     return (ai_move, score)
 
 def runSingleTestManyTimes(test, how_many_times):
@@ -110,7 +116,12 @@ def runSingleTestManyTimes(test, how_many_times):
     results = {}
     total_score = 0.0
     for i in range(how_many_times):
-        ai_move, score = runSingleTestOnce(test, '-', '10000', '5000000', str(test['threads']), str(msec))
+        while True:
+            try:
+                ai_move, score = runSingleTestOnce(test, '-', '10000', '5000000', str(test['threads']), str(msec))
+                break
+            except:
+                print(f"  {i}: timeout, retry")
         print(f"  {i}: {ai_move} --> {score}", file=sys.stderr)
         if ai_move not in results:
             results[ai_move] = {'score' : score, 'times' : 1}
@@ -125,10 +136,21 @@ tests = collectTests()
 print("Tests found: ", len(tests), file=sys.stderr)
 how_many_times = 10
 
+check_name = lambda s : True
+
+if len(sys.argv) > 1:
+    check_name = lambda s : re.fullmatch(sys.argv[1], s)
+    print(f"Regular expression: {sys.argv[1]}")
+
 total = 0.0
+number_of_tests = 0
 for test in tests:
     test['threads'] = 16
+    if not check_name(test['name']):
+        print(f"Omitting {test['name']}")
+        continue
     result = runSingleTestManyTimes(test, how_many_times)
+    number_of_tests += 1
     print(f"name={test['name']}")
     print(f"time ms={test['time']}")
     print(f"threads={test['threads']}")
@@ -136,5 +158,5 @@ for test in tests:
     print(f"mean={result['total'] / how_many_times}\n")
     total += result['total']
 
-print(f"Total tests: {len(tests)}, total score: {total}, mean score: {total / (how_many_times * len(tests))}.")
+print(f"Total tests: {number_of_tests}, total score: {total}, mean score: {total / (how_many_times * number_of_tests)}.")
 

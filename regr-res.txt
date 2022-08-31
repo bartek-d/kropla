@@ -7,20 +7,20 @@ mean=10.0
 name=zagram352706:119
 time ms=5000
 threads=16
-result={'da': {'score': 10.0, 'times': 9}, 'dk': {'score': 0.0, 'times': 1}, 'total': 90.0}
+result={'dk': {'score': 0.0, 'times': 1}, 'da': {'score': 10.0, 'times': 9}, 'total': 90.0}
 mean=9.0
 
 name=zagram352706:149
 time ms=2000
 threads=16
-result={'gj': {'score': 0.0, 'times': 8}, 'hk': {'score': 0.0, 'times': 1}, 'fa': {'score': 10.0, 'times': 1}, 'total': 10.0}
+result={'gj': {'score': 0.0, 'times': 5}, 'hk': {'score': 0.0, 'times': 4}, 'fa': {'score': 10.0, 'times': 1}, 'total': 10.0}
 mean=1.0
 
 name=zagram353022:27
 time ms=10000
 threads=16
-result={'if': {'score': 10.0, 'times': 8}, 'lf': {'score': 8.0, 'times': 2}, 'total': 96.0}
-mean=9.6
+result={'if': {'score': 10.0, 'times': 6}, 'lf': {'score': 8.0, 'times': 2}, 'jh': {'score': 0.0, 'times': 1}, 'ie': {'score': 8.0, 'times': 1}, 'total': 84.0}
+mean=8.4
 
 name=zagram353022:63
 time ms=10000
@@ -28,17 +28,18 @@ threads=16
 result={'bf': {'score': 10.0, 'times': 10}, 'total': 100.0}
 mean=10.0
 
+  1: timeout, retry
 name=zagram353068:39
 time ms=5000
 threads=16
-result={'hi': {'score': 10.0, 'times': 3}, 'gb': {'score': 0.0, 'times': 1}, 'bd': {'score': 0.0, 'times': 1}, 'hb': {'score': 0.0, 'times': 4}, 'dh': {'score': 0.0, 'times': 1}, 'total': 30.0}
-mean=3.0
+result={'lh': {'score': 0.0, 'times': 2}, 'gb': {'score': 0.0, 'times': 2}, 'hb': {'score': 0.0, 'times': 4}, 'lb': {'score': 0.0, 'times': 1}, 'lf': {'score': 0.0, 'times': 1}, 'total': 0.0}
+mean=0.0
 
 name=zagram353087:101
 time ms=5000
 threads=16
-result={'hd': {'score': 0.0, 'times': 10}, 'total': 0.0}
-mean=0.0
+result={'hd': {'score': 0.0, 'times': 6}, 'mc': {'score': 10.0, 'times': 1}, 'lf': {'score': 10.0, 'times': 2}, 'ab': {'score': 0.0, 'times': 1}, 'total': 30.0}
+mean=3.0
 
 name=zagram353657:37
 time ms=10000
@@ -46,34 +47,37 @@ threads=16
 result={'dd': {'score': 0.0, 'times': 10}, 'total': 0.0}
 mean=0.0
 
+  4: timeout, retry
 name=zagram353689:45
 time ms=8000
 threads=16
-result={'jb': {'score': 0.0, 'times': 3}, 'ia': {'score': 0.0, 'times': 1}, 'ib': {'score': 0.0, 'times': 4}, 'cg': {'score': 0.0, 'times': 1}, 'jl': {'score': 0.0, 'times': 1}, 'total': 0.0}
+result={'ib': {'score': 0.0, 'times': 4}, 'jb': {'score': 0.0, 'times': 3}, 'li': {'score': 0.0, 'times': 1}, 'kb': {'score': 0.0, 'times': 1}, 'db': {'score': 0.0, 'times': 1}, 'total': 0.0}
 mean=0.0
 
+  8: timeout, retry
 name=zagram353689:81
 time ms=8000
 threads=16
-result={'db': {'score': 0.0, 'times': 2}, 'fd': {'score': 0.0, 'times': 1}, 'fb': {'score': 0.0, 'times': 1}, 'fc': {'score': 0.0, 'times': 1}, 'ec': {'score': 10.0, 'times': 4}, 'gc': {'score': 0.0, 'times': 1}, 'total': 40.0}
-mean=4.0
+result={'fc': {'score': 0.0, 'times': 2}, 'eb': {'score': 0.0, 'times': 1}, 'ea': {'score': 0.0, 'times': 1}, 'ec': {'score': 10.0, 'times': 3}, 'gd': {'score': 0.0, 'times': 1}, 'fd': {'score': 0.0, 'times': 1}, 'ia': {'score': 0.0, 'times': 1}, 'total': 30.0}
+mean=3.0
 
 name=zagram355111:15
 time ms=8000
 threads=16
-result={'gj': {'score': 0.0, 'times': 6}, 'lh': {'score': 0.0, 'times': 2}, 'fj': {'score': 0.0, 'times': 2}, 'total': 0.0}
+result={'fj': {'score': 0.0, 'times': 4}, 'gj': {'score': 0.0, 'times': 6}, 'total': 0.0}
 mean=0.0
 
 name=zagram355111:107
 time ms=8000
 threads=16
-result={'hm': {'score': 0.0, 'times': 1}, 'fl': {'score': 0.0, 'times': 2}, 'fk': {'score': 10.0, 'times': 6}, 'ek': {'score': 0.0, 'times': 1}, 'total': 60.0}
-mean=6.0
+result={'fk': {'score': 10.0, 'times': 7}, 'ek': {'score': 0.0, 'times': 2}, 'fl': {'score': 0.0, 'times': 1}, 'total': 70.0}
+mean=7.0
 
+  0: timeout, retry
 name=zagram355414:69
 time ms=10000
 threads=16
-result={'fk': {'score': 0.0, 'times': 5}, 'om': {'score': 0.0, 'times': 1}, 'nh': {'score': 0.0, 'times': 2}, 'dh': {'score': 0.0, 'times': 1}, 'nn': {'score': 0.0, 'times': 1}, 'total': 0.0}
+result={'fk': {'score': 0.0, 'times': 3}, 'gb': {'score': 0.0, 'times': 1}, 'nh': {'score': 0.0, 'times': 4}, 'om': {'score': 0.0, 'times': 1}, 'di': {'score': 0.0, 'times': 1}, 'total': 0.0}
 mean=0.0
 
 name=zagram358361:282
@@ -85,13 +89,13 @@ mean=10.0
 name=zagram358361:284
 time ms=5000
 threads=16
-result={'al': {'score': 10.0, 'times': 6}, 'hi': {'score': 0.0, 'times': 2}, 'gp': {'score': 0.0, 'times': 1}, 'gh': {'score': 0.0, 'times': 1}, 'total': 60.0}
-mean=6.0
+result={'al': {'score': 10.0, 'times': 9}, 'gh': {'score': 0.0, 'times': 1}, 'total': 90.0}
+mean=9.0
 
 name=zagram358361:286
 time ms=5000
 threads=16
-result={'al': {'score': 10.0, 'times': 8}, 'nl': {'score': 0.0, 'times': 2}, 'total': 80.0}
-mean=8.0
+result={'nl': {'score': 0.0, 'times': 1}, 'al': {'score': 10.0, 'times': 9}, 'total': 90.0}
+mean=9.0
 
-Total tests: 16, total score: 766.0, mean score: 4.7875.
+Total tests: 16, total score: 794.0, mean score: 4.9625.

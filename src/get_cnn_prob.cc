@@ -124,6 +124,37 @@ try
                 (game.threats[opponent - 1].is_in_2m_miai[p] > 1) ? 1.0f : 0.0f;
         }
 
+    if (planes > 12)
+    {
+        for (int player = 0; player < 2; ++player)
+        {
+            int which2 = (player + 1 == game.whoNowMoves()) ? 14 : 15;
+            if (which2 < planes)
+            {
+                for (auto& t : game.threats[player].threats2m)
+                {
+                    if (t.min_win2 && t.isSafe())
+                    {
+                        data[which2][coord.x[t.where0]][coord.y[t.where0]] =
+                            1.0f - std::pow(0.75f, t.min_win2);
+                    }
+                }
+            }
+            int which = (player + 1 == game.whoNowMoves()) ? 12 : 13;
+            if (which < planes)
+            {
+                for (auto& t : game.threats[player].threats)
+                {
+                    if (t.where && t.singular_dots)
+                    {
+                        data[which][coord.x[t.where]][coord.y[t.where]] =
+                            1.0f - std::pow(0.75f, t.singular_dots);
+                    }
+                }
+            }
+        }
+    }
+
     auto res = cnn.caffe_get_data(static_cast<float*>(&data[0][0][0]),
                                   coord.wlkx, planes, coord.wlky);
     std::vector<float> probs(coord.getSize(), 0.0f);
