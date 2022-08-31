@@ -121,7 +121,7 @@ def runSingleTestManyTimes(test, how_many_times):
                 ai_move, score = runSingleTestOnce(test, '-', '10000', '5000000', str(test['threads']), str(msec))
                 break
             except:
-                print(f"  {i}: timeout, retry")
+                print(f"  {i}: timeout, retry", file=sys.stderr)
         print(f"  {i}: {ai_move} --> {score}", file=sys.stderr)
         if ai_move not in results:
             results[ai_move] = {'score' : score, 'times' : 1}

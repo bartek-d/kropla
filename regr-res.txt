@@ -28,7 +28,6 @@ threads=16
 result={'bf': {'score': 10.0, 'times': 10}, 'total': 100.0}
 mean=10.0
 
-  1: timeout, retry
 name=zagram353068:39
 time ms=5000
 threads=16
@@ -47,14 +46,12 @@ threads=16
 result={'dd': {'score': 0.0, 'times': 10}, 'total': 0.0}
 mean=0.0
 
-  4: timeout, retry
 name=zagram353689:45
 time ms=8000
 threads=16
 result={'ib': {'score': 0.0, 'times': 4}, 'jb': {'score': 0.0, 'times': 3}, 'li': {'score': 0.0, 'times': 1}, 'kb': {'score': 0.0, 'times': 1}, 'db': {'score': 0.0, 'times': 1}, 'total': 0.0}
 mean=0.0
 
-  8: timeout, retry
 name=zagram353689:81
 time ms=8000
 threads=16
@@ -73,7 +70,6 @@ threads=16
 result={'fk': {'score': 10.0, 'times': 7}, 'ek': {'score': 0.0, 'times': 2}, 'fl': {'score': 0.0, 'times': 1}, 'total': 70.0}
 mean=7.0
 
-  0: timeout, retry
 name=zagram355414:69
 time ms=10000
 threads=16
