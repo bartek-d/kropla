@@ -142,6 +142,17 @@ if len(sys.argv) > 1:
     check_name = lambda s : re.fullmatch(sys.argv[1], s)
     print(f"Regular expression: {sys.argv[1]}")
 
+try:
+    lines = []
+    with open("bin/cnn.config") as conf:
+        for line in conf:
+            lines.append(line)
+    if len(lines) >= 3:
+        cnn_name = f"{lines[0].strip()} planes; name of file: {lines[2].split('/')[-1].strip()}"
+except:
+    cnn_name = "(unknown)"
+print(f"CNN: {cnn_name}")
+
 total = 0.0
 number_of_tests = 0
 for test in tests:
