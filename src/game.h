@@ -424,6 +424,7 @@ class Game
     int isInTerr(pti ind, int who) const;
     int isInEncl(pti ind, int who) const;
     int isInBorder(pti ind, int who) const;
+    bool isDameOnEdge(pti i, int who) const;
     int getSafetyOf(pti ind) const { return descr.at(worm[ind]).safety; }
     float getTotalSafetyOf(pti ind) const
     {

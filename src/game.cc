@@ -6592,6 +6592,44 @@ int Game::isInBorder(pti ind, int who) const
     return threats[who - 1].is_in_border[ind];
 }
 
+bool Game::isDameOnEdge(pti i, int who) const
+{
+    if (safety_soft.isDameFor(who, i)) return true;
+    const int x = coord.x[i];
+    const int y = coord.y[i];
+    const bool left = possible_moves.left;
+    const bool right = possible_moves.right;
+    const bool top = possible_moves.top;
+    const bool bottom = possible_moves.bottom;
+
+    if (x == 0)
+    {
+        if (left ||
+            (worm[i + coord.E] and descr.at(worm[i + coord.E]).isSafe()) ||
+            (y == 0 || y == coord.wlky - 1))
+            return true;
+    }
+    else if (x == coord.wlkx - 1)
+    {
+        if (right ||
+            (worm[i + coord.W] and descr.at(worm[i + coord.W]).isSafe()) ||
+            (y == 0 || y == coord.wlky - 1))
+            return true;
+    }
+    if (y == 0)
+    {
+        if (top || (worm[i + coord.S] and descr.at(worm[i + coord.S]).isSafe()))
+            return true;
+    }
+    else if (y == coord.wlky - 1)
+    {
+        if (bottom ||
+            (worm[i + coord.N] and descr.at(worm[i + coord.N]).isSafe()))
+            return true;
+    }
+    return false;
+}
+
 int encl_count, opt_encl_count, moves_count, priority_count;
 
 void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
@@ -6599,10 +6637,6 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
 {
     ++montec::generateMovesCount;
     assert(checkMarginsCorrectness());
-    const bool left = possible_moves.left;
-    const bool right = possible_moves.right;
-    const bool top = possible_moves.top;
-    const bool bottom = possible_moves.bottom;
     // get the list
     Treenode tn;
     tn.move.who = who;
@@ -6641,34 +6675,7 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
         std::stringstream out;
         out << "Move " << coord.showPt(i) << ": ";
 #endif
-        bool is_dame = safety_soft.isDameFor(who, i);
-        int x = coord.x[i], y = coord.y[i];
-        if (x == 0)
-        {
-            if (left ||
-                (worm[i + coord.E] and descr.at(worm[i + coord.E]).isSafe()) ||
-                (y == 0 || y == coord.wlky - 1))
-                is_dame = true;
-        }
-        else if (x == coord.wlkx - 1)
-        {
-            if (right ||
-                (worm[i + coord.W] and descr.at(worm[i + coord.W]).isSafe()) ||
-                (y == 0 || y == coord.wlky - 1))
-                is_dame = true;
-        }
-        if (y == 0)
-        {
-            if (top ||
-                (worm[i + coord.S] and descr.at(worm[i + coord.S]).isSafe()))
-                is_dame = true;
-        }
-        else if (y == coord.wlky - 1)
-        {
-            if (bottom ||
-                (worm[i + coord.N] and descr.at(worm[i + coord.N]).isSafe()))
-                is_dame = true;
-        }
+        bool is_dame = isDameOnEdge(i, who);
         // check threats -- not good, it may be good to play in opp's territory
         // to reduce it...
         // if ((threats[2-who].is_in_encl[i] > 0 || threats[2-who].is_in_terr[i]
