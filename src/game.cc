@@ -6598,44 +6598,11 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                                int depth, int who)
 {
     ++montec::generateMovesCount;
-#ifndef NDEBUG
-    // check margins
-    bool top = true, left = true, bottom = true,
-         right = true;  // are margins empty?
-    for (int i = 1; i < coord.wlkx - 1; i++)
-    {
-        int ind = coord.ind(i, 0);
-        if (worm[ind] != 0 || worm[ind + coord.S] != 0) top = false;
-        ind = coord.ind(i, coord.wlky - 1);
-        if (worm[ind] != 0 || worm[ind + coord.N] != 0) bottom = false;
-    }
-    if (worm[coord.ind(0, 1)] || worm[coord.ind(coord.wlkx - 1, 1)])
-        top = false;
-    if (worm[coord.ind(0, coord.wlky - 2)] ||
-        worm[coord.ind(coord.wlkx - 1, coord.wlky - 2)])
-        bottom = false;
-    for (int j = 1; j < coord.wlky - 1; j++)
-    {
-        int ind = coord.ind(0, j);
-        if (worm[ind] != 0 || worm[ind + coord.E] != 0) left = false;
-        ind = coord.ind(coord.wlkx - 1, j);
-        if (worm[ind] != 0 || worm[ind + coord.W] != 0) right = false;
-    }
-    if (worm[coord.ind(1, 0)] || worm[coord.ind(1, coord.wlky - 1)])
-        left = false;
-    if (worm[coord.ind(coord.wlkx - 2, 0)] ||
-        worm[coord.ind(coord.wlkx - 2, coord.wlky - 1)])
-        right = false;
-    assert(left == possible_moves.left);
-    assert(right == possible_moves.right);
-    assert(top == possible_moves.top);
-    assert(bottom == possible_moves.bottom);
-#else
-    bool left = possible_moves.left;
-    bool right = possible_moves.right;
-    bool top = possible_moves.top;
-    bool bottom = possible_moves.bottom;
-#endif
+    assert(checkMarginsCorrectness());
+    const bool left = possible_moves.left;
+    const bool right = possible_moves.right;
+    const bool top = possible_moves.top;
+    const bool bottom = possible_moves.bottom;
     // get the list
     Treenode tn;
     tn.move.who = who;
@@ -8389,6 +8356,39 @@ bool Game::checkRootListOfMovesCorrectness(Treenode *children) const
         return false;  // no dame move among children, but there should be!
     }
     return true;
+}
+
+bool Game::checkMarginsCorrectness() const
+{
+    // check margins
+    bool top = true, left = true, bottom = true,
+         right = true;  // are margins empty?
+    for (int i = 1; i < coord.wlkx - 1; i++)
+    {
+        int ind = coord.ind(i, 0);
+        if (worm[ind] != 0 || worm[ind + coord.S] != 0) top = false;
+        ind = coord.ind(i, coord.wlky - 1);
+        if (worm[ind] != 0 || worm[ind + coord.N] != 0) bottom = false;
+    }
+    if (worm[coord.ind(0, 1)] || worm[coord.ind(coord.wlkx - 1, 1)])
+        top = false;
+    if (worm[coord.ind(0, coord.wlky - 2)] ||
+        worm[coord.ind(coord.wlkx - 1, coord.wlky - 2)])
+        bottom = false;
+    for (int j = 1; j < coord.wlky - 1; j++)
+    {
+        int ind = coord.ind(0, j);
+        if (worm[ind] != 0 || worm[ind + coord.E] != 0) left = false;
+        ind = coord.ind(coord.wlkx - 1, j);
+        if (worm[ind] != 0 || worm[ind + coord.W] != 0) right = false;
+    }
+    if (worm[coord.ind(1, 0)] || worm[coord.ind(1, coord.wlky - 1)])
+        left = false;
+    if (worm[coord.ind(coord.wlkx - 2, 0)] ||
+        worm[coord.ind(coord.wlkx - 2, coord.wlky - 1)])
+        right = false;
+    return (left == possible_moves.left) and (right == possible_moves.right) and
+           (top == possible_moves.top) and (bottom == possible_moves.bottom);
 }
 
 bool Game::checkWormCorrectness() const

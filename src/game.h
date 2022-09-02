@@ -455,6 +455,7 @@ class Game
     bool isDame_directCheck(pti p, int who) const;
     bool isDame_directCheck_symm(pti p) const;
     bool checkRootListOfMovesCorrectness(Treenode* children) const;
+    bool checkMarginsCorrectness() const;
     bool checkWormCorrectness() const;
     bool checkSoftSafetyCorrectness();
     bool checkThreatCorrectness();
