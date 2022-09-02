@@ -535,6 +535,22 @@ void AllThreats::turnOffThreats2m()
 
 bool AllThreats::isActiveThreats2m() const { return active_thr2m; }
 
+int AllThreats::numberOfDotsToBeEnclosedIn2mAfterPlayingAt(pti i) const
+{
+    for (auto &t : threats2m)
+    {
+        if (t.where0 == i)
+        {
+            if (t.min_win2 and t.isSafe())
+            {
+                return t.min_win2;
+            }
+            break;
+        }
+    }
+    return 0;
+}
+
 void AllThreats::removeMarkedAndAtPoint2moves(pti ind)
 {
     if (!threats2m.empty())

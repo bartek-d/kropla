@@ -6773,33 +6773,6 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
             tn.t.playouts += 5;  // add lost simulations
             tn.markAsDame();
         }
-        // add prior values according to Pattern52
-        /* // turned off in v136
-        if (coord.dist[i] == 0) {  // v136: inner turned off; v119: edge turned
-        on  [before: on the edge Pattern52 are not that good, esp. that this
-        situation is checked elsewhere] auto v = getPattern52Value(i, who); if
-        (v < 0) { tn.t.playouts += 5;    // add lost simulations } else if (v >
-        0) { int count = 1 + (v*12); tn.t.playouts += count;  tn.t.value_sum +=
-        count;  // add won simulations
-          }
-        }
-        */
-        // add prior values according to influence value
-        /*
-        if (isInfluential(i, true)) {
-          tn.t.playouts += 2;  tn.t.value_sum += 2;  // add won simulations
-        }
-        */
-        // add prior values according to costs
-        /*
-        if (depth <= 2) {
-          if (cost_moves[i] > 0) {
-            tn.t.playouts += cost_moves[i];   tn.t.value_sum += cost_moves[i];
-        // add won simulations } else { tn.t.playouts -= cost_moves[i];  // add
-        lost simulations
-          }
-        }
-        */
         // add prior values according to InterestingMoves (cut/connect)
         {
             int w = interesting_moves.classOfMove(i);
@@ -6829,43 +6802,34 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
         // add prior values because of threats2m (v118+)
         if (threats[who - 1].is_in_terr[i] == 0 and !is_in_opp_te)
         {
-            for (auto &t : threats[who - 1].threats2m)
+            const int i_can_enclose =
+                threats[who - 1].numberOfDotsToBeEnclosedIn2mAfterPlayingAt(i);
+            if (i_can_enclose)
             {
-                if (t.where0 == i)
-                {
-                    if (t.min_win2 and t.isSafe())
-                    {
-                        int num = 5 + std::min(int(t.min_win2), 15);
-                        tn.t.playouts += num;
-                        tn.t.value_sum =
-                            tn.t.value_sum.load() + num;  // add won simulations
+                int num = 5 + std::min(i_can_enclose, 15);
+                tn.t.playouts += num;
+                tn.t.value_sum =
+                    tn.t.value_sum.load() + num;  // add won simulations
 #ifndef NDEBUG
-                        out << "thr2m=" << num << " ";
+                out << "thr2m=" << num << " ";
 #endif
-                    }
-                    break;
-                }
             }
-            for (auto &t : threats[2 - who].threats2m)
-            {
-                if (t.where0 == i)
-                {
-                    if (t.min_win2 and t.isSafe())
-                    {  // and threats[2-who].is_in_terr[t.where0]==0 and
-                       // threats[2-who].is_in_encl[t.where0]==0 -- this is
-                       // above (!is_in_opp_te)
-                        int num = 5 + std::min(int(t.min_win2), 15);
-                        // tn.t.playouts += num;   // add lost simulations ???
-                        tn.t.playouts += num;
-                        tn.t.value_sum =
-                            tn.t.value_sum.load() + num;  // add won simulations
+
+            const int opp_can_enclose =
+                threats[2 - who].numberOfDotsToBeEnclosedIn2mAfterPlayingAt(i);
+            if (opp_can_enclose)
+            {  // and threats[2-who].is_in_terr[t.where0]==0 and
+               // threats[2-who].is_in_encl[t.where0]==0 -- this is
+               // above (!is_in_opp_te)
+                int num = 5 + std::min(opp_can_enclose, 15);
+                tn.t.playouts += num;
+                tn.t.value_sum =
+                    tn.t.value_sum.load() + num;  // add won simulations
 #ifndef NDEBUG
-                        out << "thr2mopp=" << num << " ";
+                out << "thr2mopp=" << num << " ";
 #endif
-                    }
-                    break;
-                }
             }
+
             // miai/encl2 (v127+)
             if ((threats[2 - who].is_in_2m_encl[i] > 0 ||
                  threats[2 - who].is_in_2m_miai[i] > 0) and

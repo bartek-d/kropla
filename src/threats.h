@@ -136,6 +136,7 @@ struct AllThreats
     const Threat *findThreatZobrist_const(uint64_t zobr) const;
     void turnOffThreats2m();
     bool isActiveThreats2m() const;
+    int numberOfDotsToBeEnclosedIn2mAfterPlayingAt(pti i) const;
 
    private:
     bool active_thr2m{true};
