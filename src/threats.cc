@@ -519,7 +519,7 @@ Threat *AllThreats::findThreatZobrist(uint64_t zobr)
 
 const Threat *AllThreats::findThreatZobrist_const(uint64_t zobr) const
 {
-    auto pos = std::find_if(
+    const auto pos = std::find_if(
         threats.begin(), threats.end(),
         [zobr](const Threat &t) { return (t.zobrist_key == zobr); });
     return (pos != threats.end()) ? (&*pos) : nullptr;
@@ -549,6 +549,14 @@ int AllThreats::numberOfDotsToBeEnclosedIn2mAfterPlayingAt(pti i) const
         }
     }
     return 0;
+}
+
+bool AllThreats::isInBorder2m(pti i) const
+{
+    const auto pos =
+        std::find_if(threats2m.begin(), threats2m.end(),
+                     [i](const auto &t) { return (t.where0 == i); });
+    return pos != threats2m.end();
 }
 
 void AllThreats::removeMarkedAndAtPoint2moves(pti ind)

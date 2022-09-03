@@ -6831,9 +6831,10 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
             }
 
             // miai/encl2 (v127+)
-            if ((threats[2 - who].is_in_2m_encl[i] > 0 ||
+            if ((threats[2 - who].is_in_2m_encl[i] > 0 or
                  threats[2 - who].is_in_2m_miai[i] > 0) and
-                threats[who - 1].is_in_border[i] == 0)
+                threats[who - 1].is_in_border[i] == 0 and
+                not threats[who - 1].isInBorder2m(i))
             {
                 tn.t.playouts += 15;  // add lost simulations
 #ifndef NDEBUG
