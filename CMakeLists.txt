@@ -4,17 +4,15 @@ project(kropla)
 include(cppcheck.cmake)
 include(clang-format.cmake)
 
-set(CMAKE_CXX_FLAGS "-g -Wall -std=c++17 -O0 -DNDEBUG -msse3")
-add_compile_options(-s -Wall -std=c++17 -O3 -DNDEBUG -msse3)
-#set(CMAKE_CXX_FLAGS "-s  -std=c++17 -O3 -DNDEBUG -msse3")
-#set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc  -Wall -std=c++17 -O3 -DNDEBUG -msse3 -DSPEED_TEST")
+set(CMAKE_CXX_FLAGS "-s -Wall -std=c++17 -O3 -msse3")
+add_definitions(-DNDEBUG)  # -DSPEED_TEST -DDEBUG_SGF
+
 #set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc  -Wall -std=c++17 -O3 -DNDEBUG -msse3")
-#set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc  -Wall -std=c++17 -O3 -DNDEBUG -DDEBUG_SGF -msse3")
 
 set(SHARED_LIBS_DIR "/home/b/kropki/cnn/shared")
 unset(USE_CNN)
 #option(USE_CNN "Use CNN for kropla" ON)
-set(USE_CNN OFF)
+set(USE_CNN ON)
 message("Using CNN: " ${USE_CNN})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)

@@ -31,7 +31,7 @@ def collectTests():
     sgf = None
     time_msec = None
     default_time_msec = "10000"
-    with open("regression-list.txt") as regrf:
+    with open("../regression-list.txt") as regrf:
         for line in regrf:
             if line.startswith('name='):
                 name = getValue(line, "name=")
@@ -62,7 +62,7 @@ def getScoreForMove(ai_move, test):
     return 0.0
 
 def runSingleTestOnce(test, *args):
-    args = ['bin/kropla'] + list([*args])
+    args = ['./kropla'] + list([*args])
     process = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=1, encoding='utf-8')
     qerr = Queue()
     qout = Queue()
@@ -144,7 +144,7 @@ if len(sys.argv) > 1:
 
 try:
     lines = []
-    with open("bin/cnn.config") as conf:
+    with open("cnn.config") as conf:
         for line in conf:
             lines.append(line)
     if len(lines) >= 3:
