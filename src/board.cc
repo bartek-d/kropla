@@ -26,7 +26,6 @@
 #include <iostream>
 #include <random>
 #include <sstream>
-#include <vector>
 
 /********************************************************************************************************
   Svg class for showing pretty diagrams

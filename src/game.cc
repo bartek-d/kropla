@@ -6351,8 +6351,8 @@ std::pair<Move, std::vector<std::string>> Game::extractSgfMove(std::string m,
             {
                 if (mode == '.')
                 {
-                    move.enclosures.push_back(
-                        std::make_shared<Enclosure>(findInterior(border)));
+                    move.enclosures.push_back(std::make_shared<Enclosure>(
+                        findInterior(std::move(border))));
                 }
                 border.clear();
             }

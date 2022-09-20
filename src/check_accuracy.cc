@@ -34,7 +34,7 @@ testing NN. Copyright (C) 2021 Bartek Dyda, email: bartekdyda (at) protonmail
 #include <set>
 #include <string>
 
-void gatherDataFromPosition(Game& game, Move& move)
+void gatherDataFromPosition(Game& game, Move& move, unsigned move_no)
 {
     const auto [is_cnn_available, probs] = getCnnInfo(game);
     struct MoveAndProb
@@ -56,7 +56,7 @@ void gatherDataFromPosition(Game& game, Move& move)
         }
     }
     game.show();
-    std::cout << "Move of player #" << game.whoNowMoves() << ": "
+    std::cout << "Move #" << move_no << " of player #" << game.whoNowMoves() << ": "
               << coord.showPt(move.ind) << std::endl;
 
     int shown = 0;
@@ -131,7 +131,7 @@ void gatherDataFromSgfSequence(SgfSequence& seq,
     }
     const unsigned start_from = 5;
     const unsigned go_to = std::min<unsigned>(
-        (x * y * 3) / 5,  // use moves until 60% of board is full
+        (x * y * 19) / 20,  // use moves until 95% of board is full
         seq.size() - 1);
     Game game(SgfSequence(seq.begin(), seq.begin() + start_from), go_to);
     for (unsigned i = start_from; i < go_to; ++i)
@@ -141,7 +141,7 @@ void gatherDataFromSgfSequence(SgfSequence& seq,
             auto [move, points_to_enclose] = getMoveFromSgfNode(game, seq[i]);
             if (move.ind != 0 and move.who == game.whoNowMoves())
             {
-                gatherDataFromPosition(game, move);
+	        gatherDataFromPosition(game, move, i+2);
             }
         }
         // std::cerr << "Trying to play at: " << seq[i].toString() << std::endl;

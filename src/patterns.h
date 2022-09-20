@@ -69,13 +69,14 @@ class Pattern3
     std::array<pattern3_val, PATTERN3_SIZE> values;
     int add_type;
     void addPatterns(pattern3_t p, pattern3_val value);
-    void generateFromStr(std::string sarg, pattern3_val value, int depth);
+    void generateFromStr(const std::string &sarg, pattern3_val value,
+                         int depth);
     friend struct Pattern3full;
     friend class Pattern3extra_array;
 
    public:
     pattern3_val getValue(pattern3_t p, int who) const;
-    void generate(std::vector<std::string> vs, int type = TYPE_REPLACE);
+    void generate(const std::vector<std::string> &vs, int type = TYPE_REPLACE);
     void readFromFile(const std::string &filename);
     void setEmptyValue(pattern3_val v) { values[0] = v; };
     static pattern3_t rotate(pattern3_t p);
@@ -142,12 +143,13 @@ class Pattern3extra_array
     std::array<std::array<Pattern3extra, PATT_COUNT>, PATTERN3_SIZE> values[2];
     int max_occupied;
     void addPatterns(Pattern3full p);
-    void generateFromStr(std::string sarg, pattern3_val value, int depth);
+    void generateFromStr(const std::string &sarg, pattern3_val value,
+                         int depth);
     void show(pattern3_t p) const;
 
    public:
     // pattern3_val getValue(pattern3_t p, int who) const;
-    void generate(std::vector<std::string> vs);
+    void generate(const std::vector<std::string> &vs);
     void setValues(std::vector<pti> &val, const std::vector<pti> &w,
                    pattern3_t patt3_at, pti ind, int who) const;
     Pattern3extra_array();
@@ -196,7 +198,7 @@ class Pattern52
     pattern52_t reflect(pattern52_t p) const;
     pattern52_t reverseColour(pattern52_t p) const;
     void addPatterns(pattern52_t p, real_t value);
-    void generateFromStr(std::string sarg, real_t value, int depth);
+    void generateFromStr(const std::string &sarg, real_t value, int depth);
 
    public:
     real_t getValue(pattern52_t p, int who) const;

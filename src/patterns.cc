@@ -237,7 +237,8 @@ pattern3_t Pattern3::getCodeOfPattern(std::string s)
     return p;
 }
 
-void Pattern3::generateFromStr(std::string sarg, pattern3_val value, int depth)
+void Pattern3::generateFromStr(const std::string &sarg, pattern3_val value,
+                               int depth)
 {
     for (WildcardReplacer wr(sarg, 9, true); !wr.isAtEnd(); ++wr)
     {
@@ -262,7 +263,7 @@ pattern3_val Pattern3::getValue(pattern3_t p, int who) const
         return values[reverseColour(p)];
 }
 
-void Pattern3::generate(std::vector<std::string> vs, int type)
+void Pattern3::generate(const std::vector<std::string> &vs, int type)
 {
     add_type = type;
     for (unsigned i = 0; i < vs.size() - 1; i += 2)
@@ -619,8 +620,8 @@ void Pattern3extra_array::addPatterns(Pattern3full p)
     }
 }
 
-void Pattern3extra_array::generateFromStr(std::string sarg, pattern3_val value,
-                                          int depth)
+void Pattern3extra_array::generateFromStr(const std::string &sarg,
+                                          pattern3_val value, int depth)
 {
     for (WildcardReplacer wr(sarg, 9, true); !wr.isAtEnd(); ++wr)
     {
@@ -634,7 +635,7 @@ void Pattern3extra_array::generateFromStr(std::string sarg, pattern3_val value,
     }
 }
 
-void Pattern3extra_array::generate(std::vector<std::string> vs)
+void Pattern3extra_array::generate(const std::vector<std::string> &vs)
 {
     for (unsigned i = 0; i < vs.size() - 1; i += 2)
     {
@@ -700,7 +701,8 @@ void Pattern52::addPatterns(pattern52_t p, real_t value)
                            values[p]);  // TODO: maybe sum would be better?
 }
 
-void Pattern52::generateFromStr(std::string sarg, real_t value, int depth)
+void Pattern52::generateFromStr(const std::string &sarg, real_t value,
+                                int depth)
 {
     for (WildcardReplacer wr(sarg, 10, false); !wr.isAtEnd(); ++wr)
     {
