@@ -125,11 +125,12 @@ struct Treenode
     Movestats prior;
     Move move;
     uint32_t flags{0};
-    static const uint32_t LAST_CHILD = 1;
-    static const uint32_t IS_DAME = 2;
+    static const uint32_t LAST_CHILD = 0x10000;
+    static const uint32_t IS_DAME = 0x20000;
     static const uint32_t IS_INSIDE_TERR_NO_ATARI =
-        4;  // move is inside someone's terr, but does not save from/create
-            // atari
+        0x40000;  // move is inside someone's terr, but does not save
+                  // from/create atari
+    static const uint32_t DEPTH_MASK = 0xffff;
     real_t getValue() const;
     bool operator<(const Treenode& other) const;
     void markAsLast() { flags |= LAST_CHILD; }
@@ -141,6 +142,15 @@ struct Treenode
     bool isInsideTerrNoAtari() const
     {
         return (flags & IS_INSIDE_TERR_NO_ATARI) != 0;
+    }
+    void setDepth(uint32_t depth) { flags |= (depth & DEPTH_MASK); }
+    uint32_t getDepth() const { return (flags & DEPTH_MASK); }
+    uint32_t getVirtualLoss() const
+    {
+        const auto depth = getDepth();
+        if (depth == 0) return 0;
+        const uint32_t value = 8 >> depth;
+        return value ? value : 1;
     }
     const Treenode* getBestChild() const;
     std::string show() const;

@@ -13,6 +13,7 @@ move=ad 9
 move=bc 9
 move=cb 9
 move=ca 10
+move=kf 10
 
 time=1000
 
@@ -142,6 +143,7 @@ move=ke 9
 move=ie 9
 move=he 8
 move=hd 9
+move=lf 8
 
 time=8000
 
@@ -155,6 +157,7 @@ name=zagram353689:81
 sgf=(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[13]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=0]HA[2]AB[jd][dj]PB[bot Amelia]PW[Friend]TM[60]OT[10]BL[72]WL[75]DT[2021-02-24]RE[W+R];W[gg]WL[70];B[ge]BL[67.4];W[ff]WL[68.9];B[fe]BL[63.5];W[df]WL[76.3];B[ig]BL[58.9];W[hf]WL[81.5];B[hi]BL[54.3];W[if]WL[82.5];B[eh]BL[49.4];W[gi]WL[89.3];B[gj]BL[48.2];W[fi]WL[95.3];B[gf]BL[45.8];W[hh]WL[82.1];B[fg]BL[41];W[ef]WL[84.2];B[hg]BL[40.8];W[gh]WL[91.7];B[ih]BL[40.7];W[fj]WL[87.6];B[hj]BL[40.8];W[ej]WL[77.2];B[jf]BL[40.5];W[di]WL[74.1];B[dd]BL[37.5];W[ii]WL[81];B[ji]BL[37.1];W[ij]WL[69.2];B[fl]BL[36.7];W[jk]WL[45.3];B[gl]BL[36.5];W[jh]WL[49.4];B[jg]BL[36.7];W[kh]WL[57.2];B[ek]BL[33.2];W[ei]WL[50.1];B[bi]BL[30.5];W[dk]WL[53.4];B[cj]BL[34.4];W[fk]WL[61.8];B[gk]BL[30.9];W[el.dkelfkejdk]WL[63.6];B[gb]BL[32.6];W[lg]WL[61.1];B[jb]BL[30.4];W[je]WL[66.9];B[kf]BL[34];W[ke]WL[74.6];B[lf]BL[33.6];W[le]WL[82.1];B[mf]BL[34.1];W[ie]WL[90.6];B[id]BL[31.4];W[li]WL[90];B[cl]BL[33.2];W[bf]WL[88.2];B[ce]BL[30.4];W[cf]WL[65.9];B[be]BL[32.2];W[ci]WL[73];B[kj]BL[29.3];W[lk]WL[70.7];B[bh]BL[31.4];W[kl]WL[67.8];B[mj]BL[33.5];W[lj.iiijjkkllkljlikhjhii]WL[73.5];B[af]BL[31.1];W[em]WL[77.5];B[bb]BL[32.8];W[ae]WL[75.8];B[da]BL[30.5];W[ch]WL[82.2];B[bg]BL[32.8];W[he]WL[64.4];B[hd]BL[29.6];W[ed]WL[65.7];B[ee]BL[33.2];W[de]WL[74];B[cg]BL[30.6];W[dg.chdieifighggffefdgch]WL[74.1])
 
 move=ec 10
+move=cd 0
 
 time=8000
 
@@ -202,6 +205,7 @@ name=zagram355414:69
 sgf=(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[15]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=0]HA[2]AB[ld][dl]PB[bot Amelia]PW[nexmm]TM[30]OT[3]BL[42]WL[45]DT[2021-05-07]RE[W+R];W[hf]WL[33];B[ig]BL[33];W[gh]WL[31.5];B[hg]BL[30.4];W[gg]WL[30.9];B[gf]BL[31.6];W[if]WL[32.2];B[jg]BL[29.2];W[jf]WL[30.9];B[kf]BL[30.3];W[ke]WL[31.5];B[le]BL[31];W[kg]WL[31.7];B[lf]BL[32.2];W[jh]WL[32.9];B[kh]BL[30];W[lg]WL[34.2];B[ih]BL[30.8];W[ji]WL[35];B[ii]BL[32.2];W[ij]WL[37];B[hi]BL[30.6];W[gk]WL[38.2];B[gi]BL[31.5];W[fi]WL[38.6];B[fh]BL[30.1];W[fg]WL[39.9];B[fj]BL[30.8];W[eh.ehfighfgeh]WL[39.4];B[gj]BL[32];W[kj]WL[38.4];B[ge]BL[28.9];W[id]WL[38.7];B[hd]BL[29.8];W[ic]WL[38];B[je]BL[31.1];W[ie]WL[39.6];B[kd.jekflekdje]BL[32.4];W[hc]WL[39.9];B[fd]BL[29.5];W[ec]WL[40.1];B[de]BL[30.6];W[gc]WL[36.5];B[lh]BL[31.7];W[mg]WL[36.7];B[mi]BL[29.7];W[hk]WL[35.9];B[ed]BL[31];W[ni]WL[32.4];B[mj]BL[32];W[nk]WL[31.5];B[mk]BL[29.5];W[ml]WL[33.3];B[nj]BL[30.6];W[mh]WL[33.5];B[li]BL[31.8];W[oj]WL[34.7];B[lk]BL[29.6];W[km]WL[30];B[nl]BL[30.9];W[ok]WL[30.3];B[ll]BL[32.1];W[mm]WL[31.3];B[lm]BL[29.2];W[ln]WL[32.8];B[mn]BL[30.6];W[nm]WL[34.4];B[kn]BL[31.9];W[lo]WL[35.5])
 
 move=kk 10
+move=nn 5
 
 end
 

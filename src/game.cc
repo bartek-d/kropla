@@ -3933,14 +3933,16 @@ void Game::rollout(Treenode *node, int depth)
         auto move_who = node->move.who;
         auto adjusted_value = (move_who == 1) ? v : 1 - v;
         node->t.playouts +=
-            1 - VIRTUAL_LOSS;  // add 1 new playout and undo virtual loss
+            1 -
+            node->getVirtualLoss();  // add 1 new playout and undo virtual loss
         node->t.value_sum = node->t.value_sum.load() + adjusted_value;
         if (node == node->parent)
         {
             // we are at root
-            node->t.playouts +=
-                VIRTUAL_LOSS;  // in root we do not add virtual loss, but we
-                               // 'undid' it, so we have to add it again
+            // node->t.playouts +=
+            //    node->getVirtualLoss();  // in root we do not add virtual
+            //    loss, but we
+            // 'undid' it, so we have to add it again -- now we just set it at 0
             break;
         }
         amafboard[move_ind] =
@@ -6641,6 +6643,7 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
     Treenode tn;
     tn.move.who = who;
     tn.parent = parent;
+    tn.setDepth(depth);
     getSimplifyingEnclAndPriorities(who);
     std::vector<std::shared_ptr<Enclosure>> neutral_encl_moves,
         neutral_opt_encl_moves;
@@ -6685,6 +6688,7 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
         tn.t.playouts = 30;
         tn.t.value_sum = 15;
         tn.flags = 0;
+        tn.setDepth(depth);
         // add prior values according to Pattern3
         bool is_in_our_te = (threats[who - 1].is_in_encl[i] > 0 ||
                              threats[who - 1].is_in_terr[i] >

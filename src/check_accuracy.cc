@@ -56,8 +56,8 @@ void gatherDataFromPosition(Game& game, Move& move, unsigned move_no)
         }
     }
     game.show();
-    std::cout << "Move #" << move_no << " of player #" << game.whoNowMoves() << ": "
-              << coord.showPt(move.ind) << std::endl;
+    std::cout << "Move #" << move_no << " of player #" << game.whoNowMoves()
+              << ": " << coord.showPt(move.ind) << std::endl;
 
     int shown = 0;
     for (int i = 0; shown < 20 && not queue.empty(); ++i)
@@ -141,7 +141,7 @@ void gatherDataFromSgfSequence(SgfSequence& seq,
             auto [move, points_to_enclose] = getMoveFromSgfNode(game, seq[i]);
             if (move.ind != 0 and move.who == game.whoNowMoves())
             {
-	        gatherDataFromPosition(game, move, i+2);
+                gatherDataFromPosition(game, move, i + 2);
             }
         }
         // std::cerr << "Trying to play at: " << seq[i].toString() << std::endl;
