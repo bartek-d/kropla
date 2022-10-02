@@ -26,12 +26,18 @@
 
 #include "glog/logging.h"
 
+#include <stdlib.h>
 #include <cassert>
 #include <iostream>
 #include <filesystem>
 
 using namespace caffe;
 
+
+MCaffe::MCaffe()
+{
+  setenv("OMP_NUM_THREADS", "1", true);
+}
 
 int
 MCaffe::shape_size(const vector<int>& shape) const

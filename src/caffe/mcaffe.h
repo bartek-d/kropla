@@ -36,6 +36,7 @@ struct CaffeException : public std::runtime_error {
 
 class MCaffe {
 public:
+  MCaffe();
   void quiet_caffe(char *name) const;
   bool caffe_ready() const { return (net != nullptr); }
   void caffe_load(const std::string& model_file, const std::string& weights_file, int default_size);
