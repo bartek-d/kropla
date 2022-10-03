@@ -650,7 +650,8 @@ void Game::initWorm()
 }
 
 Game::Game(SgfSequence seq, int max_moves, bool must_surround)
-    : must_surround{must_surround}
+  : descr{},
+    must_surround{must_surround}
 {
     assert(Pattern3extra::MASK_DOT == MASK_DOT);
     global::komi = 0;
@@ -683,7 +684,6 @@ Game::Game(SgfSequence seq, int max_moves, bool must_surround)
     pattern3_value[0] = std::vector<pattern3_val>(coord.getSize(), 0);
     pattern3_value[1] = std::vector<pattern3_val>(coord.getSize(), 0);
     pattern3_at = std::vector<pattern3_t>(coord.getSize(), empty_point);
-    descr = std::map<pti, WormDescr>();
     connects[0] = std::vector<OneConnection>(coord.getSize(), OneConnection());
     connects[1] = std::vector<OneConnection>(coord.getSize(), OneConnection());
     threats[0] = AllThreats();

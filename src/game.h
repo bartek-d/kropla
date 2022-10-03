@@ -28,6 +28,7 @@
 #include <chrono>
 #include <list>
 #include <map>
+#include <unordered_map>
 #include <random>
 #include <set>
 #include <string>
@@ -258,7 +259,7 @@ class Game
 {
     std::vector<pti> worm;
     std::vector<pti> nextDot;
-    std::map<pti, WormDescr> descr;
+    std::unordered_map<pti, WormDescr> descr;
 
    public:
     AllThreats threats[2];

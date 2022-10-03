@@ -50,7 +50,7 @@ MCaffe::shape_size(const vector<int>& shape) const
 	
 /* Make caffe quiet */
 void
-MCaffe::quiet_caffe(char *name) const
+MCaffe::quiet_caffe(const char *name) const
 {
   FLAGS_logtostderr = 1;
   google::InitGoogleLogging(name);
