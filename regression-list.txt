@@ -128,6 +128,8 @@ sgf=(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[13]RU[Punish=0,Holes=1,AddTurn=0,Must
 
 move=de 10
 move=ce 10
+move=lh 10
+move=ij 10
 
 time=10000
 

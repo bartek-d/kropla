@@ -4374,7 +4374,7 @@ void Game::placeDot(int x, int y, int who)
                     dsc.opp_threats.push_back(t.zobrist_key);
             }
         }
-        descr.insert({c, dsc});
+        descr.insert({c, std::move(dsc)});
     }
     // update safety info
     {

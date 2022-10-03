@@ -317,7 +317,7 @@ void MonteCarlo::descend(TreenodeAllocator &alloc, Treenode *node,
             break;
         }
         node = selectBestChild(node);
-        node->t.playouts += node->getVirtualLoss();  // Game::VIRTUAL_LOSS;
+        node->t.playouts += node->getVirtualLoss();
         ++depth;
     }
     game_ptr->seedRandomEngine(seed);

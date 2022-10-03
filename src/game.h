@@ -149,8 +149,7 @@ struct Treenode
     {
         const auto depth = getDepth();
         if (depth == 0) return 0;
-        const uint32_t value = 8 >> depth;
-        return value ? value : 1;
+        return 2;
     }
     const Treenode* getBestChild() const;
     std::string show() const;
@@ -263,7 +262,6 @@ class Game
 
    public:
     AllThreats threats[2];
-    static const int VIRTUAL_LOSS = 1;
 
    private:
     std::vector<OneConnection> connects[2];
