@@ -435,7 +435,8 @@ std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
     montec::root.move = pos.getLastMove();
     montec::root.parent = &montec::root;
     montec::root.game_ptr = std::make_shared<Game>(pos);
-    std::cerr << "Descend MT (threads=" << threads << ") starts, komi==" << global::komi << std::endl;
+    std::cerr << "Descend MT (threads=" << threads
+              << ") starts, komi==" << global::komi << std::endl;
 #ifdef DEBUG_SGF
     assert(0);  // SGF write is not thread-safe
 #endif

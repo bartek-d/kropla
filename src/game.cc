@@ -650,8 +650,7 @@ void Game::initWorm()
 }
 
 Game::Game(SgfSequence seq, int max_moves, bool must_surround)
-  : descr{},
-    must_surround{must_surround}
+    : descr{}, must_surround{must_surround}
 {
     assert(Pattern3extra::MASK_DOT == MASK_DOT);
     global::komi = 0;
