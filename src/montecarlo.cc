@@ -427,6 +427,19 @@ int MonteCarlo::runSimulations(int max_iter_count, unsigned thread_no,
     return i;
 }
 
+void MonteCarlo::showBestContinuation(const Treenode *node,
+                                      const std::string &prefix,
+                                      const std::string &added_to_prefix,
+                                      unsigned depth) const
+{
+    const Treenode *max_el = node->getBestChild();
+    if (max_el == nullptr) return;
+    std::cerr << prefix << max_el->show() << std::endl;
+    if (depth > 1)
+        showBestContinuation(max_el, prefix + added_to_prefix, added_to_prefix,
+                             depth - 1);
+}
+
 std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
                                        int msec)
 {
@@ -568,6 +581,8 @@ std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
     std::cerr << "Sort ends, root.children.size()==" << n << ", root value = "
               << montec::root.t.value_sum / montec::root.t.playouts
               << ", root playouts = " << montec::root.t.playouts << std::endl;
+    showBestContinuation(&montec::root, "", "   ", 15);
+
     constexpr int max_moves = 400;
     for (int i = 0; i < max_moves && i < n; i++)
     {

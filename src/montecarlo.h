@@ -51,6 +51,9 @@ class MonteCarlo
     void expandNode(TreenodeAllocator &alloc, Treenode *node, Game *game,
                     int depth) const;
     void descend(TreenodeAllocator &alloc, Treenode *node, unsigned seed);
+    void showBestContinuation(const Treenode *node, const std::string &prefix,
+                              const std::string &added_to_prefix,
+                              unsigned depth) const;
 };
 
 namespace montec
