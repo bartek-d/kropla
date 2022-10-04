@@ -294,6 +294,18 @@ std::string Treenode::show() const
            ", amaf: " + amaf.show() + ", flags: " + std::to_string(flags);
 }
 
+std::string Treenode::showParents() const
+{
+    if (this->parent == this) return "[root]";
+    std::string s;
+    for (Treenode *node = const_cast<Treenode *>(this); node->parent != node;
+         node = node->parent)
+    {
+        s = node->move.show() + " " + s;
+    }
+    return s;
+}
+
 std::string Treenode::getMoveSgf() const
 {
     SgfProperty pr = move.toSgfString();

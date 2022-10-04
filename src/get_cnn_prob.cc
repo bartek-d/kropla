@@ -176,8 +176,9 @@ catch (const CaffeException& exc)
 void updatePriors(Game& game, Treenode* children, int depth)
 {
     const auto [is_cnn_available, probs] = getCnnInfo(game);
-    std::cerr << "Trying to update priors from CNN: " << is_cnn_available
-              << std::endl;
+    std::cerr << "Trying to update priors for "
+              << children->parent->showParents()
+              << " from CNN: " << is_cnn_available << std::endl;
     if (not is_cnn_available) return;
     float max = 0.0f;
     for (auto* ch = children; true; ++ch)
@@ -195,9 +196,11 @@ void updatePriors(Game& game, Treenode* children, int depth)
     }
     const float prior_max =
         (depth == 1) ? 800.0f : (depth == 2 ? 400.0f : 200.0f);
+    const float min_to_show = 0.05f;
     for (auto* ch = children; true; ++ch)
     {
         float prob = probs[ch->move.ind];
+        const bool show_this = (prob >= min_to_show) and (depth <= 2);
         if (prob > 0.001f)
         {
             prob = std::sqrt(prob);
@@ -212,6 +215,11 @@ void updatePriors(Game& game, Treenode* children, int depth)
             ch->t.value_sum = ch->t.value_sum.load() + value;
             ch->prior.playouts += value;
             ch->prior.value_sum = ch->prior.value_sum.load() + value;
+            if (show_this)
+            {
+                std::cerr << "   " << ch->show() << "  --> " << value
+                          << "  (max: " << prior_max << ")" << std::endl;
+            }
         }
         if (ch->isLast()) break;
     }

@@ -154,6 +154,7 @@ struct Treenode
     }
     const Treenode* getBestChild() const;
     std::string show() const;
+    std::string showParents() const;
     std::string getMoveSgf() const;
     Treenode() = default;
     Treenode& operator=(const Treenode&);
