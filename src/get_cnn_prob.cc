@@ -40,6 +40,7 @@
 #include <iostream>
 #include <mutex>
 #include <string>
+#include <chrono>  // chrono::high_resolution_clock, only to measure elapsed time
 
 namespace
 {
@@ -157,9 +158,13 @@ try
         }
     }
     std::unique_lock<std::mutex> lock{caffe_mutex};
+    auto debug_time = std::chrono::high_resolution_clock::now();
     auto res = cnn.caffe_get_data(static_cast<float*>(&data[0][0][0]),
                                   coord.wlkx, planes, coord.wlky);
     lock.unlock();
+    std::cerr << "Forward time [micros]: " <<  std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::high_resolution_clock::now() - debug_time)
+      .count() << std::endl;
 
     std::vector<float> probs(coord.getSize(), 0.0f);
     for (int x = 0; x < coord.wlkx; ++x)
