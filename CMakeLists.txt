@@ -1,10 +1,20 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.9.4)
 
 project(kropla)
 include(cppcheck.cmake)
 include(clang-format.cmake)
+include(CheckIPOSupported)
+check_ipo_supported(RESULT supported OUTPUT error)
 
-set(CMAKE_CXX_FLAGS "-s -Wall -std=c++17 -O3 -msse3")
+if( supported )
+    message(STATUS "IPO / LTO enabled")
+    # set_property(TARGET nameoftarget PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+else()
+    message(STATUS "IPO / LTO not supported: <${error}>")
+endif()
+
+set(CMAKE_CXX_FLAGS "-s -Wall -std=c++17 -O3 -msse3 -march=native")
 add_definitions(-DNDEBUG)  # -DSPEED_TEST -DDEBUG_SGF
 
 #set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc  -Wall -std=c++17 -O3 -DNDEBUG -msse3")
