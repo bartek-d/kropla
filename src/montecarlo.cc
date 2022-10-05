@@ -55,10 +55,6 @@ std::array<std::atomic<int64_t>, 10> generateMovesCount_depths{0, 0, 0, 0, 0,
 std::atomic<int64_t> cnnReads{0};
 std::atomic<int64_t> redundantGenerateMovesCount{0};
 
-std::mutex cnn_mutex;
-std::condition_variable cnn_condvar;
-std::mutex cnn_condvar_mutex;
-
 bool finish_threads(false);
 constexpr int start_increasing = 200;
 constexpr real_t increase_komi_threshhold = 0.75;
@@ -254,46 +250,17 @@ void MonteCarlo::expandNode(TreenodeAllocator &alloc, Treenode *node,
         else
         {
             auto lastBlock = alloc.getLastBlock();
-            std::unique_lock<std::mutex> lock(montec::cnn_mutex,
-                                              std::defer_lock);
-            bool is_lock_acquired = false;
-            bool debug_was_waiting = false;
-            for (;;)
-            {
-                if ((is_lock_acquired = lock.try_lock()) == true) break;
-                // we use CV so that we may skip acquiring 'lock' if
-                // node->children != nullptr (it could happen that another
-                // thread took the lock to read cnn for another position,
-                //  and without CV we would still wait for cnn to be free)
-                std::unique_lock<std::mutex> lock_cv(montec::cnn_condvar_mutex);
-                montec::cnn_condvar.wait(lock_cv);
-                debug_was_waiting = true;
-                if (node->children != nullptr) break;
-            }
-
-            if (node->children == nullptr)
-            {
-                ++montec::cnnReads;
-                updatePriors(*game, lastBlock, depth);
-                node->children = lastBlock;
-                if (debug_was_waiting)
-                    std::cerr << "   @@@@ Was waiting!" << std::endl;
-            }
-
-            lock_children.unlock();
-            if (is_lock_acquired)
-            {
-                lock.unlock();
-                montec::cnn_condvar.notify_all();
-            }
+            ++montec::cnnReads;
+            updatePriors(*game, lastBlock, depth);
+            node->children = lastBlock;
         }
     }
     else
     {
-        lock_children.unlock();  // we should not come here!
-        ++montec::redundantGenerateMovesCount;
+        ++montec::redundantGenerateMovesCount;  // we should not come here!
         alloc.getLastBlock();
     }
+    lock_children.unlock();
 #ifndef NDEBUG
     if (node == node->parent)
     {
