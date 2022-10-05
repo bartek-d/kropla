@@ -25,27 +25,32 @@
 #pragma once
 
 #define CPU_ONLY 1
+#include <memory>
+#include <vector>
+
 #include "caffe/caffe.hpp"
 
-#include <vector>
-#include <memory>
-
-struct CaffeException : public std::runtime_error {
-    CaffeException(const std::string& error_message) : std::runtime_error(error_message) {};
+struct CaffeException : public std::runtime_error
+{
+    CaffeException(const std::string& error_message)
+        : std::runtime_error(error_message){};
 };
 
-class MCaffe {
-public:
-  MCaffe();
-  void quiet_caffe(const char *name) const;
-  bool caffe_ready() const { return (net != nullptr); }
-  void caffe_load(const std::string& model_file, const std::string& weights_file, int default_size);
-  void caffe_init(int size, const std::string& model_file, const std::string& weights_file, int default_size);
-  std::vector<float> caffe_get_data(float *data, int size, int planes, int psize);
-private:
-  int  shape_size(const std::vector<int>& shape) const;
-  std::shared_ptr<caffe::Net<float>> net = nullptr;
-  int net_size = 0;
+class MCaffe
+{
+   public:
+    MCaffe();
+    void quiet_caffe(const char* name) const;
+    bool caffe_ready() const { return (net != nullptr); }
+    void caffe_load(const std::string& model_file,
+                    const std::string& weights_file, int default_size);
+    void caffe_init(int size, const std::string& model_file,
+                    const std::string& weights_file, int default_size);
+    std::vector<float> caffe_get_data(float* data, int size, int planes,
+                                      int psize);
 
+   private:
+    int shape_size(const std::vector<int>& shape) const;
+    std::shared_ptr<caffe::Net<float>> net = nullptr;
+    int net_size = 0;
 };
-

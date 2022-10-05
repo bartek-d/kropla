@@ -134,6 +134,7 @@ void gatherDataFromSgfSequence(SgfSequence& seq,
         (x * y * 19) / 20,  // use moves until 95% of board is full
         seq.size() - 1);
     Game game(SgfSequence(seq.begin(), seq.begin() + start_from), go_to);
+    initialiseCnn();
     for (unsigned i = start_from; i < go_to; ++i)
     {
         if (whichSide.at(game.whoNowMoves()))

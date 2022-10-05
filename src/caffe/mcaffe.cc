@@ -1,7 +1,6 @@
 /********************************************************************************************************
- kropla -- a program to play Kropki; file mcaffe.cc -- file for handling caffe NN.
-    Copyright (C) 2021 Bartek Dyda,
-    email: bartekdyda (at) protonmail (dot) com
+ kropla -- a program to play Kropki; file mcaffe.cc -- file for handling caffe
+NN. Copyright (C) 2021 Bartek Dyda, email: bartekdyda (at) protonmail (dot) com
 
     This file is a rewritten file from Pachi http://pachi.or.cz/
       by Petr Baudis and Jean-loup Gailly
@@ -24,91 +23,88 @@
 
 #include "mcaffe.h"
 
-#include "glog/logging.h"
-
 #include <stdlib.h>
+
 #include <cassert>
-#include <iostream>
 #include <filesystem>
+#include <iostream>
+
+#include "glog/logging.h"
 
 using namespace caffe;
 
+MCaffe::MCaffe() { setenv("OMP_NUM_THREADS", "1", true); }
 
-MCaffe::MCaffe()
+int MCaffe::shape_size(const vector<int>& shape) const
 {
-  setenv("OMP_NUM_THREADS", "1", true);
+    int size = 1;
+    for (unsigned int i = 0; i < shape.size(); i++) size *= shape[i];
+    return size;
 }
 
-int
-MCaffe::shape_size(const vector<int>& shape) const
-{
-  int size = 1;
-  for (unsigned int i = 0; i < shape.size(); i++)
-    size *= shape[i];
-  return size;
-}
-	
 /* Make caffe quiet */
-void
-MCaffe::quiet_caffe(const char *name) const
+void MCaffe::quiet_caffe(const char* name) const
 {
-  FLAGS_logtostderr = 1;
-  google::InitGoogleLogging(name);
-}
-	
-void
-MCaffe::caffe_load(const std::string& model_file, const std::string& weights_file, int default_size)
-{
-  if (not std::filesystem::exists(model_file) or not std::filesystem::exists(weights_file)) {
-    throw CaffeException("File " + model_file + " or " + weights_file + " does not exist");
-  }
-  Caffe::set_mode(Caffe::CPU);       
-  /* Load the network. */
-  net = std::make_shared<Net<float>>(model_file, TEST);
-  net->CopyTrainedLayersFrom(weights_file);
-  net_size = default_size;
+    FLAGS_logtostderr = 1;
+    google::InitGoogleLogging(name);
 }
 
-void
-MCaffe::caffe_init(int size, const std::string& model_file, const std::string& weights_file, int default_size)
+void MCaffe::caffe_load(const std::string& model_file,
+                        const std::string& weights_file, int default_size)
 {
-  if (net && net_size == size)  return;   /* Nothing to do. */
-  if (!net) {
-    caffe_load(model_file, weights_file, default_size);
-  }
-	
-  /* If network is fully convolutional it can handle any boardsize,
-   * just need to resize the input layer. */
-  if (net_size != size) {
-    const vector<int>& shape = net->input_blobs()[0]->shape();
-    net->input_blobs()[0]->Reshape(shape[0], shape[1], size, size);
-    net->Reshape();   /* Forward the dimension change. */
-    net_size = size;
-  }
+    if (not std::filesystem::exists(model_file) or
+        not std::filesystem::exists(weights_file))
+    {
+        throw CaffeException("File " + model_file + " or " + weights_file +
+                             " does not exist");
+    }
+    Caffe::set_mode(Caffe::CPU);
+    /* Load the network. */
+    net = std::make_shared<Net<float>>(model_file, TEST);
+    net->CopyTrainedLayersFrom(weights_file);
+    net_size = default_size;
 }
 
-	
-std::vector<float>
-MCaffe::caffe_get_data(float *data, int size, int planes, int psize)
+void MCaffe::caffe_init(int size, const std::string& model_file,
+                        const std::string& weights_file, int default_size)
 {
-  assert(net && net_size == size);
-  //	Blob<float> *blob = new Blob<float>(1, planes, psize, psize);
-  auto blob = std::make_unique<Blob<float>>(1, planes, psize, psize);
-  blob->set_cpu_data(data);
-  std::vector<Blob<float>*> bottom;
-  bottom.push_back(blob.get());
-  const std::vector<Blob<float>*>& rr = net->Forward(bottom);
-  
-  assert(shape_size(rr[0]->shape()) >= size * size);
-  
-  std::vector<float> result;
-  result.resize(size * size);
-  
-  for (int i = 0; i < size * size; i++) {
-    result[i] = rr[0]->cpu_data()[i];
-    if (result[i] < 0.00001)
-      result[i] = 0.00001;
-  }
-  return result;
+    if (net && net_size == size) return; /* Nothing to do. */
+    if (!net)
+    {
+        caffe_load(model_file, weights_file, default_size);
+    }
+
+    /* If network is fully convolutional it can handle any boardsize,
+     * just need to resize the input layer. */
+    if (net_size != size)
+    {
+        const vector<int>& shape = net->input_blobs()[0]->shape();
+        net->input_blobs()[0]->Reshape(shape[0], shape[1], size, size);
+        net->Reshape(); /* Forward the dimension change. */
+        net_size = size;
+    }
 }
 
+std::vector<float> MCaffe::caffe_get_data(float* data, int size, int planes,
+                                          int psize)
+{
+    assert(net && net_size == size);
+    //	Blob<float> *blob = new Blob<float>(1, planes, psize, psize);
+    auto blob = std::make_unique<Blob<float>>(1, planes, psize, psize);
+    blob->set_cpu_data(data);
+    std::vector<Blob<float>*> bottom;
+    bottom.push_back(blob.get());
+    const std::vector<Blob<float>*>& rr = net->Forward(bottom);
+
+    assert(shape_size(rr[0]->shape()) >= size * size);
+
+    std::vector<float> result;
+    result.resize(size * size);
+
+    for (int i = 0; i < size * size; i++)
+    {
+        result[i] = rr[0]->cpu_data()[i];
+        if (result[i] < 0.00001) result[i] = 0.00001;
+    }
+    return result;
+}

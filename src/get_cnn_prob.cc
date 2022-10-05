@@ -51,20 +51,13 @@ using Array3dim = boost::multi_array<float, 3>;
 constexpr int DEFAULT_CNN_BOARD_SIZE = 20;
 }  // namespace
 
-std::pair<bool, std::vector<float>> getCnnInfo(Game& game)
-try
+void initialiseCnn()
 {
     if (not madeQuiet)
     {
         cnn.quiet_caffe("kropla");
         madeQuiet = true;
     }
-    if (coord.wlkx != coord.wlky)
-    {
-        return {false, {}};
-    }
-    const std::lock_guard<std::mutex> lock(caffe_mutex);
-    if (not cnn.caffe_ready())
     {
         std::string number_of_planes{};
         std::string model_file_name{};
@@ -82,6 +75,15 @@ try
         }
         cnn.caffe_init(coord.wlkx, model_file_name, weights_file_name,
                        DEFAULT_CNN_BOARD_SIZE);
+    }
+}
+
+std::pair<bool, std::vector<float>> getCnnInfo(Game& game)
+try
+{
+    if (coord.wlkx != coord.wlky)
+    {
+        return {false, {}};
     }
     Array3dim data{boost::extents[planes][coord.wlkx][coord.wlky]};
     for (int x = 0; x < coord.wlkx; ++x)
@@ -154,9 +156,11 @@ try
             }
         }
     }
-
+    std::unique_lock<std::mutex> lock{caffe_mutex};
     auto res = cnn.caffe_get_data(static_cast<float*>(&data[0][0][0]),
                                   coord.wlkx, planes, coord.wlky);
+    lock.unlock();
+
     std::vector<float> probs(coord.getSize(), 0.0f);
     for (int x = 0; x < coord.wlkx; ++x)
     {

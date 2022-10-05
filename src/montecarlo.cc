@@ -79,6 +79,7 @@ std::string MonteCarlo::findBestMove(Game &pos, int iter_count)
     montec::root.move = pos.getLastMove();
     montec::root.parent = &montec::root;
     montec::root.game_ptr = std::make_shared<Game>(pos);
+    initialiseCnn();
     std::cerr << "Descend starts, komi==" << global::komi << std::endl;
 #ifdef DEBUG_SGF
     pos.sgf_tree.saveCursor();
@@ -254,7 +255,7 @@ void MonteCarlo::expandNode(TreenodeAllocator &alloc, Treenode *node,
             std::unique_lock<std::mutex> lock(montec::cnn_mutex,
                                               std::defer_lock);
             bool is_lock_acquired = false;
-
+            bool debug_was_waiting = false;
             for (;;)
             {
                 if ((is_lock_acquired = lock.try_lock()) == true) break;
@@ -264,6 +265,7 @@ void MonteCarlo::expandNode(TreenodeAllocator &alloc, Treenode *node,
                 //  and without CV we would still wait for cnn to be free)
                 std::unique_lock<std::mutex> lock_cv(montec::cnn_condvar_mutex);
                 montec::cnn_condvar.wait(lock_cv);
+                debug_was_waiting = true;
                 if (node->children != nullptr) break;
             }
 
@@ -272,6 +274,8 @@ void MonteCarlo::expandNode(TreenodeAllocator &alloc, Treenode *node,
                 ++montec::cnnReads;
                 updatePriors(*game, lastBlock, depth);
                 node->children = lastBlock;
+                if (debug_was_waiting)
+                    std::cerr << "   @@@@ Was waiting!" << std::endl;
             }
 
             if (is_lock_acquired)
@@ -448,6 +452,7 @@ std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
     montec::root.move = pos.getLastMove();
     montec::root.parent = &montec::root;
     montec::root.game_ptr = std::make_shared<Game>(pos);
+    initialiseCnn();
     std::cerr << "Descend MT (threads=" << threads
               << ") starts, komi==" << global::komi << std::endl;
 #ifdef DEBUG_SGF
