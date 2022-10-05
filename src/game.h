@@ -28,6 +28,7 @@
 #include <chrono>
 #include <list>
 #include <map>
+#include <mutex>
 #include <random>
 #include <set>
 #include <string>
@@ -126,6 +127,7 @@ struct Treenode
     Movestats prior;
     Move move;
     uint32_t flags{0};
+    std::mutex children_mutex;
     static const uint32_t LAST_CHILD = 0x10000;
     static const uint32_t IS_DAME = 0x20000;
     static const uint32_t IS_INSIDE_TERR_NO_ATARI =

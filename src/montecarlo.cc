@@ -240,6 +240,8 @@ void MonteCarlo::expandNode(TreenodeAllocator &alloc, Treenode *node,
                             Game *game, int depth) const
 {
     constexpr int max_depth_for_cnn = 3;
+    std::unique_lock<std::mutex> lock_children(node->children_mutex);
+    if (node->children != nullptr) return;
     game->generateListOfMoves(alloc, node, depth, node->move.who ^ 3);
     ++montec::generateMovesCount_depths[std::min<int>(
         depth, montec::generateMovesCount_depths.size() - 1)];
@@ -278,6 +280,7 @@ void MonteCarlo::expandNode(TreenodeAllocator &alloc, Treenode *node,
                     std::cerr << "   @@@@ Was waiting!" << std::endl;
             }
 
+            lock_children.unlock();
             if (is_lock_acquired)
             {
                 lock.unlock();
@@ -287,6 +290,7 @@ void MonteCarlo::expandNode(TreenodeAllocator &alloc, Treenode *node,
     }
     else
     {
+        lock_children.unlock();  // we should not come here!
         ++montec::redundantGenerateMovesCount;
         alloc.getLastBlock();
     }
