@@ -30,5 +30,6 @@
 #include "game.h"
 
 void initialiseCnn();
-std::pair<bool, std::vector<float>> getCnnInfo(Game& game);
+std::vector<float> getInputForCnn(Game& game);
+std::pair<bool, std::vector<float>> getCnnInfo(std::vector<float>& input);
 void updatePriors(Game& game, Treenode* children, int depth);

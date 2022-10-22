@@ -35,12 +35,12 @@
 //#include "board.h"
 
 #include <boost/multi_array.hpp>
+#include <chrono>  // chrono::high_resolution_clock, only to measure elapsed time
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <mutex>
 #include <string>
-#include <chrono>  // chrono::high_resolution_clock, only to measure elapsed time
 
 namespace
 {
@@ -49,6 +49,7 @@ std::mutex caffe_mutex;
 bool madeQuiet = false;
 int planes = 10;
 using Array3dim = boost::multi_array<float, 3>;
+using Array3dimRef = boost::multi_array_ref<float, 3>;
 constexpr int DEFAULT_CNN_BOARD_SIZE = 20;
 }  // namespace
 
@@ -79,14 +80,15 @@ void initialiseCnn()
     }
 }
 
-std::pair<bool, std::vector<float>> getCnnInfo(Game& game)
-try
+std::vector<float> getInputForCnn(Game& game)
 {
     if (coord.wlkx != coord.wlky)
     {
-        return {false, {}};
+        return {};
     }
-    Array3dim data{boost::extents[planes][coord.wlkx][coord.wlky]};
+    std::vector<float> res(planes * coord.wlkx * coord.wlky);
+    Array3dimRef data{res.data(),
+                      boost::extents[planes][coord.wlkx][coord.wlky]};
     for (int x = 0; x < coord.wlkx; ++x)
         for (int y = 0; y < coord.wlky; ++y)
         {
@@ -157,14 +159,27 @@ try
             }
         }
     }
+    return res;
+}
+
+std::pair<bool, std::vector<float>> getCnnInfo(std::vector<float>& input)
+try
+{
+    if (input.empty())
+    {
+        std::cerr << "No input for cnn" << std::endl;
+        return {false, {}};
+    }
+
     std::unique_lock<std::mutex> lock{caffe_mutex};
     auto debug_time = std::chrono::high_resolution_clock::now();
-    auto res = cnn.caffe_get_data(static_cast<float*>(&data[0][0][0]),
-                                  coord.wlkx, planes, coord.wlky);
+    auto res = cnn.caffe_get_data(input.data(), coord.wlkx, planes, coord.wlky);
     lock.unlock();
-    std::cerr << "Forward time [micros]: " <<  std::chrono::duration_cast<std::chrono::nanoseconds>(
-                std::chrono::high_resolution_clock::now() - debug_time)
-      .count() << std::endl;
+    std::cerr << "Forward time [micros]: "
+              << std::chrono::duration_cast<std::chrono::nanoseconds>(
+                     std::chrono::high_resolution_clock::now() - debug_time)
+                     .count()
+              << std::endl;
 
     std::vector<float> probs(coord.getSize(), 0.0f);
     for (int x = 0; x < coord.wlkx; ++x)
@@ -184,7 +199,8 @@ catch (const CaffeException& exc)
 
 void updatePriors(Game& game, Treenode* children, int depth)
 {
-    const auto [is_cnn_available, probs] = getCnnInfo(game);
+    auto input = getInputForCnn(game);
+    const auto [is_cnn_available, probs] = getCnnInfo(input);
     std::cerr << "Trying to update priors for "
               << children->parent->showParents()
               << " from CNN: " << is_cnn_available << std::endl;
