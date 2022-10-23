@@ -30,7 +30,7 @@
 
 #include "get_cnn_prob.h"
 
-#include "caffe/mcaffe.h"
+#include "cnn_workers.h"
 
 //#include "board.h"
 
@@ -44,39 +44,23 @@
 
 namespace
 {
-MCaffe cnn;
-std::mutex caffe_mutex;
-bool madeQuiet = false;
-int planes = 10;
 using Array3dim = boost::multi_array<float, 3>;
 using Array3dimRef = boost::multi_array_ref<float, 3>;
-constexpr int DEFAULT_CNN_BOARD_SIZE = 20;
+int planes{0};
 }  // namespace
 
 void initialiseCnn()
 {
-    if (not madeQuiet)
+    // not thread safe
+    static bool workers_active = false;
+    if (not workers_active)
     {
-        cnn.quiet_caffe("kropla");
-        madeQuiet = true;
-    }
-    {
-        std::string number_of_planes{};
-        std::string model_file_name{};
-        std::string weights_file_name{};
-        std::ifstream t("cnn.config");
-        if (std::getline(t, number_of_planes))
-            if (std::getline(t, model_file_name))
-                std::getline(t, weights_file_name);
-        planes = std::stoi(number_of_planes);
-        if (planes != 7 and planes != 10 and planes != 20)
-        {
-            std::cerr << "Unsupported number of planes (" << planes
-                      << "), assuming 10." << std::endl;
-            planes = 10;
-        }
-        cnn.caffe_init(coord.wlkx, model_file_name, weights_file_name,
-                       DEFAULT_CNN_BOARD_SIZE);
+        constexpr int n_workers = 7;
+        constexpr int max_planes = 20;
+        const std::size_t memory_needed =
+            coord.maxSize * sizeof(float) * max_planes + sizeof(uint32_t);
+        planes = workers::setupWorkers(n_workers, memory_needed, coord.wlkx);
+        workers_active = true;
     }
 }
 
@@ -162,25 +146,8 @@ std::vector<float> getInputForCnn(Game& game)
     return res;
 }
 
-std::pair<bool, std::vector<float>> getCnnInfo(std::vector<float>& input)
-try
+std::vector<float> convertToBoard(const std::vector<float>& res)
 {
-    if (input.empty())
-    {
-        std::cerr << "No input for cnn" << std::endl;
-        return {false, {}};
-    }
-
-    std::unique_lock<std::mutex> lock{caffe_mutex};
-    auto debug_time = std::chrono::high_resolution_clock::now();
-    auto res = cnn.caffe_get_data(input.data(), coord.wlkx, planes, coord.wlky);
-    lock.unlock();
-    std::cerr << "Forward time [micros]: "
-              << std::chrono::duration_cast<std::chrono::nanoseconds>(
-                     std::chrono::high_resolution_clock::now() - debug_time)
-                     .count()
-              << std::endl;
-
     std::vector<float> probs(coord.getSize(), 0.0f);
     for (int x = 0; x < coord.wlkx; ++x)
     {
@@ -189,12 +156,13 @@ try
             probs[coord.ind(x, y)] = res[x * coord.wlky + y];
         }
     }
-    return {true, probs};
+    return probs;
 }
-catch (const CaffeException& exc)
+
+std::pair<bool, std::vector<float>> getCnnInfo(std::vector<float>& input)
 {
-    std::cerr << "Failed to load cnn" << std::endl;
-    return {false, {}};
+    auto [success, res] = workers::getCnnInfo(input, coord.wlkx);
+    return {success, std::move(convertToBoard(res))};
 }
 
 void updatePriors(Game& game, Treenode* children, int depth)

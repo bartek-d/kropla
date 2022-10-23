@@ -88,7 +88,7 @@ add_subdirectory(external)
 
 if(USE_CNN)
   message("Using CNN")
-  set(CNN_src "src/get_cnn_prob.cc" "src/get_cnn_prob.h")
+  set(CNN_src "src/get_cnn_prob.cc" "src/get_cnn_prob.h" "src/cnn_workers.cc" "src/cnn_workers.h")
   set(CNN_lib "mcaffe" "libcaffe"  "mklml_intel" "iomp5" "mkldnn" "${Boost_LIBRARIES}" "${Boost_SYSTEM_LIBRARY}" "${GLOG_LIBRARY}" "stdc++fs") 
 
   add_executable(check_accuracy src/game.cc src/game.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/check_accuracy.cc src/safety.cc src/safety.h src/caffe/mcaffe.h src/caffe/mcaffe.cc ${CNN_src})
