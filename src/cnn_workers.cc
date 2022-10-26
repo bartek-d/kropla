@@ -49,7 +49,15 @@ void* create_shared_memory(size_t size)
     return mmap(NULL, size, protection, visibility, -1, 0);
 }
 
-bool is_parent = true;
+template <typename T>
+std::size_t sizeOfVec(const std::vector<T>& v)
+{
+    return v.size() * sizeof(T);
+}
+
+std::mutex caffe_mutex;
+bool is_parent{true};
+
 }  // namespace
 
 void* add(void* ptr, std::size_t arg)
@@ -128,42 +136,29 @@ class SharedMemWithSemaphores
 
 namespace workers
 {
-void child_worker(void* data);
-}
-
-void worker(int number, SharedMemWithSemaphores& sh)
-{
-    std::cerr << "Hello from child #" << number << std::endl;
-    for (;;)
-    {
-        sem_wait(sh.getSemaphore(0));
-        if (sh.getControlWord())
-        {
-            sem_post(sh.getSemaphore(1));
-            break;
-        }
-        workers::child_worker(sh.getData());
-        sem_post(sh.getSemaphore(1));
-    }
-    std::cerr << "Bye from child #" << number << std::endl;
-    exit(0);
-}
-
-class WorkersPool
+class WorkersPool : public WorkersPoolBase
 {
    public:
+    WorkersPool(const std::string& config_file, int wlkx, bool use_this_thread,
+                std::size_t memory_needed);
     WorkersPool() = default;
     WorkersPool(WorkersPool&&) = delete;
     WorkersPool(const WorkersPool&) = delete;
     WorkersPool operator=(WorkersPool&&) = delete;
     WorkersPool operator=(const WorkersPool&) = delete;
+    ~WorkersPool() override = default;
 
-    bool setupWorkers(int n, std::size_t memory_needed);
     void doWork(uint32_t datav, const void* data, size_t s, void* incoming,
                 size_t si);
     int getCount() const { return count; }
+    int getPlanes() const override { return planes; }
+    std::pair<bool, std::vector<float>> getCnnInfo(std::vector<float>& input,
+                                                   uint32_t wlkx) override;
 
    private:
+    void child_worker(void* data);
+    void worker(int number, SharedMemWithSemaphores& sh);
+    bool setupWorkers(int n, std::size_t memory_needed);
     int findWorker();
     void releaseWorker(int which);
 
@@ -175,6 +170,15 @@ class WorkersPool
     int count{0};
     std::vector<pid_t> pids;
     std::vector<SharedMemWithSemaphores> mems;
+
+    MCaffe cnn;
+    bool madeQuiet = false;
+    bool use_this_thread{false};
+    int planes = 10;
+    std::string config_file;
+    std::string model_file_name{};
+    std::string weights_file_name{};
+    constexpr static int DEFAULT_CNN_BOARD_SIZE = 20;
 };
 
 bool WorkersPool::setupWorkers(int n, std::size_t memory_needed)
@@ -254,61 +258,25 @@ void WorkersPool::doWork(uint32_t datav, const void* data, size_t s,
     releaseWorker(taken);
 }
 
-namespace workers
+void WorkersPool::worker(int number, SharedMemWithSemaphores& sh)
 {
-WorkersPool pool;
-MCaffe cnn;
-std::mutex caffe_mutex;
-bool madeQuiet = false;
-int planes = 10;
-std::string model_file_name{};
-std::string weights_file_name{};
-constexpr int DEFAULT_CNN_BOARD_SIZE = 20;
-
-int initialiseCnn(int wlkx)
-{
-    if (not madeQuiet)
+    std::cerr << "Hello from child #" << number << std::endl;
+    for (;;)
     {
-        cnn.quiet_caffe("kropla");
-        madeQuiet = true;
+        sem_wait(sh.getSemaphore(0));
+        if (sh.getControlWord())
+        {
+            sem_post(sh.getSemaphore(1));
+            break;
+        }
+        child_worker(sh.getData());
+        sem_post(sh.getSemaphore(1));
     }
-    constexpr int default_n_workers = 7;
-    {
-        std::string number_of_planes{};
-        std::string n_workers_str{};
-        std::ifstream t("cnn.config");
-        if (std::getline(t, number_of_planes))
-            if (std::getline(t, model_file_name))
-                if (std::getline(t, weights_file_name))
-                    std::getline(t, n_workers_str);
-        planes = std::stoi(number_of_planes);
-        if (planes != 7 and planes != 10 and planes != 20)
-        {
-            std::cerr << "Unsupported number of planes (" << planes
-                      << "), assuming 10." << std::endl;
-            planes = 10;
-        }
-        cnn.caffe_init(wlkx, model_file_name, weights_file_name,
-                       DEFAULT_CNN_BOARD_SIZE);
-        try
-        {
-            int n_workers = std::stoi(n_workers_str);
-            if (n_workers >= 1 and n_workers <= 1024) return n_workers;
-        }
-        catch (const std::invalid_argument&)
-        {
-        }
-    }
-    return default_n_workers;
+    std::cerr << "Bye from child #" << number << std::endl;
+    exit(0);
 }
 
-template <typename T>
-std::size_t sizeOfVec(const std::vector<T>& v)
-{
-    return v.size() * sizeof(T);
-}
-
-void child_worker(void* data)
+void WorkersPool::child_worker(void* data)
 try
 {
     const uint32_t wlkx = *static_cast<uint32_t*>(data);
@@ -326,14 +294,52 @@ catch (const CaffeException& exc)
     static_cast<uint32_t*>(data)[0] = false;
 }
 
-int setupWorkers(std::size_t memory_needed, uint32_t wlkx)
+WorkersPool::WorkersPool(const std::string& config_file, int wlkx,
+                         bool use_this_thread, std::size_t memory_needed)
+    : use_this_thread{use_this_thread}, config_file{config_file}
 {
-    int n_workers = initialiseCnn(wlkx);
-    if (n_workers > 1)
+    if (not madeQuiet)
+    {
+        cnn.quiet_caffe("kropla");
+        madeQuiet = true;
+    }
+    constexpr int default_n_workers = 7;
+    int n_workers = default_n_workers;
+    {
+        std::string number_of_planes{};
+        std::string n_workers_str{};
+        std::ifstream t(config_file);
+        if (std::getline(t, number_of_planes))
+            if (std::getline(t, model_file_name))
+                if (std::getline(t, weights_file_name))
+                    std::getline(t, n_workers_str);
+        planes = std::stoi(number_of_planes);
+        if (planes != 7 and planes != 10 and planes != 20)
+        {
+            std::cerr << "Unsupported number of planes (" << planes
+                      << "), assuming 10." << std::endl;
+            planes = 10;
+        }
+        if (use_this_thread)
+            cnn.caffe_init(wlkx, model_file_name, weights_file_name,
+                           DEFAULT_CNN_BOARD_SIZE);
+        try
+        {
+            int n_workers = std::stoi(n_workers_str);
+            if (n_workers >= 1 and n_workers <= 1024)
+                n_workers = default_n_workers;
+        }
+        catch (const std::invalid_argument&)
+        {
+            n_workers = default_n_workers;
+        }
+    }
+
+    if (n_workers > int(use_this_thread))
     {
         try
         {
-            pool.setupWorkers(n_workers - 1, memory_needed);
+            setupWorkers(n_workers - int(use_this_thread), memory_needed);
         }
         catch (const std::runtime_error& e)
         {
@@ -341,11 +347,10 @@ int setupWorkers(std::size_t memory_needed, uint32_t wlkx)
                       << " workers: " << e.what() << std::endl;
         }
     }
-    return planes;
 }
 
-std::pair<bool, std::vector<float>> getCnnInfo(std::vector<float>& input,
-                                               uint32_t wlkx)
+std::pair<bool, std::vector<float>> WorkersPool::getCnnInfo(
+    std::vector<float>& input, uint32_t wlkx)
 try
 {
     if (input.empty())
@@ -353,18 +358,21 @@ try
         std::cerr << "No input for cnn" << std::endl;
         return {false, {}};
     }
+
     std::unique_lock<std::mutex> lock{caffe_mutex, std::defer_lock};
     bool acquired_lock = false;
-    if (pool.getCount() == 0)
+    if (use_this_thread)
     {
-        lock.lock();
-        acquired_lock = true;
+        if (getCount() == 0)  // only this thread available, block
+        {
+            lock.lock();
+            acquired_lock = true;
+        }
+        else
+        {
+            acquired_lock = lock.try_lock();
+        }
     }
-    else
-    {
-        acquired_lock = lock.try_lock();
-    }
-
     if (acquired_lock)
     {
         auto debug_time = std::chrono::high_resolution_clock::now();
@@ -379,14 +387,23 @@ try
     }
     // use worker
     std::vector<float> res(wlkx * wlkx, 0.0f);
-    pool.doWork(wlkx, static_cast<void*>(input.data()), sizeOfVec(input),
-                static_cast<void*>(res.data()), sizeOfVec(res));
+    doWork(wlkx, static_cast<void*>(input.data()), sizeOfVec(input),
+           static_cast<void*>(res.data()), sizeOfVec(res));
     return {true, res};
 }
 catch (const CaffeException& exc)
 {
     std::cerr << "Failed to load cnn" << std::endl;
     return {false, {}};
+}
+
+std::unique_ptr<WorkersPoolBase> buildWorkerPool(const std::string& config_file,
+                                                 std::size_t memory_needed,
+                                                 uint32_t wlkx,
+                                                 bool use_this_thread)
+{
+    return std::make_unique<WorkersPool>(config_file, wlkx, use_this_thread,
+                                         memory_needed);
 }
 
 }  // namespace workers

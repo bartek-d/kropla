@@ -26,12 +26,23 @@ protonmail (dot) com
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace workers
 {
-int setupWorkers(std::size_t memory_needed, uint32_t wlkx);
-std::pair<bool, std::vector<float>> getCnnInfo(std::vector<float>& input,
-                                               uint32_t wlkx);
+class WorkersPoolBase
+{
+   public:
+    virtual std::pair<bool, std::vector<float>> getCnnInfo(
+        std::vector<float>& input, uint32_t wlkx) = 0;
+    virtual int getPlanes() const = 0;
+    virtual ~WorkersPoolBase() = default;
+};
+
+std::unique_ptr<WorkersPoolBase> buildWorkerPool(const std::string& config_file,
+                                                 std::size_t memory_needed,
+                                                 uint32_t wlkx,
+                                                 bool use_this_thread);
 
 }  // namespace workers

@@ -47,6 +47,8 @@ namespace
 using Array3dim = boost::multi_array<float, 3>;
 using Array3dimRef = boost::multi_array_ref<float, 3>;
 int planes{0};
+std::unique_ptr<workers::WorkersPoolBase> workers_pool = nullptr;
+
 }  // namespace
 
 void initialiseCnn()
@@ -58,7 +60,10 @@ void initialiseCnn()
         constexpr int max_planes = 20;
         const std::size_t memory_needed =
             coord.maxSize * sizeof(float) * max_planes + sizeof(uint32_t);
-        planes = workers::setupWorkers(memory_needed, coord.wlkx);
+        const bool use_this_thread = true;
+        workers_pool = workers::buildWorkerPool("cnn.config", memory_needed,
+                                                coord.wlkx, use_this_thread);
+        planes = workers_pool->getPlanes();
         workers_active = true;
     }
 }
@@ -160,7 +165,7 @@ std::vector<float> convertToBoard(const std::vector<float>& res)
 
 std::pair<bool, std::vector<float>> getCnnInfo(std::vector<float>& input)
 {
-    auto [success, res] = workers::getCnnInfo(input, coord.wlkx);
+    auto [success, res] = workers_pool->getCnnInfo(input, coord.wlkx);
     return {success, std::move(convertToBoard(res))};
 }
 
