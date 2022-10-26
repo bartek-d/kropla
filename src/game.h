@@ -152,7 +152,7 @@ struct Treenode
     {
         const auto depth = getDepth();
         if (depth == 0) return 0;
-        return 2;
+        return 1;
     }
     const Treenode* getBestChild() const;
     std::string show() const;
