@@ -4529,15 +4529,6 @@ void Game::placeDot(int x, int y, int who)
     }
 }
 
-void Game::Test()
-{
-    placeDot(2, 2, 1);
-    placeDot(3, 1, 1);
-    placeDot(4, 2, 1);
-    placeDot(3, 3, 1);
-    placeDot(3, 2, 2);
-}
-
 void Game::show() const
 {
     //  std::cerr << coord.showBoard(worm);  // worm.data()); ?

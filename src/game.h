@@ -484,7 +484,6 @@ class Game
     {
         return threats[who];
     }
-    void Test();
     void show() const;
     void showSvg(const std::string& filename,
                  const std::vector<pti>& tab) const;
