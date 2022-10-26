@@ -265,19 +265,22 @@ std::string model_file_name{};
 std::string weights_file_name{};
 constexpr int DEFAULT_CNN_BOARD_SIZE = 20;
 
-void initialiseCnn(int wlkx)
+int initialiseCnn(int wlkx)
 {
     if (not madeQuiet)
     {
         cnn.quiet_caffe("kropla");
         madeQuiet = true;
     }
+    constexpr int default_n_workers = 7;
     {
         std::string number_of_planes{};
+        std::string n_workers_str{};
         std::ifstream t("cnn.config");
         if (std::getline(t, number_of_planes))
             if (std::getline(t, model_file_name))
-                std::getline(t, weights_file_name);
+                if (std::getline(t, weights_file_name))
+                    std::getline(t, n_workers_str);
         planes = std::stoi(number_of_planes);
         if (planes != 7 and planes != 10 and planes != 20)
         {
@@ -287,7 +290,16 @@ void initialiseCnn(int wlkx)
         }
         cnn.caffe_init(wlkx, model_file_name, weights_file_name,
                        DEFAULT_CNN_BOARD_SIZE);
+        try
+        {
+            int n_workers = std::stoi(n_workers_str);
+            if (n_workers >= 1 and n_workers <= 1024) return n_workers;
+        }
+        catch (const std::invalid_argument&)
+        {
+        }
     }
+    return default_n_workers;
 }
 
 template <typename T>
@@ -314,19 +326,19 @@ catch (const CaffeException& exc)
     static_cast<uint32_t*>(data)[0] = false;
 }
 
-int setupWorkers(int n, std::size_t memory_needed, uint32_t wlkx)
+int setupWorkers(std::size_t memory_needed, uint32_t wlkx)
 {
-    initialiseCnn(wlkx);
-    if (n > 1)
+    int n_workers = initialiseCnn(wlkx);
+    if (n_workers > 1)
     {
         try
         {
-            pool.setupWorkers(n - 1, memory_needed);
+            pool.setupWorkers(n_workers - 1, memory_needed);
         }
         catch (const std::runtime_error& e)
         {
-            std::cerr << "Error setting up " << n << " workers: " << e.what()
-                      << std::endl;
+            std::cerr << "Error setting up " << n_workers
+                      << " workers: " << e.what() << std::endl;
         }
     }
     return planes;

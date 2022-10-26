@@ -30,7 +30,7 @@ protonmail (dot) com
 
 namespace workers
 {
-int setupWorkers(int n, std::size_t memory_needed, uint32_t wlkx);
+int setupWorkers(std::size_t memory_needed, uint32_t wlkx);
 std::pair<bool, std::vector<float>> getCnnInfo(std::vector<float>& input,
                                                uint32_t wlkx);
 

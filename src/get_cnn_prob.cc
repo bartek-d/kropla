@@ -55,11 +55,10 @@ void initialiseCnn()
     static bool workers_active = false;
     if (not workers_active)
     {
-        constexpr int n_workers = 7;
         constexpr int max_planes = 20;
         const std::size_t memory_needed =
             coord.maxSize * sizeof(float) * max_planes + sizeof(uint32_t);
-        planes = workers::setupWorkers(n_workers, memory_needed, coord.wlkx);
+        planes = workers::setupWorkers(memory_needed, coord.wlkx);
         workers_active = true;
     }
 }
