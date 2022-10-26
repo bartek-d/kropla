@@ -48,6 +48,8 @@ using Array3dim = boost::multi_array<float, 3>;
 using Array3dimRef = boost::multi_array_ref<float, 3>;
 int planes{0};
 std::unique_ptr<workers::WorkersPoolBase> workers_pool = nullptr;
+int planes2{0};
+std::unique_ptr<workers::WorkersPoolBase> workers_pool2 = nullptr;
 
 }  // namespace
 
@@ -64,11 +66,14 @@ void initialiseCnn()
         workers_pool = workers::buildWorkerPool("cnn.config", memory_needed,
                                                 coord.wlkx, use_this_thread);
         planes = workers_pool->getPlanes();
+        workers_pool2 = workers::buildWorkerPool("cnn2.config", memory_needed,
+                                                 coord.wlkx, use_this_thread);
+        planes2 = workers_pool2->getPlanes();
         workers_active = true;
     }
 }
 
-std::vector<float> getInputForCnn(Game& game)
+std::vector<float> getInputForCnn(Game& game, int planes)
 {
     if (coord.wlkx != coord.wlky)
     {
@@ -163,16 +168,20 @@ std::vector<float> convertToBoard(const std::vector<float>& res)
     return probs;
 }
 
-std::pair<bool, std::vector<float>> getCnnInfo(Game& game)
+std::pair<bool, std::vector<float>> getCnnInfo(Game& game,
+                                               bool use_secondary_cnn)
 {
-    auto input = getInputForCnn(game);
-    auto [success, res] = workers_pool->getCnnInfo(input, coord.wlkx);
+    auto input = getInputForCnn(game, use_secondary_cnn ? planes2 : planes);
+    auto [success, res] = (use_secondary_cnn ? workers_pool2 : workers_pool)
+                              ->getCnnInfo(input, coord.wlkx);
     return {success, std::move(convertToBoard(res))};
 }
 
 void updatePriors(Game& game, Treenode* children, int depth)
 {
-    const auto [is_cnn_available, probs] = getCnnInfo(game);
+    const int max_depth_for_primary_cnn = 2;
+    const auto [is_cnn_available, probs] =
+        getCnnInfo(game, depth > max_depth_for_primary_cnn);
     std::cerr << "Trying to update priors for "
               << children->parent->showParents()
               << " from CNN: " << is_cnn_available << std::endl;

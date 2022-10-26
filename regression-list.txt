@@ -126,8 +126,8 @@ end
 name=zagram353657:37
 sgf=(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[13]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=0]HA[2]AB[jd][dj]PB[bot Amelia]PW[Friend]TM[60]OT[10]BL[72]WL[75]DT[2021-02-22]RE[W+R];W[gg]WL[70];B[eh]BL[66.9];W[gj]WL[60.4];B[he]BL[61.9];W[ge]WL[55];B[gd]BL[57.4];W[fe]WL[62.7];B[ig]BL[52.5];W[hf]WL[63.4];B[gh]BL[50.8];W[if]WL[56];B[jg]BL[46.9];W[hd]WL[41.3];B[ie]BL[44.1];W[hc]WL[47.1];B[jf]BL[44];W[id]WL[25.6];B[je]BL[43.6];W[fb]WL[34.7];B[hg]BL[40.3];W[gf]WL[42.5];B[df]BL[36.8];W[jj]WL[28.4];B[hj]BL[33.4];W[gi]WL[12.9];B[fh]BL[33];W[hi]WL[20.1];B[ii]BL[33.2];W[hh]WL[20];B[gk]BL[32.3];W[ih]WL[21.6];B[ji]BL[29];W[jh]WL[25];B[ki]BL[32];W[kh]WL[33];B[fd]BL[32];W[ee]WL[39.1])
 
-move=de 10
-move=ce 10
+move=ed 10
+move=ec 10
 move=lh 10
 move=ij 10
 

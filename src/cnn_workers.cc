@@ -57,6 +57,7 @@ std::size_t sizeOfVec(const std::vector<T>& v)
 
 std::mutex caffe_mutex;
 bool is_parent{true};
+bool madeQuiet = false;
 
 }  // namespace
 
@@ -172,7 +173,6 @@ class WorkersPool : public WorkersPoolBase
     std::vector<SharedMemWithSemaphores> mems;
 
     MCaffe cnn;
-    bool madeQuiet = false;
     bool use_this_thread{false};
     int planes = 10;
     std::string config_file;
