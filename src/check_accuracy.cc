@@ -36,8 +36,7 @@ testing NN. Copyright (C) 2021 Bartek Dyda, email: bartekdyda (at) protonmail
 
 void gatherDataFromPosition(Game& game, Move& move, unsigned move_no)
 {
-    auto input = getInputForCnn(game);
-    const auto [is_cnn_available, probs] = getCnnInfo(input);
+    const auto [is_cnn_available, probs] = getCnnInfo(game);
     struct MoveAndProb
     {
         int x;

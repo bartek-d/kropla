@@ -24,6 +24,8 @@
 
 #include "get_cnn_prob.h"
 
+void initialiseCnn() {}
+
 std::pair<bool, std::vector<float>> getCnnInfo(Game& game)
 {
     return {false, {}};

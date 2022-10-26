@@ -163,16 +163,16 @@ std::vector<float> convertToBoard(const std::vector<float>& res)
     return probs;
 }
 
-std::pair<bool, std::vector<float>> getCnnInfo(std::vector<float>& input)
+std::pair<bool, std::vector<float>> getCnnInfo(Game& game)
 {
+    auto input = getInputForCnn(game);
     auto [success, res] = workers_pool->getCnnInfo(input, coord.wlkx);
     return {success, std::move(convertToBoard(res))};
 }
 
 void updatePriors(Game& game, Treenode* children, int depth)
 {
-    auto input = getInputForCnn(game);
-    const auto [is_cnn_available, probs] = getCnnInfo(input);
+    const auto [is_cnn_available, probs] = getCnnInfo(game);
     std::cerr << "Trying to update priors for "
               << children->parent->showParents()
               << " from CNN: " << is_cnn_available << std::endl;
