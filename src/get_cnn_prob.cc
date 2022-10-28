@@ -179,7 +179,7 @@ std::pair<bool, std::vector<float>> getCnnInfo(Game& game,
 
 void updatePriors(Game& game, Treenode* children, int depth)
 {
-    const int max_depth_for_primary_cnn = 4;
+    const int max_depth_for_primary_cnn = 5;
     const auto [is_cnn_available, probs] =
         getCnnInfo(game, depth > max_depth_for_primary_cnn);
     std::cerr << "Trying to update priors for "
@@ -200,8 +200,16 @@ void updatePriors(Game& game, Treenode* children, int depth)
         std::cerr << "Max is 0.0f, CNN does not work?" << std::endl;
         return;
     }
-    const float prior_max =
-        (depth == 1) ? 800.0f : (depth == 2 ? 400.0f : 200.0f);
+    auto get_prior_max = [=](){
+			   if (depth > max_depth_for_primary_cnn) {
+			     return 30.0f;
+			   }
+			   const std::array<float, 10> priors{0.0f, 800.f, 400.f, 200.f, 150.f, 120.f, 100.f, 80.f, 65.f, 50.f};
+			   if (unsigned(depth) < priors.size())
+			     return priors[depth];
+			   return 40.0f;
+			 };
+    const float prior_max = get_prior_max();
     const float min_to_show = 0.05f;
     for (auto* ch = children; true; ++ch)
     {

@@ -235,7 +235,7 @@ std::shared_ptr<Game> MonteCarlo::getCopyOfGame(Treenode *node) const
 void MonteCarlo::expandNode(TreenodeAllocator &alloc, Treenode *node,
                             Game *game, int depth) const
 {
-    constexpr int max_depth_for_cnn = 7;
+    constexpr int max_depth_for_cnn = 8;
     std::unique_lock<std::mutex> lock_children(node->children_mutex);
     if (node->children != nullptr) return;
     game->generateListOfMoves(alloc, node, depth, node->move.who ^ 3);
