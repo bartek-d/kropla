@@ -201,7 +201,7 @@ void updatePriors(Game& game, Treenode* children, int depth)
         return;
     }
     auto get_prior_max = [=](){
-			   const std::array<float, 10> priors{0.0f, 800.f, 400.f, 250.f, 220.f, 200.f, 160.f, 140.f, 120.f, 100.f};
+			   const std::array<float, 10> priors{0.0f, 800.f, 500.f, 350.f, 270.f, 220.f, 200.f, 160.f, 140.f, 120.f};
 			   if (unsigned(depth) < priors.size()) {
 			     return priors[depth] * (depth > max_depth_for_primary_cnn ? 0.95f : 1.0f);
 			   }
