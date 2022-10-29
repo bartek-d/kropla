@@ -76,6 +76,13 @@ void gatherDataFromPosition(Game& game, Move& move, unsigned move_no)
     std::cout << std::endl;
 }
 
+void showSafetyMoves(Game& game, Move& move, unsigned move_no)
+{
+    const auto moves = game.getSafetyMoves(game.whoNowMoves());
+    std::cout << "Safety moves: " << moves.size() << std::endl;
+    game.show(moves);
+}
+
 std::pair<Move, std::vector<std::string>> getMoveFromSgfNode(const Game& game,
                                                              SgfNode node)
 {
@@ -143,6 +150,7 @@ void gatherDataFromSgfSequence(SgfSequence& seq,
             if (move.ind != 0 and move.who == game.whoNowMoves())
             {
                 gatherDataFromPosition(game, move, i + 2);
+                showSafetyMoves(game, move, i + 2);
             }
         }
         // std::cerr << "Trying to play at: " << seq[i].toString() << std::endl;

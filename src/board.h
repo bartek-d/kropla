@@ -126,6 +126,9 @@ class Coord
     std::string showColouredBoard(Container const &b);
     template <typename Container>
     std::string showColouredBoardWithDots(Container const &b);
+    template <typename ColourGetter, typename StringGetter>
+    std::string showColouredBoardWithDotsAndDebugMoves(ColourGetter col_get,
+                                                       StringGetter str_get);
     template <typename Container>
     std::string showFullBoard(Container const &b);
     std::string showPt(pti p) const;
@@ -289,6 +292,71 @@ std::string Coord::showColouredBoardWithDots(Container const &b)
                             break;
                     };
                     out << ascii_dots[what] << colour_off;
+                }
+                else
+                {
+                    out << std::setw(2) << int(y) << ":" << colour_off;
+                }
+            }
+            else
+            {
+                if (x >= 0)
+                {
+                    if (y == -2)
+                    {
+                        out << std::setw(2) << numberToLetter(x) << colour_off;
+                    }
+                    else
+                    {
+                        out << std::setw(2) << "--" << colour_off;
+                    }
+                }
+                else
+                    out << std::setw(2) << "" << colour_off;
+            }
+        }
+        out << std::endl;
+    }
+    return out.str();
+}
+
+/// shows dots and possible moves, for debugging
+template <typename ColourGetter, typename StringGetter>
+std::string Coord::showColouredBoardWithDotsAndDebugMoves(ColourGetter col_get,
+                                                          StringGetter str_get)
+{
+    std::stringstream out;
+    std::string ascii_dots[4] = {
+        "\u2027 ", "\u25cf ", "\u25cf ",
+        "\u25cf "};  // \u2022 = 'BULLET'  \u25cf = Black
+                     // Circle, \u2027 = Hyphenation Point
+    for (int y = -2; y < wlky; y++)
+    {
+        for (int x = -1; x < wlkx; x++)
+        {
+            if (y >= 0)
+            {
+                if (x >= 0)
+                {
+                    int what = col_get(x, y);
+                    switch (what)
+                    {
+                        case -1:
+                        case 0:
+                            out << colour_off;
+                            break;
+                        case 1:
+                            out << blue;
+                            break;
+                        case 2:
+                            out << red;
+                            break;
+                        case 3:
+                            out << green;
+                            break;
+                    };
+                    out << (what >= 0 ? ascii_dots[what] : str_get(x, y))
+                        << colour_off;
                 }
                 else
                 {

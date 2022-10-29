@@ -4537,6 +4537,31 @@ void Game::show() const
               << std::endl;
 }
 
+void Game::show(const std::vector<pti> &moves) const
+{
+    auto col_getter = [&](int x, int y) {
+        int value =
+            (worm[coord.ind(x, y)] == 0) ? 0 : (worm[coord.ind(x, y)] % 4);
+        if (value == 0)
+        {
+            pti what = coord.ind(x, y);
+            const bool found =
+                (std::find(moves.begin(), moves.end(), what) != moves.end());
+            return found ? -1 : 0;
+        }
+        return value;
+    };
+    auto str_getter = [&](int x, int y) -> std::string {
+        pti what = coord.ind(x, y);
+        const bool found =
+            (std::find(moves.begin(), moves.end(), what) != moves.end());
+        if (found) return "M ";
+        return "  ";
+    };
+    std::cerr << coord.showColouredBoardWithDotsAndDebugMoves(col_getter,
+                                                              str_getter);
+}
+
 void Game::showSvg(const std::string &filename,
                    const std::vector<pti> &tab) const
 {
@@ -7555,10 +7580,8 @@ Move Game::choosePattern3Move(pti move0, pti move1, int who)
     return move;
 }
 
-Move Game::chooseSafetyMove(int who)
+std::vector<pti> Game::getSafetyMoves(int who)
 {
-    Move move;
-    move.who = who;
     std::vector<pti> stack;
     std::set<pti> already_saved;
     using Tup = std::tuple<int, pti, pti>;
@@ -7606,6 +7629,14 @@ Move Game::chooseSafetyMove(int who)
             }
         }
     }
+    return stack;
+}
+
+Move Game::chooseSafetyMove(int who)
+{
+    Move move;
+    move.who = who;
+    const auto stack = getSafetyMoves(who);
     if (!stack.empty())
     {
         std::uniform_int_distribution<int> di(0, stack.size() - 1);

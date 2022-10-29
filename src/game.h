@@ -454,6 +454,7 @@ class Game
     Move chooseSoftSafetyContinuation(int who);
     Move selectMoveRandomlyFrom(const std::vector<pti>& moves, int who);
     Move choosePattern3Move(pti move0, pti move1, int who);
+    std::vector<pti> getSafetyMoves(int who);
     Move chooseSafetyMove(int who);
     Move chooseAnyMove(int who);
     std::vector<pti> getGoodTerrMoves(int who) const;
@@ -485,6 +486,7 @@ class Game
         return threats[who];
     }
     void show() const;
+    void show(const std::vector<pti>& moves) const;
     void showSvg(const std::string& filename,
                  const std::vector<pti>& tab) const;
     void showConnections();
