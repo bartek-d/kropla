@@ -7595,6 +7595,38 @@ std::vector<pti> Game::getSafetyMoves(int who)
     {
         for (; coord.dist[p] == 1; p += vside)
         {
+            if (whoseDotMarginAt(p + vnorm) == 0 and
+                whoseDotMarginAt(p - vnorm) + whoseDotMarginAt(p) == 3)
+            {
+                auto whose = whoseDotMarginAt(p);
+                if (whoseDotMarginAt(p - vside) + whose == 3 and
+                    whoseDotMarginAt(p + vside) == 0 and
+                    descr.at(worm[p - vside]).safety <= 1 and
+                    whoseDotMarginAt(p + vside + vnorm) != whose and
+                    already_saved.find(p + vside) == already_saved.end())
+                //    .
+                //  . x O    with . of safety <= 1
+                //    o ?    ? = .o but not 'x'    --> then mark O as
+                //    interesting (anti-global)
+                {
+                    stack.push_back(p + vside);
+                    already_saved.insert(p + vside);
+                }
+                else if (whoseDotMarginAt(p + vside) + whose == 3 and
+                         whoseDotMarginAt(p - vside) == 0 and
+                         descr.at(worm[p + vside]).safety <= 1 and
+                         whoseDotMarginAt(p - vside + vnorm) != whose and
+                         already_saved.find(p - vside) == already_saved.end())
+                //    .
+                //  O x .    with . of safety <= 1
+                //  ? o      ? = .o but not 'x'    --> then mark O as
+                //  interesting (anti-global)
+                {
+                    stack.push_back(p - vside);
+                    already_saved.insert(p - vside);
+                }
+            }
+
             if (whoseDotMarginAt(p) != 0 and descr.at(worm[p]).safety == 1)
             {
                 if (whoseDotMarginAt(p + vnorm) == 0)

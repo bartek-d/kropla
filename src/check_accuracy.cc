@@ -79,7 +79,8 @@ void gatherDataFromPosition(Game& game, Move& move, unsigned move_no)
 void showSafetyMoves(Game& game, Move& move, unsigned move_no)
 {
     const auto moves = game.getSafetyMoves(game.whoNowMoves());
-    std::cout << "Safety moves: " << moves.size() << std::endl;
+    std::cout << "Safety moves #" << move_no << ": " << moves.size()
+              << std::endl;
     game.show(moves);
 }
 
