@@ -243,14 +243,7 @@ void WorkersPool::doWork(uint32_t datav, const void* data, size_t s,
 {
     std::unique_lock<std::mutex> lock(jobs_mutex);
     if (how_many_free == 0) cv.wait(lock, [&]() { return how_many_free; });
-    std::cerr << "Free: " << how_many_free << "  ";
-    for (auto e : is_free) std::cerr << e;
-    std::cerr << std::endl;
     int taken = findWorker();
-
-    std::cerr << "Free after take #" << taken << ": " << how_many_free << "  ";
-    for (auto e : is_free) std::cerr << e;
-    std::cerr << std::endl;
 
     lock.unlock();
     if (taken == -1) throw std::runtime_error("do Work");
@@ -379,7 +372,7 @@ try
         auto res = cnn.caffe_get_data(input.data(), wlkx, planes, wlkx);
         lock.unlock();
         std::cerr << "Forward time [micros]: "
-                  << std::chrono::duration_cast<std::chrono::nanoseconds>(
+                  << std::chrono::duration_cast<std::chrono::microseconds>(
                          std::chrono::high_resolution_clock::now() - debug_time)
                          .count()
                   << std::endl;
