@@ -64,6 +64,7 @@ long long debug_nanos2 = 0;
 long long debug_nanos3 = 0;
 int debug_previous_count = 0;
 thread_local std::default_random_engine Game::engine;
+thread_local std::stringstream Game::out;
 
 namespace global
 {
@@ -198,6 +199,13 @@ Movestats &Movestats::operator=(const Movestats &other)
     return *this;
 }
 
+Movestats &Movestats::operator=(const NonatomicMovestats &other)
+{
+    playouts = other.playouts;
+    value_sum = other.value_sum;
+    return *this;
+}
+
 bool Movestats::operator<(const Movestats &other) const
 {
     if (other.playouts == 0) return false;
@@ -211,6 +219,36 @@ std::string Movestats::show() const
     out << " v=" << (playouts > 0 ? value_sum / playouts : 0.0)
         << " sim=" << playouts;
     return out.str();
+}
+
+const NonatomicMovestats &NonatomicMovestats::operator+=(
+    const NonatomicMovestats &other)
+{
+    playouts += other.playouts;
+    value_sum += other.value_sum;
+    return *this;
+}
+
+std::string NonatomicMovestats::show() const
+{
+    std::stringstream out;
+    out << " v=" << (playouts > 0 ? value_sum / playouts : 0.0)
+        << " sim=" << playouts;
+    return out.str();
+}
+
+NonatomicMovestats wonSimulations(int n)
+{
+    return NonatomicMovestats{
+        n, static_cast<decltype(NonatomicMovestats::value_sum)>(n)};
+}
+NonatomicMovestats lostSimulations(int n)
+{
+    return NonatomicMovestats{n, 0.0f};
+}
+NonatomicMovestats defaultInitialPriors()
+{
+    return NonatomicMovestats{30, 15.0f};
 }
 
 /********************************************************************************************************
@@ -6659,10 +6697,147 @@ bool Game::isDameOnEdge(pti i, int who) const
     return false;
 }
 
+NonatomicMovestats Game::priorsAndDameForPattern3(bool &is_dame, bool is_root,
+                                                  bool is_in_our_te,
+                                                  bool is_in_opp_te, int i,
+                                                  int who) const
+{
+    if (is_dame or is_in_our_te or is_in_opp_te) return {};
+
+    auto v = pattern3_value[who - 1][i];
+    if (is_root) out << "p3v=" << v << " ";
+#ifndef NDEBUG
+    if (v != getPattern3Value(i, who))
+    {
+        std::cerr << "recalculate_list: ";
+        for (auto i : recalculate_list) std::cerr << coord.showPt(i) << " ";
+        std::cerr << std::endl;
+        show();
+        std::cerr << "Wrong patt3 value for who=" << who << " at "
+                  << coord.showPt(i) << ", is: " << v
+                  << " should be: " << getPattern3Value(i, who) << std::endl;
+    }
+    assert(v == getPattern3Value(i, who));
+#endif
+    if (v < 0)
+    {  // dame
+        is_dame = true;
+        return {};
+    }
+
+    int value = (v > 0) ? ((v + 15) >> 3) : 0;
+    if (is_root) out << "p3p=" << value << " ";
+    return wonSimulations(value);
+}
+
+NonatomicMovestats Game::priorsAndDameForEdgeMoves(bool &is_dame, bool is_root,
+                                                   int i, int who) const
+{
+    // add prior values for edge moves
+    if (is_dame or coord.dist[i] != 0) return {};
+
+    int r = checkBorderMove(i, who);
+    if (r < 0)
+    {
+        is_dame = true;
+        return {};
+    }
+    else if (r > 0)
+    {
+        if (is_root) out << "edge=" << 3 * r << " ";
+        return wonSimulations(3 * r);
+    }
+    return {};
+}
+
+NonatomicMovestats Game::priorsForInterestingMoves_cut_or_connect(bool is_root,
+                                                                  int i) const
+{
+    int weight = 4 * interesting_moves.classOfMove(i);
+    if (is_root) out << "intm=" << weight << " ";
+    return wonSimulations(weight);
+}
+
+NonatomicMovestats Game::priorsForDistanceFromLastMoves(bool is_root,
+                                                        int i) const
+{
+    int dist = std::min(
+        coord.distBetweenPts_1(i, history.back() & history_move_MASK),
+        coord.distBetweenPts_1(i, (*(history.end() - 2)) & history_move_MASK));
+    if (dist <= 4)
+    {
+        const int n_won = (6 - dist);
+        if (is_root) out << "dist=" << n_won << " ";
+        return wonSimulations(n_won);
+    }
+    return {};
+}
+
+NonatomicMovestats Game::priorsForThreats(bool is_root, bool is_in_opp_te,
+                                          int i, int who) const
+{
+    // add prior values because of threats2m (v118+)
+    NonatomicMovestats value{};
+    if (threats[who - 1].is_in_terr[i] == 0 and !is_in_opp_te)
+    {
+        const int i_can_enclose =
+            threats[who - 1].numberOfDotsToBeEnclosedIn2mAfterPlayingAt(i);
+        if (i_can_enclose)
+        {
+            int num = 5 + std::min(i_can_enclose, 15);
+            value += wonSimulations(num);
+            if (is_root) out << "thr2m=" << num << " ";
+        }
+
+        const int opp_can_enclose =
+            threats[2 - who].numberOfDotsToBeEnclosedIn2mAfterPlayingAt(i);
+        if (opp_can_enclose)
+        {  // and threats[2-who].is_in_terr[t.where0]==0 and
+           // threats[2-who].is_in_encl[t.where0]==0 -- this is
+           // above (!is_in_opp_te)
+            int num = 5 + std::min(opp_can_enclose, 15);
+            value += wonSimulations(num);
+            if (is_root) out << "thr2mopp=" << num << " ";
+        }
+
+        // miai/encl2 (v127+)
+        if ((threats[2 - who].is_in_2m_encl[i] > 0 or
+             threats[2 - who].is_in_2m_miai[i] > 0) and
+            threats[who - 1].is_in_border[i] == 0 and
+            not threats[who - 1].isInBorder2m(i))
+        {
+            value += lostSimulations(15);
+            if (is_root) out << "miai=-15 ";
+        }
+    }
+    else
+    {
+        int min_terr_size = threats[is_in_opp_te ? 2 - who : who - 1]
+                                .getMinAreaOfThreatEnclosingPoint(i);
+        // in territory, maybe a good reduction possible
+        const auto &whose_threats2m = is_in_opp_te ? threats[who - 1].threats2m
+                                                   : threats[2 - who].threats2m;
+        for (const auto &t : whose_threats2m)
+        {
+            if (t.where0 == i)
+            {
+                if (t.min_win2)
+                {
+                    int num = 1 + 2 * std::min(min_terr_size, 10);
+                    value += wonSimulations(num);
+                    if (is_root) out << "reduc=" << num << " ";
+                }
+                break;
+            }
+        }
+    }
+    return value;
+}
+
 int encl_count, opt_encl_count, moves_count, priority_count;
 
-void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
-                               int depth, int who)
+DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
+                                    int depth, int who)
 {
     ++montec::generateMovesCount;
     assert(checkMarginsCorrectness());
@@ -6696,15 +6871,19 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
     priority_count += ml_priorities.size();
     moves_count++;
     //
+    const bool is_root = (depth == 1);
     bool dame_already = false;  // to put only 1 dame move on the list
+    DebugInfo debug_info;
     for (int i = coord.first; i <= coord.last; i++)
     {
         // if (coord.dist[i] < 0) continue;
         if (worm[i]) continue;
-#ifndef NDEBUG
-        std::stringstream out;
-        out << "Move " << coord.showPt(i) << ": ";
-#endif
+        if (is_root)
+        {
+            out.str("");
+            out.clear();
+            out << "   --> " << coord.showPt(i) << ": ";
+        }
         bool is_dame = isDameOnEdge(i, who);
         // check threats -- not good, it may be good to play in opp's territory
         // to reduce it...
@@ -6712,68 +6891,19 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
         // > 0) and
         //  threats[who-1].is_in_border[i] == 0) continue;
         tn.move.ind = i;
-        tn.t.playouts = 30;
-        tn.t.value_sum = 15;
         tn.flags = 0;
         tn.setDepth(depth);
-        // add prior values according to Pattern3
+        NonatomicMovestats priors = defaultInitialPriors();
         bool is_in_our_te = (threats[who - 1].is_in_encl[i] > 0 ||
                              threats[who - 1].is_in_terr[i] >
                                  0);  // te = territory or enclosure
         bool is_in_opp_te = (threats[2 - who].is_in_encl[i] > 0 ||
                              threats[2 - who].is_in_terr[i] > 0);
-        if (!is_dame and !is_in_our_te and !is_in_opp_te)
-        {
-            auto v = pattern3_value[who - 1][i];
-#ifndef NDEBUG
-            out << "p3v=" << v << " ";
-            if (v != getPattern3Value(i, who))
-            {
-                std::cerr << "recalculate_list: ";
-                for (auto i : recalculate_list)
-                    std::cerr << coord.showPt(i) << " ";
-                std::cerr << std::endl;
-                show();
-                std::cerr << "Wrong patt3 value for who=" << who << " at "
-                          << coord.showPt(i) << ", is: " << v
-                          << " should be: " << getPattern3Value(i, who)
-                          << std::endl;
-            }
-            assert(v == getPattern3Value(i, who));
-#endif
-            if (v < 0)
-            {  // dame
-                is_dame = true;
-            }
-            else
-            {
-                int value = (v > 0) ? ((v + 15) >> 3) : 0;
-#ifndef NDEBUG
-                out << "p3p=" << value << " ";
-#endif
-                tn.t.playouts += value;
-                tn.t.value_sum =
-                    tn.t.value_sum.load() + value;  // add won simulations
-            }
-        }
-        // add prior values for edge moves
-        if (!is_dame and coord.dist[i] == 0)
-        {
-            int r = checkBorderMove(i, who);
-            if (r < 0)
-            {
-                is_dame = true;
-            }
-            else if (r > 0)
-            {
-#ifndef NDEBUG
-                out << "edge=" << 3 * r << " ";
-#endif
-                tn.t.playouts += 3 * r;
-                tn.t.value_sum = tn.t.value_sum.load() +
-                                 3 * r;  // add won simulations (3--12)
-            }
-        }
+
+        priors += priorsAndDameForPattern3(is_dame, is_root, is_in_our_te,
+                                           is_in_opp_te, i, who);
+        priors += priorsAndDameForEdgeMoves(is_dame, is_root, i, who);
+
         // save only 1 dame move
 #ifndef NDEBUG
         if (is_dame != isDame_directCheck(i, who))
@@ -6791,111 +6921,17 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
         {
             if (dame_already)
             {
-#ifndef NDEBUG
-                if (parent->parent == parent)
-                    std::cerr << out.str() << " --dame already!" << std::endl;
-#endif
                 continue;
             }
             dame_already = true;
-#ifndef NDEBUG
-            out << "dame=true,-5 ";
-#endif
-            tn.t.playouts += 5;  // add lost simulations
+            if (is_root) out << "dame=true,-5 ";
+            priors += lostSimulations(5);
             tn.markAsDame();
         }
-        // add prior values according to InterestingMoves (cut/connect)
-        {
-            int w = interesting_moves.classOfMove(i);
-            tn.t.playouts += 4 * w;
-            tn.t.value_sum = tn.t.value_sum.load() +
-                             4 * w;  // add w=(0,1,2,3 times 3) won simulations
-#ifndef NDEBUG
-            out << "intm=" << 4 * w << " ";
-#endif
-        }
-        // add prior values according to distance from last moves
-        {
-            int dist = std::min(
-                coord.distBetweenPts_1(i, history.back() & history_move_MASK),
-                coord.distBetweenPts_1(
-                    i, (*(history.end() - 2)) & history_move_MASK));
-            if (dist <= 4)
-            {
-                tn.t.playouts += (6 - dist);
-                tn.t.value_sum =
-                    tn.t.value_sum.load() + (6 - dist);  // add won simulations
-#ifndef NDEBUG
-                out << "dist=" << 6 - dist << " ";
-#endif
-            }
-        }
-        // add prior values because of threats2m (v118+)
-        if (threats[who - 1].is_in_terr[i] == 0 and !is_in_opp_te)
-        {
-            const int i_can_enclose =
-                threats[who - 1].numberOfDotsToBeEnclosedIn2mAfterPlayingAt(i);
-            if (i_can_enclose)
-            {
-                int num = 5 + std::min(i_can_enclose, 15);
-                tn.t.playouts += num;
-                tn.t.value_sum =
-                    tn.t.value_sum.load() + num;  // add won simulations
-#ifndef NDEBUG
-                out << "thr2m=" << num << " ";
-#endif
-            }
+        priors += priorsForInterestingMoves_cut_or_connect(is_root, i);
+        priors += priorsForDistanceFromLastMoves(is_root, i);
+        priors += priorsForThreats(is_root, is_in_opp_te, i, who);
 
-            const int opp_can_enclose =
-                threats[2 - who].numberOfDotsToBeEnclosedIn2mAfterPlayingAt(i);
-            if (opp_can_enclose)
-            {  // and threats[2-who].is_in_terr[t.where0]==0 and
-               // threats[2-who].is_in_encl[t.where0]==0 -- this is
-               // above (!is_in_opp_te)
-                int num = 5 + std::min(opp_can_enclose, 15);
-                tn.t.playouts += num;
-                tn.t.value_sum =
-                    tn.t.value_sum.load() + num;  // add won simulations
-#ifndef NDEBUG
-                out << "thr2mopp=" << num << " ";
-#endif
-            }
-
-            // miai/encl2 (v127+)
-            if ((threats[2 - who].is_in_2m_encl[i] > 0 or
-                 threats[2 - who].is_in_2m_miai[i] > 0) and
-                threats[who - 1].is_in_border[i] == 0 and
-                not threats[who - 1].isInBorder2m(i))
-            {
-                tn.t.playouts += 15;  // add lost simulations
-#ifndef NDEBUG
-                out << "miai=-15 ";
-#endif
-            }
-        }
-        else
-        {
-            int min_terr_size = threats[is_in_opp_te ? 2 - who : who - 1]
-                                    .getMinAreaOfThreatEnclosingPoint(i);
-            // in territory, maybe a good reduction possible
-            const auto &whose_threats2m = is_in_opp_te
-                                              ? threats[who - 1].threats2m
-                                              : threats[2 - who].threats2m;
-            for (const auto &t : whose_threats2m)
-            {
-                if (t.where0 == i)
-                {
-                    if (t.min_win2)
-                    {
-                        int num = 1 + 2 * std::min(min_terr_size, 10);
-                        tn.t.playouts += num;
-                        tn.t.value_sum =
-                            tn.t.value_sum.load() + num;  // add won simulations
-                    }
-                    break;
-                }
-            }
-        }
         // captures
         if (std::find(ml_special_moves.begin(), ml_special_moves.end(), i) ==
             ml_special_moves.end())
@@ -6920,31 +6956,18 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                 if (connects[who - 1][i].groups_id[0] == 0)
                 {
                     // dot does not touch any our dot
-                    tn.t.playouts +=
+                    const int loss =
                         100 -
                         std::min(min_terr_size, 20);  // add lost simulations
-#ifndef NDEBUG
-                    out << "isol=" << -(100 - std::min(min_terr_size, 20))
-                        << " ";
-#endif
+                    if (is_root) out << "isol=" << -loss << " ";
+                    priors += lostSimulations(loss);
                 }
                 else
                 {
                     // we touch our dot
-                    if (min_terr_size <= 2)
-                    {
-                        tn.t.playouts += 80;  // add lost simulations
-#ifndef NDEBUG
-                        out << "touch=-80 ";
-#endif
-                    }
-                    else
-                    {
-                        tn.t.playouts += 14;  // add lost simulation
-#ifndef NDEBUG
-                        out << "touch=-14 ";
-#endif
-                    }
+                    const int lost = (min_terr_size <= 2) ? 80 : 14;
+                    priors += lostSimulations(lost);
+                    if (is_root) out << "touch=-" << lost << " ";
                 }
             }
             else
@@ -6964,21 +6987,13 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                     if (value)
                     {
                         int num = 5 + 2 * std::min(value, 15);
-                        tn.t.playouts += num;
-                        tn.t.value_sum =
-                            tn.t.value_sum.load() + num;  // add won simulations
-#ifndef NDEBUG
-                        out << "oppv2m=" << num << " ";
-#endif
+                        priors += wonSimulations(num);
+                        if (is_root) out << "oppv2m=" << num << " ";
                     }
                     else if (terr_value >= 3)
                     {
-                        tn.t.playouts += 4;
-                        tn.t.value_sum = tn.t.value_sum.load() +
-                                         4 * 0.9;  // add 0.9 won simulations
-#ifndef NDEBUG
-                        out << "oppter=0.9*4 ";
-#endif
+                        priors += NonatomicMovestats{4, 4 * 0.9f};
+                        if (is_root) out << "oppter=0.9*4 ";
                     }
                 }
                 else
@@ -6989,24 +7004,18 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                         tn.markAsInsideTerrNoAtari();
                         if (threats[who - 1].is_in_border[i] == 0)
                         {
-                            tn.t.playouts += 25;
-#ifndef NDEBUG
-                            out << "notborder=-25 ";
-#endif
+                            priors += lostSimulations(25);
+                            if (is_root) out << "notborder=-25 ";
 
                             if (connects[who - 1][i].groups_id[0] == 0)
                             {  // does not touch our dots
-                                tn.t.playouts += 30;
-#ifndef NDEBUG
-                                out << "andiso=-30 ";
-#endif
+                                priors += lostSimulations(30);
+                                if (is_root) out << "andiso=-30 ";
                             }
                             if (connects[2 - who][i].groups_id[0] == 0)
                             {  // does not touch opp's dots
-                                tn.t.playouts += 30;
-#ifndef NDEBUG
-                                out << " andiso2=-30 ";
-#endif
+                                priors += lostSimulations(30);
+                                if (is_root) out << " andiso2=-30 ";
                             }
                         }
                         else
@@ -7022,10 +7031,8 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                                 }
                             }
                         }
-                        tn.t.playouts += 20;
-#ifndef NDEBUG
-                        out << "insidee=-20 ";
-#endif
+                        priors += lostSimulations(20);
+                        if (is_root) out << "insidee=-20 ";
                     }
                     else if (threats[who - 1].is_in_border[i] > 0)
                     {
@@ -7049,36 +7056,30 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                         if (value)
                         {
                             int num = 5 + 2 * std::min(value, 15);
-                            tn.t.playouts += num;
-                            tn.t.value_sum = tn.t.value_sum.load() +
-                                             num;  // add won simulations
-#ifndef NDEBUG
-                            out << "voft=" << num << " ";
-#endif
+                            priors += wonSimulations(num);
+                            if (is_root) out << "voft=" << num << " ";
                         }
                         else if (terr_value >= 2)
                         {
                             int num = 2 + std::min(terr_value, 15);
-                            tn.t.playouts += num;
-                            tn.t.value_sum = tn.t.value_sum.load() +
-                                             num;  // add won simulations
-#ifndef NDEBUG
-                            out << "voftT=" << num << " ";
-#endif
+                            priors += wonSimulations(num);
+                            if (is_root) out << "voftT=" << num << " ";
                         }
                     }
                 }
             }
 
-            // tn.t.playouts *= 3;   tn.t.value_sum *= 3;   // take more virtual
             // sims
-            tn.prior = tn.t;
-#ifndef NDEBUG
-            out << " --> (" << tn.t.playouts << ", " << tn.t.value_sum << ") ";
-            if (parent->parent == parent) std::cerr << out.str() << std::endl;
-            out.str("");
-            out.clear();
-#endif
+            tn.prior = priors;
+            tn.t = priors;
+            if (is_root)
+            {
+                out << " --> (" << priors.playouts << ", " << priors.value_sum
+                    << ") ";
+                debug_info.zobrist2priors_info[tn.move.zobrist_key] = out.str();
+                out.str("");
+                out.clear();
+            }
 
             // ml_list.push_back(tn);
             *alloc.getNext() = tn;
@@ -7097,8 +7098,6 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
             // special move, canceling opp's threat or allowing for our
             // enclosure
             int em = ml_encl_moves.size();
-            auto tplayouts = tn.t.playouts.load();
-            auto tvalue_sum = tn.t.value_sum.load();
             int dots = 0, captured_dots = 0;
             if (threats[who - 1].is_in_border[i])
             {
@@ -7128,18 +7127,16 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
             tn.move.enclosures.insert(tn.move.enclosures.end(),
                                       ml_encl_moves.begin(),
                                       ml_encl_moves.end());
-            // tn.t.playouts *= 3;   tn.t.value_sum *= 3;   // take more virtual
             // sims
             int saved_dots = 0;
             for (unsigned j = em; j < ml_encl_moves.size(); ++j)
             {
-#ifndef NDEBUG
-                if (parent->parent == parent)
-                    std::cerr << "Enclosure after move " << coord.showPt(i)
-                              << ":" << std::endl
-                              << ml_encl_moves[j]->show() << "  priority info="
-                              << ml_priority_vect[j - em].show() << std::endl;
-#endif
+                if (is_root)
+                    out << "Enclosure after move " << coord.showPt(i) << ":"
+                        << std::endl
+                        << ml_encl_moves[j]->show()
+                        << "  priority info=" << ml_priority_vect[j - em].show()
+                        << std::endl;
                 if (ml_priority_vect[j - em].priority_value >
                     ThrInfoConsts::MINF)
                 {
@@ -7151,18 +7148,19 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                 std::min(7 * saved_dots * (dots + captured_dots), 30) +
                 (captured_dots == 0 ? 0
                                     : (4 * std::min(captured_dots, 15) - 1));
-            tn.t.playouts += num;
-            tn.t.value_sum =
-                tn.t.value_sum.load() + num;  // add won simulations
-#ifndef NDEBUG
-            out << "special=" << num << " --> (" << tn.t.playouts << ", "
-                << tn.t.value_sum << ") ";
-            if (parent->parent == parent) std::cerr << out.str() << std::endl;
-            out.str("");
-            out.clear();
-#endif
+            NonatomicMovestats this_priors = priors;
+            this_priors += wonSimulations(num);
+            if (is_root)
+            {
+                out << "special=" << num << " --> (" << priors.playouts << ", "
+                    << priors.value_sum << ") ";
+                debug_info.zobrist2priors_info[tn.move.zobrist_key] = out.str();
+                out.str("");
+                out.clear();
+            }
 
-            tn.prior = tn.t;
+            tn.prior = this_priors;
+            tn.t = this_priors;
             *alloc.getNext() = tn;
             // ml_list.push_back(tn);
             assert(ml_opt_encl_moves.size() + 2 == ml_encl_zobrists.size());
@@ -7175,41 +7173,44 @@ void Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                 if (ml_priority_vect[ml_encl_moves.size() - em + opi]
                         .priority_value > ThrInfoConsts::MINF)
                 {
-#ifndef NDEBUG
-                    if (parent->parent == parent)
-                        std::cerr
-                            << "Enclosure after move " << coord.showPt(i) << ":"
+                    if (is_root)
+                    {
+                        out << "Enclosure after move " << coord.showPt(i) << ":"
                             << std::endl
                             << ml_opt_encl_moves[opi]->show()
                             << "  priority info="
                             << ml_priority_vect[ml_encl_moves.size() - em + opi]
                                    .show()
                             << std::endl;
-#endif
+                    }
                     dots += ml_priority_vect[ml_encl_moves.size() - em + opi]
                                 .saved_dots;
                     num = 5 + 2 * std::min(dots, 15);
-                    tn.t.playouts = tplayouts + num;
-                    tn.t.value_sum = tvalue_sum + num;  // add won simulations
-#ifndef NDEBUG
-                    out << "bonus=" << num << "  --> (" << tn.t.playouts << ", "
-                        << tn.t.value_sum << ") ";
-#endif
+                    NonatomicMovestats this_priors = priors;
+                    this_priors += wonSimulations(num);
+                    if (is_root)
+                    {
+                        out << "bonus=" << num << "  --> (" << priors.playouts
+                            << ", " << priors.value_sum << ") ";
+                    }
                 }
-#ifndef NDEBUG
-                if (parent->parent == parent)
-                    std::cerr << out.str() << std::endl;
-                out.str("");
-                out.clear();
-#endif
+                if (is_root)
+                {
+                    debug_info.zobrist2priors_info[tn.move.zobrist_key] =
+                        out.str();
+                    out.str("");
+                    out.clear();
+                }
                 // ml_list.push_back(tn);
-                tn.prior = tn.t;
+                tn.prior = this_priors;
+                tn.t = this_priors;
                 *alloc.getNext() = tn;
             }
             ml_encl_moves.erase(ml_encl_moves.begin() + em,
                                 ml_encl_moves.end());
         }
     }
+    return debug_info;
 }
 
 Move Game::getRandomEncl(Move &m)

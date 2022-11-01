@@ -55,6 +55,8 @@ std::array<std::atomic<int64_t>, 10> generateMovesCount_depths{0, 0, 0, 0, 0,
 std::atomic<int64_t> cnnReads{0};
 std::atomic<int64_t> redundantGenerateMovesCount{0};
 
+DebugInfo root_debug_info;
+
 bool finish_threads(false);
 constexpr int start_increasing = 200;
 constexpr real_t increase_komi_threshhold = 0.75;
@@ -238,7 +240,8 @@ void MonteCarlo::expandNode(TreenodeAllocator &alloc, Treenode *node,
     constexpr int max_depth_for_cnn = 8;
     std::unique_lock<std::mutex> lock_children(node->children_mutex);
     if (node->children != nullptr) return;
-    game->generateListOfMoves(alloc, node, depth, node->move.who ^ 3);
+    auto debug_info =
+        game->generateListOfMoves(alloc, node, depth, node->move.who ^ 3);
     ++montec::generateMovesCount_depths[std::min<int>(
         depth, montec::generateMovesCount_depths.size() - 1)];
     if (node->children == nullptr)
@@ -259,6 +262,10 @@ void MonteCarlo::expandNode(TreenodeAllocator &alloc, Treenode *node,
     {
         ++montec::redundantGenerateMovesCount;  // we should not come here!
         alloc.getLastBlock();
+    }
+    if (depth == 1)
+    {
+        montec::root_debug_info = std::move(debug_info);
     }
     lock_children.unlock();
 #ifndef NDEBUG
@@ -563,6 +570,12 @@ std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
     for (int i = 0; i < max_moves && i < n; i++)
     {
         std::cerr << montec::root.children[i].show() << std::endl;
+        const auto &debug_map = montec::root_debug_info.zobrist2priors_info;
+        if (auto it = debug_map.find(montec::root.children[i].move.zobrist_key);
+            it != debug_map.end())
+        {
+            std::cerr << it->second << std::endl;
+        }
         if (i == 0)
         {
             // std::sort(montec::root.children[i].children.rbegin(),

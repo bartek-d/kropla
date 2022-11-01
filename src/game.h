@@ -103,14 +103,32 @@ struct OneConnection
   Movestats class for handling Monte Carlo tree.
 *********************************************************************************************************/
 
+struct NonatomicMovestats
+{
+    int32_t playouts{0};
+    real_t value_sum{0.0f};
+    const NonatomicMovestats& operator+=(const NonatomicMovestats& other);
+    NonatomicMovestats& operator=(const NonatomicMovestats&) = default;
+    std::string show() const;
+};
+
 struct Movestats
 {
     std::atomic<int32_t> playouts{0};
-    std::atomic<real_t> value_sum{0};
+    std::atomic<real_t> value_sum{0.0f};
     const Movestats& operator+=(const Movestats& other);
     Movestats& operator=(const Movestats&);
+    Movestats& operator=(const NonatomicMovestats&);
     bool operator<(const Movestats& other) const;
     std::string show() const;
+};
+
+/********************************************************************************************************
+  DebugInfo class for tree nodes.
+*********************************************************************************************************/
+struct DebugInfo
+{
+    std::unordered_map<uint64_t, std::string> zobrist2priors_info;
 };
 
 /********************************************************************************************************
@@ -311,7 +329,9 @@ class Game
     static const int COEFF_URGENT = 4;
     static const int COEFF_NONURGENT = 1;
     bool must_surround{false};
-    //
+    // for debugging:
+    static thread_local std::stringstream out;
+
 #ifdef DEBUG_SGF
    public:
     static SgfTree sgf_tree;
@@ -445,8 +465,22 @@ class Game
                    : 0.0f;
     }
     pattern3_t readPattern3_at(pti ind) const { return pattern3_at[ind]; }
-    void generateListOfMoves(TreenodeAllocator& alloc, Treenode* parent,
-                             int depth, int who);
+
+    NonatomicMovestats priorsAndDameForPattern3(bool& is_dame, bool is_root,
+                                                bool is_in_our_te,
+                                                bool is_in_opp_te, int i,
+                                                int who) const;
+    NonatomicMovestats priorsAndDameForEdgeMoves(bool& is_dame, bool is_root,
+                                                 int i, int who) const;
+    NonatomicMovestats priorsForInterestingMoves_cut_or_connect(bool is_root,
+                                                                int i) const;
+    NonatomicMovestats priorsForDistanceFromLastMoves(bool is_root,
+                                                      int i) const;
+    NonatomicMovestats priorsForThreats(bool is_root, bool is_in_opp_te, int i,
+                                        int who) const;
+
+    DebugInfo generateListOfMoves(TreenodeAllocator& alloc, Treenode* parent,
+                                  int depth, int who);
     Move getRandomEncl(Move& m);
     Move chooseAtariMove(int who);
     Move chooseAtariResponse(pti lastMove, int who);
