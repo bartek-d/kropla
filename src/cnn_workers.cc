@@ -327,7 +327,8 @@ WorkersPool::WorkersPool(const std::string& config_file, int wlkx,
         }
     }
 
-    std::cerr << "Pool: setting up " << n_workers << ", use_this_thread: " << use_this_thread << std::endl;
+    std::cerr << "Pool: setting up " << n_workers
+              << ", use_this_thread: " << use_this_thread << std::endl;
     if (n_workers > int(use_this_thread))
     {
         try
@@ -375,8 +376,7 @@ try
                   << std::chrono::duration_cast<std::chrono::microseconds>(
                          std::chrono::high_resolution_clock::now() - debug_time)
                          .count()
-                  << "  config: "<< config_file
-                  << std::endl;
+                  << "  config: " << config_file << std::endl;
         return {true, res};
     }
     // use worker

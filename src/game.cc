@@ -192,6 +192,13 @@ const Movestats &Movestats::operator+=(const Movestats &other)
     return *this;
 }
 
+const Movestats &Movestats::operator+=(const NonatomicMovestats &other)
+{
+    playouts += other.playouts;
+    value_sum = value_sum.load() + other.value_sum;
+    return *this;
+}
+
 Movestats &Movestats::operator=(const Movestats &other)
 {
     playouts = other.playouts.load();
@@ -390,6 +397,13 @@ Treenode *TreenodeAllocator::getNext()
     }
     //  pools.back()[cursor] = Treenode();
     return &pools.back()[cursor++];
+}
+
+/// Returns pointer to the last block and do not change anything
+Treenode *TreenodeAllocator::getLastBlockWithoutResetting() const
+{
+    if (cursor == last_block_start) return nullptr;
+    return &pools.back()[last_block_start];
 }
 
 /// Returns pointer to the last block, and resets the last block.
@@ -6873,6 +6887,9 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
     //
     const bool is_root = (depth == 1);
     bool dame_already = false;  // to put only 1 dame move on the list
+    bool is_nondame_not_in_terr_move =
+        false;  // if there's no such move, then dame suddenly becomes a decent
+                // move
     DebugInfo debug_info;
     for (int i = coord.first; i <= coord.last; i++)
     {
@@ -7082,6 +7099,8 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
             }
 
             // ml_list.push_back(tn);
+            if (not tn.isInsideTerrNoAtariOrDame())
+                is_nondame_not_in_terr_move = true;
             *alloc.getNext() = tn;
             assert(neutral_opt_encl_moves.size() + 1 ==
                    neutral_encl_zobrists.size());
@@ -7161,6 +7180,8 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
 
             tn.prior = this_priors;
             tn.t = this_priors;
+            if (not tn.isInsideTerrNoAtariOrDame())
+                is_nondame_not_in_terr_move = true;
             *alloc.getNext() = tn;
             // ml_list.push_back(tn);
             assert(ml_opt_encl_moves.size() + 2 == ml_encl_zobrists.size());
@@ -7208,6 +7229,20 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
             }
             ml_encl_moves.erase(ml_encl_moves.begin() + em,
                                 ml_encl_moves.end());
+        }
+    }
+    if (not is_nondame_not_in_terr_move and dame_already)
+    {
+        for (Treenode *ch = alloc.getLastBlockWithoutResetting(); ch != nullptr;
+             ++ch)
+        {
+            if (ch->isDame())
+            {
+                ch->t += wonSimulations(80);
+                ch->prior += wonSimulations(80);
+                break;
+            }
+            if (ch->isLast()) break;
         }
     }
     return debug_info;

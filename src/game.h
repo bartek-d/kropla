@@ -117,6 +117,7 @@ struct Movestats
     std::atomic<int32_t> playouts{0};
     std::atomic<real_t> value_sum{0.0f};
     const Movestats& operator+=(const Movestats& other);
+    const Movestats& operator+=(const NonatomicMovestats& other);
     Movestats& operator=(const Movestats&);
     Movestats& operator=(const NonatomicMovestats&);
     bool operator<(const Movestats& other) const;
@@ -164,6 +165,10 @@ struct Treenode
     {
         return (flags & IS_INSIDE_TERR_NO_ATARI) != 0;
     }
+    bool isInsideTerrNoAtariOrDame() const
+    {
+        return isInsideTerrNoAtari() or isDame();
+    }
     void setDepth(uint32_t depth) { flags |= (depth & DEPTH_MASK); }
     uint32_t getDepth() const { return (flags & DEPTH_MASK); }
     uint32_t getVirtualLoss() const
@@ -197,6 +202,7 @@ class TreenodeAllocator
     ~TreenodeAllocator();
     Treenode* getNext();
     Treenode* getLastBlock();
+    Treenode* getLastBlockWithoutResetting() const;
     void copyPrevious();
     static int getSize(Treenode* ch);
 };
