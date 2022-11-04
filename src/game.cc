@@ -7238,8 +7238,8 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
         {
             if (ch->isDame())
             {
-                ch->t += wonSimulations(80);
-                ch->prior += wonSimulations(80);
+                ch->t += wonSimulations(150);
+                ch->prior += wonSimulations(150);
                 break;
             }
             if (ch->isLast()) break;
