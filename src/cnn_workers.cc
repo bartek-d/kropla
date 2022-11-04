@@ -278,8 +278,7 @@ try
     float* datafl = static_cast<float*>(add(data, sizeof(uint32_t)));
     auto res = cnn.caffe_get_data(datafl, wlkx, planes, wlkx);
     static_cast<uint32_t*>(data)[0] = true;
-    memcpy(add(data, sizeof(uint32_t)), static_cast<void*>(res.data()),
-           sizeOfVec(res));
+    memcpy(data, static_cast<void*>(res.data()), sizeOfVec(res));
 }
 catch (const CaffeException& exc)
 {
@@ -318,8 +317,8 @@ WorkersPool::WorkersPool(const std::string& config_file, int wlkx,
                            DEFAULT_CNN_BOARD_SIZE);
         try
         {
-            int n_workers = std::stoi(n_workers_str);
-            if (n_workers >= 1 and n_workers <= 1024)
+            n_workers = std::stoi(n_workers_str);
+            if (n_workers < 1 or n_workers > 1024)
                 n_workers = default_n_workers;
         }
         catch (const std::invalid_argument&)
@@ -328,6 +327,7 @@ WorkersPool::WorkersPool(const std::string& config_file, int wlkx,
         }
     }
 
+    std::cerr << "Pool: setting up " << n_workers << ", use_this_thread: " << use_this_thread << std::endl;
     if (n_workers > int(use_this_thread))
     {
         try
@@ -371,10 +371,11 @@ try
         auto debug_time = std::chrono::high_resolution_clock::now();
         auto res = cnn.caffe_get_data(input.data(), wlkx, planes, wlkx);
         lock.unlock();
-        std::cerr << "Forward time [micros]: "
+        std::cerr << "Forward time, this thread [micros]: "
                   << std::chrono::duration_cast<std::chrono::microseconds>(
                          std::chrono::high_resolution_clock::now() - debug_time)
                          .count()
+                  << "  config: "<< config_file
                   << std::endl;
         return {true, res};
     }
