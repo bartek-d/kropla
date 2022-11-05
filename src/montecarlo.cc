@@ -237,7 +237,7 @@ std::shared_ptr<Game> MonteCarlo::getCopyOfGame(Treenode *node) const
 void MonteCarlo::expandNode(TreenodeAllocator &alloc, Treenode *node,
                             Game *game, int depth) const
 {
-    constexpr int max_depth_for_cnn = 7;
+    constexpr int max_depth_for_cnn = 12;
     std::unique_lock<std::mutex> lock_children(node->children_mutex);
     if (node->children != nullptr) return;
     auto debug_info =
@@ -683,7 +683,8 @@ void play_engine(Game &game, std::string &s, int threads_count, int iter_count,
                     ? mc.findBestMoveMT(game, threads_count, iter_count, msec)
                     : mc.findBestMove(game, iter_count);
             auto end_time = std::chrono::high_resolution_clock::now();
-            std::cerr << std::chrono::duration_cast<std::chrono::microseconds>(
+            std::cerr << "Total time: "
+                      << std::chrono::duration_cast<std::chrono::microseconds>(
                              end_time - start_time)
                              .count()
                       << " mikros" << std::endl;
@@ -735,7 +736,8 @@ void findAndPrintBestMove(Game &game, int threads_count, int iter_count)
                                         : mc.findBestMoveMT(game, threads_count,
                                                             iter_count, 0);
     auto end_time = std::chrono::high_resolution_clock::now();
-    std::cerr << std::chrono::duration_cast<std::chrono::microseconds>(
+    std::cerr << "Total time: "
+              << std::chrono::duration_cast<std::chrono::microseconds>(
                      end_time - start_time)
                      .count()
               << " mikros" << std::endl;

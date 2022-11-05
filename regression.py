@@ -76,11 +76,21 @@ def runSingleTestOnce(test, *args):
     timeout = 0.1
     block = True
     loop_count = 0
+    playouts = -1
+    cnnReads = -1
+    mikros = -1
     while True:
         time.sleep(0.65)
         while True:
             try:
                 line = qerr.get(block, timeout)
+                if line.startswith("Real saved playouts:"):
+                    g = re.search("Real saved playouts: (\d*);.*cnnReads: (\d*).*", line)
+                    playouts = int(g.group(1))
+                    cnnReads = int(g.group(2))
+                if line.startswith("Total time:"):
+                    g = re.search("Total time: (\d*) mikros", line)
+                    mikros = int(g.group(1))
                 time.sleep(0.001)
             except Empty:
                 break
@@ -108,21 +118,27 @@ def runSingleTestOnce(test, *args):
     join_timeout = 5
     tout.join(join_timeout)
     terr.join(join_timeout)
-    return (ai_move, score)
+    return (ai_move, score, playouts, cnnReads, mikros)
 
 def runSingleTestManyTimes(test, how_many_times):
     print(f"Running test {test['name']}...", file=sys.stderr)
     msec = test['time']
     results = {}
     total_score = 0.0
+    total_playo = 0
+    total_mikros = 0
+    total_cnnReads = 0
     for i in range(how_many_times):
         while True:
             try:
-                ai_move, score = runSingleTestOnce(test, '-', '10000', '5000000', str(test['threads']), str(msec))
+                ai_move, score, playouts, cnnReads, mikros  = runSingleTestOnce(test, '-', '10000', '5000000', str(test['threads']), str(msec))
                 break
             except:
                 print(f"  {i}: timeout, retry", file=sys.stderr)
-        print(f"  {i}: {ai_move} --> {score}", file=sys.stderr)
+        print(f"  {i}: {ai_move} --> {score}; playouts={playouts}, cnnReads={cnnReads}, playouts/s={playouts*1e6/mikros:.1f}", file=sys.stderr)
+        total_mikros += mikros
+        total_playo += playouts
+        total_cnnReads += cnnReads
         if ai_move not in results:
             results[ai_move] = {'score' : score, 'times' : 1}
         else:
@@ -130,6 +146,8 @@ def runSingleTestManyTimes(test, how_many_times):
         total_score += score
     print(f"  total_score: {total_score}, mean: {total_score / how_many_times}", file=sys.stderr)
     results['total'] = total_score
+    results['playoutsps'] = total_playo * 1e6 / total_mikros
+    results['cnnreads'] = total_cnnReads / how_many_times
     return results
 
 tests = collectTests()
@@ -166,6 +184,7 @@ for test in tests:
     print(f"time ms={test['time']}")
     print(f"threads={test['threads']}")
     print(f"result={result}")
+    print(f"playouts/s={result['playoutsps']:.2f}\n")
     print(f"mean={result['total'] / how_many_times}\n")
     total += result['total']
 
