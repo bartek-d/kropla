@@ -755,8 +755,6 @@ Game::Game(SgfSequence seq, int max_moves, bool must_surround)
     lastWormNo[1] = 2;
     safety_soft.init(this);
     initWorm();
-    history.push_back(0);
-    history.push_back(0);
     possible_moves.generate();
     interesting_moves.generate();
 
@@ -3947,18 +3945,18 @@ void Game::rollout(Treenode *node, int depth)
         for (auto i = nmoves; i < endmoves; i++)
         {
             lastWho ^= 3;
-            amafboard[history[i] & history_move_MASK] =
+            amafboard[history.get(i)] =
                 lastWho | (distance_rave_weight << distance_rave_SHIFT) |
-                ((history[i] & HISTORY_TERR) ? distance_rave_TERR : 0) |
-                ((history[i] & HISTORY_ENCL_BORDER) ? amaf_ENCL_BORDER : 0);
+	        (history.isInTerrWithAtari(i) ? distance_rave_TERR : 0) |
+  	        (history.isInEnclBorder(i) ? amaf_ENCL_BORDER : 0);
             if (--distance_rave_current == 0)
             {
                 distance_rave_current = distance_rave_threshhold;
                 if (distance_rave_weight > 1) --distance_rave_weight;
             }
             assert(
-                coord.dist[history[i] & history_move_MASK] >= 1 ||
-                (whoseDotMarginAt(history[i] & history_move_MASK) == lastWho));
+		   coord.dist[history.get(i)] >= 1 ||
+		   (whoseDotMarginAt(history.get(i)) == lastWho));
         }
         // experiment: add loses to amaf inside opp enclosures
         for (auto i = coord.first; i <= coord.last; i++)
@@ -4305,9 +4303,8 @@ void Game::placeDot(int x, int y, int who)
     if (threats[who - 1].is_in_terr[ind] == 0 and
         threats[who - 1].is_in_encl[ind] == 0)
     {
-        history.push_back(threats[who - 1].is_in_border[ind]
-                              ? (ind | HISTORY_ENCL_BORDER)
-                              : ind);
+      const bool is_in_terr_with_atari = false;
+      history.push_back(ind, is_in_terr_with_atari, threats[who - 1].is_in_border[ind] != 0);
     }
     else
     {
@@ -4328,8 +4325,9 @@ void Game::placeDot(int x, int y, int who)
                 break;
             }
         }
-        history.push_back((count == 0 || count == 1) ? (ind | HISTORY_TERR)
-                                                     : ind);
+	const bool is_in_terr_with_atari = (count == 0 || count == 1);
+	const bool is_in_encl_border = false;
+        history.push_back(ind, is_in_terr_with_atari, is_in_encl_border);
     }
 #ifdef DEBUG_SGF
     sgf_tree.makePartialMove({(who == 1 ? "B" : "W"), {coord.indToSgf(ind)}});
@@ -6776,8 +6774,8 @@ NonatomicMovestats Game::priorsForDistanceFromLastMoves(bool is_root,
                                                         int i) const
 {
     int dist = std::min(
-        coord.distBetweenPts_1(i, history.back() & history_move_MASK),
-        coord.distBetweenPts_1(i, (*(history.end() - 2)) & history_move_MASK));
+			coord.distBetweenPts_1(i, history.getLast()),
+			coord.distBetweenPts_1(i, history.getLastButOne()));
     if (dist <= 4)
     {
         const int n_won = (6 - dist);
@@ -7998,7 +7996,7 @@ Move Game::getLastMove() const
 {
     // we do not get last enclosure, but this does not matter
     Move m;
-    m.ind = history.back() & history_move_MASK;
+    m.ind = history.getLast();
     m.who = (nowMoves ^ 3);
     return m;
 }
@@ -8007,7 +8005,7 @@ Move Game::getLastButOneMove() const
 {
     // we do not get last enclosure, but this does not matter
     Move m;
-    m.ind = history.at(history.size() - 2) & history_move_MASK;
+    m.ind = history.getLastButOne();
     m.who = nowMoves;
     return m;
 }
@@ -8027,7 +8025,7 @@ real_t Game::randomPlayout()
         int number = di(engine);
         if ((number & 0xc00) != 0)
         {
-            m = chooseAtariResponse(history.back() & history_move_MASK,
+	  m = chooseAtariResponse(history.getLast(),
                                     nowMoves);
             if (m.ind != 0)
             {
@@ -8055,9 +8053,7 @@ real_t Game::randomPlayout()
 
         if ((number & 0x300) != 0)
         {
-            auto it = history.end();
-            --it;
-            m = choosePattern3Move((*it) & history_move_MASK, 0, nowMoves);
+            m = choosePattern3Move(history.getLast(), 0, nowMoves);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
@@ -8089,9 +8085,7 @@ real_t Game::randomPlayout()
 
         if ((number & 0x4) != 0)
         {
-            auto it = history.end();
-            --it;
-            m = choosePattern3Move(0, (*(it - 1)) & history_move_MASK,
+            m = choosePattern3Move(0, history.getLastButOne(),
                                    nowMoves);
             if (m.ind != 0)
             {
