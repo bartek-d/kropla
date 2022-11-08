@@ -78,6 +78,7 @@ std::string MonteCarlo::findBestMove(Game &pos, int iter_count)
     montec::root.parent = &montec::root;
     montec::root.game_ptr = std::make_shared<Game>(pos);
     initialiseCnn();
+    clearLastGoodReplies();
     std::cerr << "Descend starts, komi==" << global::komi << std::endl;
 #ifdef DEBUG_SGF
     pos.sgf_tree.saveCursor();

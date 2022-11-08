@@ -123,6 +123,7 @@ include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 add_executable(runUnitTests
   unittest/board-test.cc
   unittest/game-test.cc
+  unittest/history-test.cc
   unittest/utils-test.cc
   unittest/string-utils-test.cc
   unittest/safety-test.cc

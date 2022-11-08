@@ -28,6 +28,8 @@
 
 #include "board.h"
 
+void clearLastGoodReplies();
+
 class History
 {
     std::vector<pti> history;
@@ -38,9 +40,14 @@ class History
     static const pti HISTORY_ENCL_BORDER =
         0x2000;  // this is OR-ed with history[...] to denote that someone
                  // played on the border of their encl, possibly enclosing sth
-  static const pti HISTORY_ENCL_MOVE = 0x1000;  // apart from the move, there was also an enclosure
+    static const pti HISTORY_ENCL_MOVE =
+        0x1000;  // apart from the move, there was also an enclosure
 
-  static const pti history_move_MASK = ~(HISTORY_ENCL_BORDER | HISTORY_TERR | HISTORY_ENCL_MOVE);
+    static const pti history_move_MASK =
+        ~(HISTORY_ENCL_BORDER | HISTORY_TERR | HISTORY_ENCL_MOVE);
+
+    void saveGoodReplyAt(int i, int who) const;
+    void forgetReplyAt(int i, int who) const;
 
    public:
     History();
@@ -53,4 +60,9 @@ class History
     pti get(int i) const;
     bool isInEnclBorder(int i) const;
     bool isInTerrWithAtari(int i) const;
+    bool isEnclosure(int i) const;
+
+    pti getLastGoodReplyFor(int who) const;
+
+    void updateGoodReplies(int lastWho, float abs_value);
 };

@@ -38,10 +38,10 @@
 #include "board.h"
 #include "enclosure.h"
 #include "game_utils.h"
+#include "history.h"
 #include "patterns.h"
 #include "safety.h"
 #include "threats.h"
-#include "history.h"
 
 typedef std::set<pti, std::greater<pti>> PointsSet;
 
@@ -494,6 +494,7 @@ class Game
     std::vector<pti> getGoodTerrMoves(int who) const;
     Move chooseAnyMove_pm(int who);
     Move chooseInterestingMove(int who);
+    Move chooseLastGoodReply(int who);
     Move choosePatt3extraMove(int who);
     Move getLastMove() const;
     Move getLastButOneMove() const;

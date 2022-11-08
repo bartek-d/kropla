@@ -3938,6 +3938,7 @@ void Game::rollout(Treenode *node, int depth)
     const int amaf_ENCL_BORDER = 16;
     const int distance_rave_SHIFT = 5;
     const int distance_rave_MASK = 7;
+    history.updateGoodReplies(lastWho, v);
     {
         int distance_rave_threshhold = (endmoves - nmoves + 2) / distance_rave;
         int distance_rave_current = distance_rave_threshhold / 2;
@@ -3947,16 +3948,15 @@ void Game::rollout(Treenode *node, int depth)
             lastWho ^= 3;
             amafboard[history.get(i)] =
                 lastWho | (distance_rave_weight << distance_rave_SHIFT) |
-	        (history.isInTerrWithAtari(i) ? distance_rave_TERR : 0) |
-  	        (history.isInEnclBorder(i) ? amaf_ENCL_BORDER : 0);
+                (history.isInTerrWithAtari(i) ? distance_rave_TERR : 0) |
+                (history.isInEnclBorder(i) ? amaf_ENCL_BORDER : 0);
             if (--distance_rave_current == 0)
             {
                 distance_rave_current = distance_rave_threshhold;
                 if (distance_rave_weight > 1) --distance_rave_weight;
             }
-            assert(
-		   coord.dist[history.get(i)] >= 1 ||
-		   (whoseDotMarginAt(history.get(i)) == lastWho));
+            assert(coord.dist[history.get(i)] >= 1 ||
+                   (whoseDotMarginAt(history.get(i)) == lastWho));
         }
         // experiment: add loses to amaf inside opp enclosures
         for (auto i = coord.first; i <= coord.last; i++)
@@ -4303,8 +4303,9 @@ void Game::placeDot(int x, int y, int who)
     if (threats[who - 1].is_in_terr[ind] == 0 and
         threats[who - 1].is_in_encl[ind] == 0)
     {
-      const bool is_in_terr_with_atari = false;
-      history.push_back(ind, is_in_terr_with_atari, threats[who - 1].is_in_border[ind] != 0);
+        const bool is_in_terr_with_atari = false;
+        history.push_back(ind, is_in_terr_with_atari,
+                          threats[who - 1].is_in_border[ind] != 0);
     }
     else
     {
@@ -4325,8 +4326,8 @@ void Game::placeDot(int x, int y, int who)
                 break;
             }
         }
-	const bool is_in_terr_with_atari = (count == 0 || count == 1);
-	const bool is_in_encl_border = false;
+        const bool is_in_terr_with_atari = (count == 0 || count == 1);
+        const bool is_in_encl_border = false;
         history.push_back(ind, is_in_terr_with_atari, is_in_encl_border);
     }
 #ifdef DEBUG_SGF
@@ -6773,9 +6774,8 @@ NonatomicMovestats Game::priorsForInterestingMoves_cut_or_connect(bool is_root,
 NonatomicMovestats Game::priorsForDistanceFromLastMoves(bool is_root,
                                                         int i) const
 {
-    int dist = std::min(
-			coord.distBetweenPts_1(i, history.getLast()),
-			coord.distBetweenPts_1(i, history.getLastButOne()));
+    int dist = std::min(coord.distBetweenPts_1(i, history.getLast()),
+                        coord.distBetweenPts_1(i, history.getLastButOne()));
     if (dist <= 4)
     {
         const int n_won = (6 - dist);
@@ -7952,6 +7952,20 @@ Move Game::chooseInterestingMove(int who)
     return getRandomEncl(move);  // TODO: do we have to set zobrist?
 }
 
+Move Game::chooseLastGoodReply(int who)
+{
+    Move move;
+    move.who = who;
+    move.ind = history.getLastGoodReplyFor(who);
+    if (whoseDotMarginAt(move.ind) != 0)
+    {
+        move.ind = 0;
+        return move;
+    }
+    if (move.ind == 0) return move;
+    return getRandomEncl(move);
+}
+
 Move Game::choosePatt3extraMove(int who)
 {
     Move move;
@@ -8013,7 +8027,7 @@ Move Game::getLastButOneMove() const
 real_t Game::randomPlayout()
 {
     Move m;
-    std::uniform_int_distribution<int> di(0, 0xffff);
+    std::uniform_int_distribution<uint32_t> di(0, 0xffffff);
     constexpr int threats2m_threshold = 30;
     for (int move_number = 0;; ++move_number)
     {
@@ -8023,10 +8037,19 @@ real_t Game::randomPlayout()
             threats[1].turnOffThreats2m();
         }
         int number = di(engine);
+        if ((number & 0x10000) != 0)  // probability 1/2
+        {
+            m = chooseLastGoodReply(nowMoves);
+            if (m.ind != 0)
+            {
+                dame_moves_so_far = 0;
+                makeMove(m);
+                continue;
+            }
+        }
         if ((number & 0xc00) != 0)
         {
-	  m = chooseAtariResponse(history.getLast(),
-                                    nowMoves);
+            m = chooseAtariResponse(history.getLast(), nowMoves);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
@@ -8085,8 +8108,7 @@ real_t Game::randomPlayout()
 
         if ((number & 0x4) != 0)
         {
-            m = choosePattern3Move(0, history.getLastButOne(),
-                                   nowMoves);
+            m = choosePattern3Move(0, history.getLastButOne(), nowMoves);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
