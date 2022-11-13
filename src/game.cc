@@ -8155,10 +8155,32 @@ real_t Game::randomPlayout()
             m = chooseInterestingMove(nowMoves);
             if (m.ind != 0)
             {
+#ifdef DEBUG_SGF
+                int which_list = InterestingMovesConsts::LIST_0;
+                while (interesting_moves.lists[which_list].empty())
+                {
+                    which_list++;
+                    if (which_list == InterestingMovesConsts::LIST_REMOVED)
+                    {
+                        break;
+                    }
+                }
+                SgfProperty prop;
+                if (which_list != InterestingMovesConsts::LIST_REMOVED)
+                {
+                    prop.first = "SQ";
+                    for (auto m : interesting_moves.lists[which_list])
+                        prop.second.push_back(coord.indToSgf(m));
+                }
+#endif
                 dame_moves_so_far = 0;
                 makeMove(m);
 #ifdef DEBUG_SGF
                 sgf_tree.addComment(std::string("cut"));
+                if (!prop.second.empty())
+                {
+                    sgf_tree.addProperty(prop);
+                }
 #endif
                 continue;
             }
