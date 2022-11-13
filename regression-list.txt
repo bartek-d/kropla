@@ -241,6 +241,7 @@ name=zagram362926:48
 sgf=(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[20]RU[Punish=0,Holes=1,AddTurn=0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,InstantWin=0]PB[bot Amelia]PW[*Коля]TM[30]OT[15]BL[45]WL[42]DT[2022-10-05]RE[B+T];B[eh]BL[41.9];W[fg]WL[45];B[gi]BL[39.4];W[fh]WL[59.5];B[fi]BL[40.7];W[ei]WL[73];B[ej]BL[42.1];W[di]WL[86];B[dj]BL[42.4];W[ci]WL[99.2];B[hg]BL[39.5];W[dg]WL[111.7];B[fk]BL[36.3];W[cl]WL[120.6];B[kk]BL[33.7];W[nl]WL[130.9];B[mk]BL[30.6];W[nk]WL[143.6];B[nj]BL[33];W[mj]WL[154];B[ml]BL[30.3];W[mi]WL[166.8];B[oi]BL[32.4];W[nh]WL[178.6];B[oh]BL[29.3];W[ng]WL[190.8];B[nm]BL[33.5];W[ol]WL[198.8];B[om]BL[34.3];W[pl]WL[210.9];B[pm]BL[31.5];W[ql]WL[221.8];B[mn]BL[33.3];W[ij]WL[232.6];B[ji]BL[31.2];W[jk]WL[243.6];B[jj]BL[32.7];W[hk]WL[252.3];B[jl]BL[34.2];W[ik]WL[263.9];B[gl]BL[31.1];W[il]WL[271];B[im]BL[32.6];W[jm]WL[278.3];B[kl]BL[33.8];W[hm]WL[288.8];B[in]BL[35];W[hl]WL[294.4])
 
 move=hn 10
+move=go 10
 
 time=8000
 

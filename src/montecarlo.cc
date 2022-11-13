@@ -300,6 +300,13 @@ void MonteCarlo::descend(TreenodeAllocator &alloc, Treenode *node,
             break;
         }
         node = selectBestChild(node);
+#ifdef DEBUG_SGF
+        Game::sgf_tree.makePartialMove({(node->move.who == 1 ? "B" : "W"),
+                                        {coord.indToSgf(node->move.ind)}});
+        for (const auto &en : node->move.enclosures)
+            Game::sgf_tree.makePartialMove_addEncl(en->toSgfString());
+        Game::sgf_tree.finishPartialMove();
+#endif
         node->t.playouts += node->getVirtualLoss();
         ++depth;
     }
