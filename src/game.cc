@@ -7513,6 +7513,7 @@ Move Game::selectMoveRandomlyFrom(const std::vector<pti> &moves, int who)
     moves_not_in_atari.reserve(total);
     for (auto move : moves)
     {
+        if (safety_soft.isDameFor(who, move)) continue;
         if ((threats[2 - who].is_in_encl[move] == 0 and
              threats[2 - who].is_in_terr[move] == 0) or
             threats[who - 1].is_in_border[move])
@@ -7961,11 +7962,7 @@ Move Game::chooseInterestingMove(int who)
             return move;
         }
     }
-    std::uniform_int_distribution<int> di(
-        0, interesting_moves.lists[which_list].size() - 1);
-    int number = di(engine);
-    move.ind = interesting_moves.lists[which_list][number];
-    return getRandomEncl(move);  // TODO: do we have to set zobrist?
+    return selectMoveRandomlyFrom(interesting_moves.lists[which_list], who);
 }
 
 Move Game::chooseLastGoodReply(int who)
