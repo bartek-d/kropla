@@ -529,7 +529,7 @@ class Game
     void showThreats2m();
     void showPattern3extra();
 
-    std::string showDescr(pti p) const { return descr.at(p).show(); };
+    std::string showDescr(pti p) const { return descr.at(p).show(); }
 
     friend class Safety;
     friend class GroupNeighbours;

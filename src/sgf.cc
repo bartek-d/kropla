@@ -86,6 +86,14 @@ int SgfParser::checkChar() const
     return eof;
 }
 
+std::string SgfParser::getDebugInfo() const
+{
+    std::stringstream out;
+    out << "at: " << pos << " / " << input.length();
+    if (pos < input.length()) out << " str...: " << input.substr(pos, 25);
+    return out.str();
+}
+
 void SgfParser::eatWS()
 {
     while (pos < input.length())
@@ -103,7 +111,8 @@ std::string SgfParser::propValue()
     std::string s;
     eatWS();
     int c = eatChar();
-    if (c != '[') throw std::runtime_error("propValue: ']' expected");
+    if (c != '[')
+        throw std::runtime_error("propValue: ']' expected " + getDebugInfo());
     for (;;)
     {
         c = eatChar();

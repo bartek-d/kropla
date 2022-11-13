@@ -55,6 +55,7 @@ class SgfParser
     std::string propIdent();
     SgfProperty property();
     SgfNode node();
+    std::string getDebugInfo() const;
 
    public:
     SgfParser(const std::string& s) : input{s} {}

@@ -4701,7 +4701,7 @@ void Game::showPattern3extra()
                                       std::to_string(values[i]));
             }
         }
-        sgf_tree.addProperty(prop);
+        if (not prop.second.empty()) sgf_tree.addProperty(prop);
     }
 #endif
 }
@@ -7501,7 +7501,7 @@ Move Game::chooseSoftSafetyContinuation(int who)
 
 Move Game::selectMoveRandomlyFrom(const std::vector<pti> &moves, int who)
 {
-    int total = moves.size();
+    const int total = moves.size();
     Move m;
     m.who = who;
     if (total == 0)
@@ -7509,9 +7509,24 @@ Move Game::selectMoveRandomlyFrom(const std::vector<pti> &moves, int who)
         m.ind = 0;
         return m;
     }
-    std::uniform_int_distribution<int> di(0, total - 1);
+    std::vector<pti> moves_not_in_atari;
+    moves_not_in_atari.reserve(total);
+    for (auto move : moves)
+    {
+        if ((threats[2 - who].is_in_encl[move] == 0 and
+             threats[2 - who].is_in_terr[move] == 0) or
+            threats[who - 1].is_in_border[move])
+            moves_not_in_atari.push_back(move);
+    }
+    const int total_not_in_atari = moves_not_in_atari.size();
+    if (total_not_in_atari == 0)
+    {
+        m.ind = 0;
+        return m;
+    }
+    std::uniform_int_distribution<int> di(0, total_not_in_atari - 1);
     int number = di(engine);
-    m.ind = moves[number];
+    m.ind = moves_not_in_atari[number];
     return getRandomEncl(m);
 }
 
@@ -7661,7 +7676,8 @@ std::vector<pti> Game::getSafetyMoves(int who)
                 }
             }
 
-            if (whoseDotMarginAt(p) != 0 and descr.at(worm[p]).safety == 1)
+            if (whoseDotMarginAt(p) != 0 and descr.at(worm[p]).safety == 1 and
+                safety_soft.getSafetyOf(p) <= 0.99f)
             {
                 if (whoseDotMarginAt(p + vnorm) == 0)
                 {

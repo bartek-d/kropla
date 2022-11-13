@@ -19,11 +19,12 @@ TEST_P(IsometryFixture, chooseSafetyMove)
     unsigned isometry = GetParam();
     //  http://eidokropki.reaktywni.pl/#fWwBwH2R:0,0
     Game game = constructGameFromSgfWithIsometry(
-        "(;GM[40]FF[4]CA[UTF-8]SZ[9];B[ed];W[ee];B[fd];W[fe];B[hd];W[fh])",
+        "(;GM[40]FF[4]CA[UTF-8]SZ[9];B[ed];W[ee];B[fd];W[fe];B[hd];W[fh];B[bd];"
+        "W[bc])",
         isometry);
     const int whoMoves = 1;
-    std::set<std::string> expectedMoves{applyIsometry("id", isometry, coord),
-                                        applyIsometry("fi", isometry, coord)};
+    std::set<std::string> expectedMoves{applyIsometry("ad", isometry, coord),
+                                        applyIsometry("ac", isometry, coord)};
     std::set<std::string> seenMoves{};
     for (int tries = 1000;
          tries > 0 and seenMoves.size() < expectedMoves.size(); --tries)
@@ -36,6 +37,33 @@ TEST_P(IsometryFixture, chooseSafetyMove)
 }
 
 INSTANTIATE_TEST_CASE_P(Par, IsometryFixture,
+                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
+
+class IsometryFixtureSR : public ::testing::TestWithParam<unsigned>
+{
+};
+
+TEST(IsometryFixtureSR, chooseSafetyResponse_doesNotGiveMovesInAtari)
+{
+    std::string sgf{
+        "(;FF[4]GM[40]CA[UTF-8]AP[board.cc:SgfTree]RU[Punish=0,Holes=1,AddTurn="
+        "0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,"
+        "InstantWin=0]SZ[20];B[ij];W[li];B[ig];W[kl];B[lj];W[kj];B[ki];W[ji];B["
+        "kh];W[jj];B[lk];W[mi];B[jh];W[ii];B[ik];W[kk];B[nk];W[hi];B[gk];W[nj];"
+        "B[mk];W[ok];B[oj];W[oi];B[mn];W[pj.njokpjoinj];B[nm];W[gj];B[fg];W[fk]"
+        ";B[dk];W[fl];B[eo];W[ej];B[dh];W[dj];B[cj];W[ck];B[bk];W[cl];B[bl];W["
+        "ci];B[bj];W[di];B[bg];W[cm];B[bo];W[eh];B[eg];W[ch];B[cg];W[dg."
+        "chdiehdgch];B[df];W[hg];B[hf];W[if];B[hh];W[gg];B[gh];W[gf];B[ff];W["
+        "he.gfhgifhegf];B[ih];W[fh];B[lf];W[fe];B[ef];W[gi];B[cf];W[cd];B[bc];"
+        "W[bd];B[ad];W[ae];B[be])"};
+    // reply in rollout: W[bf]C[soft]
+    Game game = constructGameFromSgfWithIsometry(sgf, 0);
+    const int who_moves = 2;
+    auto move = game.chooseSoftSafetyResponse(who_moves);
+    EXPECT_EQ(0, move.ind);
+}
+
+INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureSR,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
 class IsometryFixture2 : public ::testing::TestWithParam<unsigned>
@@ -54,6 +82,36 @@ TEST_P(IsometryFixture2, chooseSafetyMoveReturnsNoMoveBecauseEverythingIsSafe)
 }
 
 INSTANTIATE_TEST_CASE_P(Par, IsometryFixture2,
+                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
+
+class IsometryFixtureS9 : public ::testing::TestWithParam<unsigned>
+{
+};
+
+TEST_P(IsometryFixtureS9,
+       forDotsThatAreAlreadySafe_dontGetMovesThatMakeThemSafe)
+{
+    std::string sgf{
+        "(;FF[4]GM[40]CA[UTF-8]AP[board.cc:SgfTree]RU[Punish=0,Holes=1,AddTurn="
+        "0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,"
+        "InstantWin=0]SZ[20];B[ij];W[li];B[ig];W[kl];B[lj];W[kj];B[ki];W[ji];B["
+        "kh];W[jj];B[lk];W[mi];B[jh];W[ii];B[ik];W[kk];B[nk];W[hi];B[gk];W[nj];"
+        "B[mk];W[ok];B[oj];W[oi];B[mn];W[pj.njokpjoinj];B[nm];W[gj];B[fg];W[fk]"
+        ";B[dk];W[fl];B[eo];W[ej];B[dh];W[dj];B[cj];W[ck];B[bk];W[cl];B[bl];W["
+        "ci];B[bj];W[di];B[bg];W[cm];B[bo];W[eh];B[eg];W[ch];B[cg];W[dg."
+        "chdiehdgch];B[df];W[hg];B[hf];W[if];B[hh];W[gg];B[gh];W[gf];B[ff];W["
+        "he.gfhgifhegf];B[ih];W[fh];B[lf];W[fe];B[ef];W[gi];B[cf];W[cd];B[bc];"
+        "W[bd];B[ad];W[ae];B[be];W[bf];B[ce];W[dd];B[db];W[bb];B[ac];W[cc];B["
+        "cb];W[el];B[en];W[gn];B[gp];W[qj];B[ql];W[qn];B[rm];W[af];B[rn];W[ag];"
+        "B[bh];W[bi];B[ah];W[ai];B[ib];W[kb];B[mb];W[ka])"};
+    // reply in rollout: B[ia]C[saf]
+    Game game = constructGameFromSgfWithIsometry(sgf, 0);
+    const int who_moves = 1;
+    auto moves = game.getSafetyMoves(who_moves);
+    EXPECT_EQ(1, moves.size());
+}
+
+INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS9,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
 TEST(extractSgfMove, forMoveNotWithMinimalArea)
