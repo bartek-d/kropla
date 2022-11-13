@@ -3029,10 +3029,6 @@ void Game::addThreat(Threat &&t, int who)
                    i < threats[who - 1].is_in_encl.size());
             ++threats[who - 1].is_in_encl[i];
         }
-        if (whoseDotMarginAt(i) == 3 - who)
-        {
-            addOppThreatZobrist(descr.at(worm[i]).opp_threats, t.zobrist_key);
-        }
         switch (threats[who - 1].is_in_terr[i] + threats[who - 1].is_in_encl[i])
         {
             case 1:
@@ -3129,11 +3125,6 @@ void Game::subtractThreat(const Threat &t, int who)
         {
             assert(t.type & ThreatConsts::ENCL);
             --threats[who - 1].is_in_encl[i];
-        }
-        if (whoseDotMarginAt(i) == 3 - who)
-        {
-            removeOppThreatZobrist(descr.at(worm[i]).opp_threats,
-                                   t.zobrist_key);
         }
         if (whoseDotMarginAt(i) == 3 - who and
             threats[who - 1].is_in_terr[i] + threats[who - 1].is_in_encl[i] ==
@@ -4427,15 +4418,6 @@ void Game::placeDot(int x, int y, int who)
         dsc.leftmost = ind;
         dsc.group_id = c;
         dsc.safety = 0;
-        if (threats[2 - who].is_in_encl[ind] ||
-            threats[2 - who].is_in_terr[ind])
-        {
-            for (auto &t : threats[2 - who].threats)
-            {
-                if (t.encl->isInInterior(ind))
-                    dsc.opp_threats.push_back(t.zobrist_key);
-            }
-        }
         descr.insert({c, std::move(dsc)});
     }
     // update safety info
@@ -5628,10 +5610,6 @@ void Game::wormMergeSame(pti dst, pti src)
         }
         connectionsRenameGroup(new_gid, old_gid);
     }
-    // merge opp_threats:  we do not need to do anything, because the threats
-    // that will remain are in both lists. Those in only one list will be
-    // removed anyway.
-    // ...
     // common part
     wormMerge_common(dst, src);
 }
@@ -8621,47 +8599,6 @@ bool Game::checkWormCorrectness() const
         {
             std::cerr << "blad, brak " << d1.first << std::endl;
             return false;
-        }
-        // check opp_threats
-        std::vector<uint64_t> zobr;
-        assert((d1.first & MASK_DOT) == 1 || (d1.first & MASK_DOT) == 2);
-        for (auto &t : threats[2 - (d1.first & MASK_DOT)].threats)
-        {
-            if (t.encl->isInInterior(d1.second.leftmost))
-                zobr.push_back(t.zobrist_key);
-        }
-        if (zobr.size() != d1.second.opp_threats.size())
-        {
-            std::cerr << "blad, inne zagr dla robaka " << d1.first
-                      << ", powinny byc: " << std::endl;
-            for (auto z : zobr) std::cerr << z << " ";
-            std::cerr << std::endl << "sa: " << std::endl;
-            for (auto z : d1.second.opp_threats) std::cerr << z << " ";
-            std::cerr << std::endl;
-            std::cerr << "is_in_terr[]=="
-                      << threats[2 - (d1.first & MASK_DOT)]
-                             .is_in_terr[d1.second.leftmost]
-                      << ",  "
-                      << "is_in_encl[]=="
-                      << threats[2 - (d1.first & MASK_DOT)]
-                             .is_in_encl[d1.second.leftmost]
-                      << std::endl;
-            show();
-            return false;
-        }
-        else
-        {
-            for (auto z : d1.second.opp_threats)
-            {
-                if (std::find(zobr.begin(), zobr.end(), z) == zobr.end())
-                {
-                    std::cerr << "blad, inne zagr dla robaka " << d1.first
-                              << ", zagrozenie " << z
-                              << " nie powinno wystepowac." << std::endl;
-                    show();
-                    return false;
-                }
-            }
         }
         // check pairs
         for (auto &d2 : descr)

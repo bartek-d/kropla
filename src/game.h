@@ -62,10 +62,6 @@ struct WormDescr
         20000;  // safety := SAFE_VALUE when the worm touches the edge
     const static int32_t SAFE_THRESHOLD = 10000;
     std::vector<pti> neighb;  // numbers of other worms that touch this one
-    std::vector<uint64_t>
-        opp_threats;  // zobrist keys of opp's threats that include this worm
-    //  void addOppThreatZobrist(uint64_t z);
-    // void removeOppThreatZobrist(uint64_t z);
     std::string show() const;
 };
 
