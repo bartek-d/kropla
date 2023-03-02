@@ -430,6 +430,51 @@ void MonteCarlo::showBestContinuation(const Treenode *node,
                              depth - 1);
 }
 
+std::string MonteCarlo::findBestMoveUsingCNNonly(Game &pos, float exponent)
+{
+    initialiseCnn();
+    const auto [is_cnn_available, probs] = getCnnInfo(pos);
+    if (not is_cnn_available)
+        throw std::runtime_error("No CNN available and asking to use CNN");
+    std::vector<float> weights;
+    std::vector<pti> moves;
+    for (int y = 0; y < coord.wlky; ++y)
+    {
+        for (int x = 0; x < coord.wlkx; ++x)
+        {
+            auto ind = coord.ind(x, y);
+            if (pos.whoseDotMarginAt(ind) == 0)
+            {
+                weights.push_back(std::pow(probs[ind], exponent));
+                moves.push_back(ind);
+            }
+        }
+    }
+    if (moves.empty()) return {};
+    Move move;
+    if (moves.size() == 1)
+    {
+        move.ind = moves[0];
+    }
+    else
+    {
+        const auto seed =
+            std::chrono::system_clock::now().time_since_epoch().count();
+        pos.seedRandomEngine(seed);
+        std::discrete_distribution<int> distribution(weights.begin(),
+                                                     weights.end());
+        const auto number = distribution(pos.getRandomEngine());
+        move.ind = moves[number];
+
+        std::cout << "Choosing move #" << number << "/" << weights.size()
+                  << ", prob = " << weights[number] << "  -> seed = " << seed
+                  << std::endl;
+    }
+    move.who = pos.whoNowMoves();
+    move = pos.getRandomEncl(move);
+    return std::string(";") + toString(move.toSgfString());
+}
+
 std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
                                        int msec)
 {
@@ -681,15 +726,18 @@ void play_engine(Game &game, std::string &s, int threads_count, int iter_count,
                  int msec)
 {
     getSgfAndMsec(s, msec);
+    constexpr float exponent = 2.0f;
     for (;;)
     {
         {
             MonteCarlo mc;
             start_time = std::chrono::high_resolution_clock::now();
-            auto best_move =
-                threads_count > 1
-                    ? mc.findBestMoveMT(game, threads_count, iter_count, msec)
-                    : mc.findBestMove(game, iter_count);
+            auto best_move = iter_count < 0
+                                 ? mc.findBestMoveUsingCNNonly(game, exponent)
+                                 : (threads_count > 1
+                                        ? mc.findBestMoveMT(game, threads_count,
+                                                            iter_count, msec)
+                                        : mc.findBestMove(game, iter_count));
             auto end_time = std::chrono::high_resolution_clock::now();
             std::cerr << "Total time: "
                       << std::chrono::duration_cast<std::chrono::microseconds>(
@@ -738,11 +786,15 @@ void play_engine(Game &game, std::string &s, int threads_count, int iter_count,
 
 void findAndPrintBestMove(Game &game, int threads_count, int iter_count)
 {
+    constexpr float exponent = 2.0f;
     MonteCarlo mc;
     start_time = std::chrono::high_resolution_clock::now();
-    auto best_move = threads_count <= 0 ? mc.findBestMove(game, iter_count)
-                                        : mc.findBestMoveMT(game, threads_count,
-                                                            iter_count, 0);
+    auto best_move =
+        iter_count < 0
+            ? mc.findBestMoveUsingCNNonly(game, exponent)
+            : (threads_count <= 0
+                   ? mc.findBestMove(game, iter_count)
+                   : mc.findBestMoveMT(game, threads_count, iter_count, 0));
     auto end_time = std::chrono::high_resolution_clock::now();
     std::cerr << "Total time: "
               << std::chrono::duration_cast<std::chrono::microseconds>(

@@ -42,6 +42,7 @@ class MonteCarlo
     std::string findBestMove(Game &pos, int iter_count);
     std::string findBestMoveMT(Game &pos, int threads, int iter_count,
                                int msec);
+    static std::string findBestMoveUsingCNNonly(Game &pos, float exponent);
 
    private:
     int runSimulations(int max_iter_count, unsigned thread_no,

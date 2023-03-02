@@ -120,7 +120,7 @@ def runSingleTestOnce(test, *args):
     terr.join(join_timeout)
     return (ai_move, score, playouts, cnnReads, mikros)
 
-def runSingleTestManyTimes(test, how_many_times):
+def runSingleTestManyTimes(test, how_many_times, usecnnonly):
     print(f"Running test {test['name']}...", file=sys.stderr)
     msec = test['time']
     results = {}
@@ -128,10 +128,11 @@ def runSingleTestManyTimes(test, how_many_times):
     total_playo = 0
     total_mikros = 0
     total_cnnReads = 0
+    iterations = '-1' if usecnnonly else '5000000'
     for i in range(how_many_times):
         while True:
             try:
-                ai_move, score, playouts, cnnReads, mikros  = runSingleTestOnce(test, '-', '10000', '5000000', str(test['threads']), str(msec))
+                ai_move, score, playouts, cnnReads, mikros  = runSingleTestOnce(test, '-', '10000', iterations, str(test['threads']), str(msec))
                 break
             except:
                 print(f"  {i}: timeout, retry", file=sys.stderr)
@@ -160,6 +161,8 @@ if len(sys.argv) > 1:
     check_name = lambda s : re.fullmatch(sys.argv[1], s)
     print(f"Regular expression: {sys.argv[1]}")
 
+usecnnonly = len(sys.argv) > 2
+
 try:
     lines = []
     with open("cnn.config") as conf:
@@ -178,7 +181,7 @@ for test in tests:
     if not check_name(test['name']):
         print(f"Omitting {test['name']}")
         continue
-    result = runSingleTestManyTimes(test, how_many_times)
+    result = runSingleTestManyTimes(test, how_many_times, usecnnonly)
     number_of_tests += 1
     print(f"name={test['name']}")
     print(f"time ms={test['time']}")

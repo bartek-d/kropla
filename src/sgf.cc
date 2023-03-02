@@ -30,21 +30,27 @@
   SgfParser class and classes for keeping the sgf.
 *********************************************************************************************************/
 
-std::string SgfNode::toString(bool mainVar) const
+std::string toString(const SgfProperty &sgf_prop)
 {
     std::stringstream out;
-    out << ";";
+    out << sgf_prop.first;
+    for (auto &e : sgf_prop.second)
+    {
+        out << "[" << e << "]";
+    }
+    return out.str();
+}
+
+std::string SgfNode::toString(bool mainVar) const
+{
+    std::string res{";"};
     for (auto &p : props)
     {
-        out << p.first;
-        for (auto &e : p.second)
-        {
-            out << "[" << e << "]";
-        }
+        res += ::toString(p);
     }
     if (mainVar)
     {
-        return out.str() +
+        return res +
                (!children.empty() ? children.front()->toString(mainVar) : "");
     }
     else
@@ -59,11 +65,11 @@ std::string SgfNode::toString(bool mainVar) const
         }
         if (children_count >= 2)
         {
-            return out.str() + "(" + ch_out.str() + ")";
+            return res + "(" + ch_out.str() + ")";
         }
         else
         {
-            return out.str() + ch_out.str();
+            return res + ch_out.str();
         }
     }
 }

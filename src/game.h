@@ -497,6 +497,8 @@ class Game
     real_t randomPlayout();
     void rollout(Treenode* node, int depth);
 
+    std::default_random_engine& getRandomEngine();
+
     bool isDame_directCheck(pti p, int who) const;
     bool isDame_directCheck_symm(pti p) const;
     bool checkRootListOfMovesCorrectness(Treenode* children) const;

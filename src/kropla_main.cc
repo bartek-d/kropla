@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
   kropla filename [move_number [iterations [threads]]]
     makes one move in the position given in the sgf file 'filename' and then quits,
     if move_number is present, takes the position in the main variation after 'move_number' moves or after the last move, if move_number is larger,
-     if iterations is present, runs that many Monte Carlo iterations,
+     if iterations is present, runs that many Monte Carlo iterations if it is >=0, uses CNN only if negative,
       if threads is present, uses that many threads for Monte Carlo simulations.
 
   kropla - [move_number [iterations [threads [msec [komi]]]]]

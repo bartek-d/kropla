@@ -353,8 +353,7 @@ std::string Treenode::showParents() const
 
 std::string Treenode::getMoveSgf() const
 {
-    SgfProperty pr = move.toSgfString();
-    return std::string(";") + pr.first + "[" + pr.second[0] + "]";
+    return std::string(";") + toString(move.toSgfString());
 }
 
 /********************************************************************************************************
@@ -4057,6 +4056,8 @@ void Game::rollout(Treenode *node, int depth)
         // amafboard[move_ind] = move_who;
     }
 }
+
+std::default_random_engine &Game::getRandomEngine() { return engine; }
 
 /// Finds necessary and optional enclosures after move of player who.
 /// move may be 0 to find enclosures after neutral moves (i.e., those that do

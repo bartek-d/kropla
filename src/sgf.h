@@ -22,7 +22,8 @@
 #pragma once
 
 #include <list>
-#include <memory>   // unique pointer
+#include <memory>  // unique pointer
+#include <string>
 #include <utility>  // std::pair
 #include <vector>
 
@@ -30,6 +31,8 @@
   SgfParser class and classes for keeping the sgf.
 *********************************************************************************************************/
 typedef std::pair<std::string, std::vector<std::string> > SgfProperty;
+
+std::string toString(const SgfProperty& sgf_prop);
 
 struct SgfNode
 {
