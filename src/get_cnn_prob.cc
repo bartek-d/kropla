@@ -217,7 +217,8 @@ void updatePriors(Game& game, Treenode* children, int depth)
         }
         return 80.0f;
     };
-    const float prior_max = get_prior_max();
+    const float prior_max =
+        50.0f / std::sqrt(std::sqrt(max));  // get_prior_max();
     const float min_to_show = 0.05f;
     for (auto* ch = children; true; ++ch)
     {
