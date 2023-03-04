@@ -106,6 +106,7 @@ struct NonatomicMovestats
     real_t value_sum{0.0f};
     const NonatomicMovestats& operator+=(const NonatomicMovestats& other);
     NonatomicMovestats& operator=(const NonatomicMovestats&) = default;
+    void normaliseTo(int32_t N);
     std::string show() const;
 };
 

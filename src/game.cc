@@ -236,6 +236,20 @@ const NonatomicMovestats &NonatomicMovestats::operator+=(
     return *this;
 }
 
+void NonatomicMovestats::normaliseTo(int32_t N)
+{
+    if (N < 0) return;
+    if (playouts == 0)
+    {
+        playouts = N;
+        value_sum = 0.5f * N;
+        return;
+    }
+    const float norm = static_cast<float>(N) / playouts;
+    playouts = N;
+    value_sum *= norm;
+}
+
 std::string NonatomicMovestats::show() const
 {
     std::stringstream out;
@@ -6832,6 +6846,7 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
 {
     ++montec::generateMovesCount;
     assert(checkMarginsCorrectness());
+    constexpr int32_t max_prior = 20;
     // get the list
     Treenode tn;
     tn.move.who = who;
@@ -7064,6 +7079,7 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
             }
 
             // sims
+            priors.normaliseTo(max_prior);
             tn.prior = priors;
             tn.t = priors;
             if (is_root)
@@ -7155,6 +7171,7 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                 out.clear();
             }
 
+            this_priors.normaliseTo(max_prior);
             tn.prior = this_priors;
             tn.t = this_priors;
             if (not tn.isInsideTerrNoAtariOrDame())
@@ -7168,6 +7185,7 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
             {
                 tn.move.enclosures.push_back(ml_opt_encl_moves[opi]);
                 tn.move.zobrist_key ^= ml_encl_zobrists[opi + 2];
+                NonatomicMovestats this_priors = priors;
                 if (ml_priority_vect[ml_encl_moves.size() - em + opi]
                         .priority_value > ThrInfoConsts::MINF)
                 {
@@ -7184,7 +7202,6 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                     dots += ml_priority_vect[ml_encl_moves.size() - em + opi]
                                 .saved_dots;
                     num = 5 + 2 * std::min(dots, 15);
-                    NonatomicMovestats this_priors = priors;
                     this_priors += wonSimulations(num);
                     if (is_root)
                     {
@@ -7200,6 +7217,7 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                     out.clear();
                 }
                 // ml_list.push_back(tn);
+                this_priors.normaliseTo(max_prior);
                 tn.prior = this_priors;
                 tn.t = this_priors;
                 *alloc.getNext() = tn;
@@ -7215,8 +7233,8 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
         {
             if (ch->isDame())
             {
-                ch->t += wonSimulations(150);
-                ch->prior += wonSimulations(150);
+                ch->t += wonSimulations(max_prior);
+                ch->prior += wonSimulations(max_prior);
                 break;
             }
             if (ch->isLast()) break;
