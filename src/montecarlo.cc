@@ -321,6 +321,7 @@ int MonteCarlo::runSimulations(int max_iter_count, unsigned thread_no,
     TreenodeAllocator alloc;
     int i = 0;
     std::cerr << "*** Starting ratchet: " << global::komi_ratchet << std::endl;
+    bool was_komi_change = false;
     for (;;)
     {
         if ((i & 0x7f) == 0)
@@ -347,6 +348,7 @@ int MonteCarlo::runSimulations(int max_iter_count, unsigned thread_no,
                         std::cerr << "Changing komi from " << global::komi
                                   << " to ";
                         global::komi += (montec::root.move.who == 1) ? -2 : 2;
+                        was_komi_change = true;
                         std::cerr << global::komi << std::endl;
                     }
                 }
@@ -369,21 +371,10 @@ int MonteCarlo::runSimulations(int max_iter_count, unsigned thread_no,
                               << ". Changing komi from " << global::komi
                               << " to ";
                     global::komi -= (montec::root.move.who == 1) ? -2 : 2;
+                    was_komi_change = true;
                     std::cerr << global::komi << std::endl;
                 }
             }
-
-            /*
-              if (montec::iterations >= komi_change_at) {
-                komi_change_at *= 4;
-                if (montec::root.t.value_sum < montec::root.t.playouts *
-              (1-montec::increase_komi_threshhold)) { std::cerr << "Changing
-              komi from " << global::komi << " to "; global::komi +=
-              (montec::root.move.who == 1) ? -1 : 1; std::cerr << global::komi
-              << std::endl;
-                }
-              }
-            */
         }
         unsigned seed = thread_no + threads_count * i;
         descend(alloc, &montec::root, seed);
@@ -394,6 +385,15 @@ int MonteCarlo::runSimulations(int max_iter_count, unsigned thread_no,
             break;
         }
     }
+
+    if (thread_no == 0 and not was_komi_change and global::komi != 0)
+    {
+        std::cerr << "komi was not changed, so changing komi from "
+                  << global::komi << " to ";
+        global::komi += (global::komi > 0) ? -2 : 2;
+        std::cerr << global::komi << std::endl;
+    }
+
     montec::threads_to_be_finished--;
     if (montec::threads_to_be_finished == 0)
     {

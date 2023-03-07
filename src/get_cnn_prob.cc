@@ -183,9 +183,11 @@ void updatePriors(Game& game, Treenode* children, int depth)
     const int max_depth_for_primary_cnn = 4;
     const auto [is_cnn_available, probs] =
         getCnnInfo(game, depth > max_depth_for_primary_cnn);
+    /*
     std::cerr << "Trying to update priors for "
               << children->parent->showParents()
               << " from CNN: " << is_cnn_available << std::endl;
+    */
     if (not is_cnn_available) return;
     float max = 0.0f;
     for (auto* ch = children; true; ++ch)
@@ -243,5 +245,4 @@ void updatePriors(Game& game, Treenode* children, int depth)
         }
         if (ch->isLast()) break;
     }
-    std::cerr << "Updated priors from CNN!" << std::endl;
 }
