@@ -271,6 +271,7 @@ Treenode &Treenode::operator=(const Treenode &other)
     prior = other.prior;
     move = other.move;
     flags = other.flags;
+    cnn_prob = other.cnn_prob;
     return *this;
 }
 
@@ -336,7 +337,8 @@ const Treenode *Treenode::getBestChild() const
 std::string Treenode::show() const
 {
     return move.show() + " " + t.show() + ", prior: " + prior.show() +
-           ", amaf: " + amaf.show() + ", flags: " + std::to_string(flags);
+           ", amaf: " + amaf.show() + ", flags: " + std::to_string(flags) +
+           ", cnn: " + std::to_string(cnn_prob);
 }
 
 std::string Treenode::showParents() const

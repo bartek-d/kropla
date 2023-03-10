@@ -143,6 +143,7 @@ struct Treenode
     Movestats prior;
     Move move;
     uint32_t flags{0};
+    float cnn_prob{-1.0};
     std::mutex children_mutex;
     static const uint32_t LAST_CHILD = 0x10000;
     static const uint32_t IS_DAME = 0x20000;

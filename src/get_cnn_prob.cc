@@ -223,6 +223,7 @@ void updatePriors(Game& game, Treenode* children, int depth)
     {
         float prob = probs[ch->move.ind];
         const bool show_this = (prob >= min_to_show) and (depth <= 2);
+        ch->cnn_prob = prob;
         if (prob > 0.001f)
         {
             prob = std::sqrt(prob);
