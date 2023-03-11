@@ -327,6 +327,7 @@ class Game
     static const int COEFF_URGENT = 4;
     static const int COEFF_NONURGENT = 1;
     bool must_surround{false};
+    uint64_t zobrist{0};
     // for debugging:
     static thread_local std::stringstream out;
 
@@ -463,6 +464,7 @@ class Game
                    : 0.0f;
     }
     pattern3_t readPattern3_at(pti ind) const { return pattern3_at[ind]; }
+    uint64_t getZobrist() const { return zobrist; }
 
     NonatomicMovestats priorsAndDameForPattern3(bool& is_dame, bool is_root,
                                                 bool is_in_our_te,

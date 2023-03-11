@@ -4577,6 +4577,7 @@ void Game::placeDot(int x, int y, int who)
             recalculate_list.push_back(nb);
         }
     }
+    zobrist ^= coord.zobrist_dots[who - 1][ind];
 }
 
 void Game::show() const
@@ -5661,10 +5662,11 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
 // in threats and will be removed
 //   == false:  if 'encl' is in threats, it has to be found.
 {
-    pti worm_no = worm[encl.getBorderElement()];
-    int who = (worm_no & MASK_DOT);
+    const pti worm_no = worm[encl.getBorderElement()];
+    const int who = (worm_no & MASK_DOT);
     bool is_inside_terr = true, is_inside_terr_or_encl = true,
          is_inside_some_encl = false, is_in_our_terr_or_encl = true;
+    const uint64_t encl_zobr = encl.zobristKey(who);
 #ifdef DEBUG_SGF
     sgf_tree.makePartialMove_addEncl(encl.toSgfString());
 #endif
@@ -5909,7 +5911,7 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
     // remove current enclosure, if needed
     if (remove_it_from_threats)
     {
-        auto zobr = encl.zobristKey(who);
+        auto zobr = encl_zobr;
         for (auto &t : threats[who - 1].threats)
         {
             if (t.zobrist_key == zobr)
@@ -6082,6 +6084,7 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
             }
         }
     }
+    zobrist ^= encl_zobr;
 }
 
 std::pair<int, int> Game::countTerritory(int now_moves) const

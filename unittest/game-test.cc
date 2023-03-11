@@ -527,4 +527,51 @@ TEST(getEnclMoves, shouldNotFindOverlappingEnclosures_eido_u0O9GbZR)
     }
 }
 
+TEST(Zobrist, worksForNonEnclMoves)
+{
+    auto sgf = constructSgfFromGameBoard(
+        "......."
+        "......."
+        "......."
+        "......."
+        "......."
+        "......."
+        ".......");
+    Game game = constructGameFromSgfWithIsometry(sgf, 0);
+    uint64_t zobr = 0;
+    EXPECT_EQ(zobr, game.getZobrist());
+    auto makeMoveAndCheckZobrist = [&zobr, &game](auto move, auto who) {
+        game.makeSgfMove(move, who);
+        zobr ^= coord.zobrist_dots[who - 1][coord.sgfToPti(move)];
+        EXPECT_EQ(zobr, game.getZobrist());
+    };
+    makeMoveAndCheckZobrist("cb", 1);
+    makeMoveAndCheckZobrist("dd", 2);
+    makeMoveAndCheckZobrist("ea", 1);
+    makeMoveAndCheckZobrist("ce", 2);
+    makeMoveAndCheckZobrist("cc", 1);
+}
+
+TEST(Zobrist, worksForEnclMoves)
+{
+    auto sgf = constructSgfFromGameBoard(
+        ".ox...."
+        "oxox..."
+        "......."
+        "......."
+        "......."
+        "......."
+        ".......");
+    Game game = constructGameFromSgfWithIsometry(sgf, 0);
+    auto getZobr = [&](auto move, auto who) {
+        return coord.zobrist_dots[who - 1][coord.sgfToPti(move)];
+    };
+    uint64_t zobr = getZobr("ba", 1) ^ getZobr("ca", 2) ^ getZobr("ab", 1) ^
+                    getZobr("bb", 2) ^ getZobr("cb", 1) ^ getZobr("db", 2);
+    EXPECT_EQ(zobr, game.getZobrist());
+    game.makeSgfMove("bc.bccbbaabbc", 1);
+    zobr ^= getZobr("bc", 1) ^ coord.zobrist_encl[0][coord.sgfToPti("bb")];
+    EXPECT_EQ(zobr, game.getZobrist());
+}
+
 }  // namespace

@@ -52,7 +52,7 @@ uint64_t Enclosure::zobristKey(int who) const
 {
     uint64_t key = 0;
     who--;
-    for (auto &p : interior)
+    for (const auto p : interior)
     {
         key ^= coord.zobrist_encl[who][p];
     }
