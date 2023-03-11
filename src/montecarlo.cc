@@ -65,7 +65,7 @@ constexpr real_t increase_komi_threshhold = 0.75;
 constexpr real_t decrease_komi_threshhold = 0.15;
 constexpr int MC_EXPAND_THRESHOLD = 8;
 
-constexpr bool save_mc_stats = true;
+constexpr bool save_mc_stats = false;
 }  // namespace montec
 
 MonteCarlo::MonteCarlo()  //: finish_sim(false), finish_threads(false),
