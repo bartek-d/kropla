@@ -14,8 +14,8 @@ else()
     message(STATUS "IPO / LTO not supported: <${error}>")
 endif()
 
-set(CMAKE_CXX_FLAGS "-s -Wall -std=c++17 -O3 -msse3 -march=native")
-add_definitions(-DNDEBUG)  # -DSPEED_TEST -DDEBUG_SGF
+set(CMAKE_CXX_FLAGS "-g -Wall -std=c++17 -O0") # -msse3 -march=native")
+#add_definitions(-DNDEBUG)  # -DSPEED_TEST -DDEBUG_SGF
 
 #set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc -Wall -std=c++17 -O3 -DNDEBUG -march=sandybridge")
 
@@ -90,7 +90,7 @@ add_subdirectory(external)
 
 if(USE_CNN)
   message("Using CNN")
-  set(CNN_src "src/get_cnn_prob.cc" "src/get_cnn_prob.h" "src/cnn_workers.cc" "src/cnn_workers.h")
+  set(CNN_src "src/get_cnn_prob.cc" "src/get_cnn_prob.h" "src/cnn_workers.cc" "src/cnn_workers.h" "src/cnn_hash_table.cc" "src/cnn_hash_table.h")
   set(CNN_lib "mcaffe" "libcaffe"  "mklml_intel" "iomp5" "mkldnn" "${Boost_LIBRARIES}" "${Boost_SYSTEM_LIBRARY}" "${GLOG_LIBRARY}" "stdc++fs") 
 
   add_executable(check_accuracy src/game.cc src/game.h src/history.cc src/history.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/check_accuracy.cc src/safety.cc src/safety.h src/caffe/mcaffe.h src/caffe/mcaffe.cc ${CNN_src})
