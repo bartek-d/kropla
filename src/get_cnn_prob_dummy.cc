@@ -26,7 +26,7 @@
 
 void initialiseCnn() {}
 
-std::pair<bool, std::vector<float>> getCnnInfo(Game& game)
+std::pair<bool, std::vector<float>> getCnnInfo(Game& game, bool use_secondary_cnn)
 {
     return {false, {}};
 }

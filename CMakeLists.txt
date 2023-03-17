@@ -24,7 +24,7 @@ set(SHARED_LIBS_DIR "/home/b/kropki/cnn/shared")
 
 unset(USE_CNN)
 #option(USE_CNN "Use CNN for kropla" ON)
-set(USE_CNN ON)
+#set(USE_CNN ON)
 message("Using CNN: " ${USE_CNN})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
