@@ -2449,6 +2449,22 @@ void Game::checkThreat_encl(Threat *thr, int who)
     }
 }
 
+bool Game::checkIfThreat_encl_isUnnecessary(Threat *thr, pti ind, int who) const
+{
+    if (coord.distBetweenPts_1(thr->where, ind) != 1) return false;
+    if (not threats[who - 1].is_in_terr[thr->where]) return false;
+    for (const auto &t : threats[who - 1].threats)
+        if (t.type == ThreatConsts::TERR and t.encl->isInBorder(ind) and
+            t.encl->isInInterior(thr->where))
+        {
+            const auto [p1, p2] = t.encl->getNeighbourBorderElements(ind);
+            if (coord.distBetweenPts_infty(p1, thr->where) == 1 and
+                coord.distBetweenPts_infty(p2, thr->where) == 1)
+                return true;
+        }
+    return false;
+}
+
 void Game::checkThreat_terr(Threat *thr, pti p, int who,
                             std::vector<int8_t> *done)
 /// Try to enclose point [p] by who.
@@ -2522,7 +2538,12 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
         {
             if (thr->type & ThreatConsts::ENCL)
             {
-                checkThreat_encl(thr, who);
+                const bool just_remove_as_unnecessary =
+                    checkIfThreat_encl_isUnnecessary(thr, ind, who);
+                if (just_remove_as_unnecessary)
+                    thr->type |= ThreatConsts::TO_REMOVE;
+                else
+                    checkThreat_encl(thr, who);
             }
             else if (thr->type & ThreatConsts::TERR)
             {

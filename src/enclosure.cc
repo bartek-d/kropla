@@ -43,6 +43,17 @@ bool Enclosure::isEmpty() const { return border.empty(); }
 // returns some element on the border
 pti Enclosure::getBorderElement() const { return border.front(); }
 
+std::pair<pti, pti> Enclosure::getNeighbourBorderElements(pti p) const
+{
+    const auto it = std::find(border.begin(), border.end(), p);
+    if (it == border.end()) return {-1, -1};
+    if (it == border.begin())
+    {
+        return {border[1], border[border.size() - 2]};
+    }
+    return {*(it - 1), *(it + 1)};
+}
+
 // returns some element in the interior
 pti Enclosure::getInteriorElement() const { return interior.front(); }
 

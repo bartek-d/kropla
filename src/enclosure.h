@@ -23,6 +23,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "board.h"
@@ -65,6 +66,7 @@ struct Enclosure
     bool isInBorder(pti p) const;
     bool isEmpty() const;
     pti getBorderElement() const;
+    std::pair<pti, pti> getNeighbourBorderElements(pti p) const;
     pti getInteriorElement() const;
     int getInteriorSize() const;
     uint64_t zobristKey(int who) const;

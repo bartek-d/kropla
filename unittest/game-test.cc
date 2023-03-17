@@ -43,7 +43,7 @@ class IsometryFixtureSR : public ::testing::TestWithParam<unsigned>
 {
 };
 
-TEST(IsometryFixtureSR, chooseSafetyResponse_doesNotGiveMovesInAtari)
+TEST_P(IsometryFixtureSR, chooseSafetyResponse_doesNotGiveMovesInAtari)
 {
     std::string sgf{
         "(;FF[4]GM[40]CA[UTF-8]AP[board.cc:SgfTree]RU[Punish=0,Holes=1,AddTurn="
@@ -581,13 +581,21 @@ class IsometryFixture8 : public ::testing::TestWithParam<unsigned>
 TEST_P(IsometryFixture8, deleteUnnecessaryThreats)
 {
     const unsigned isometry = GetParam();
-    const std::string sgf_start{"(;SZ[20]PB[kropla_c1db66445b6:7000]PW[kropla:7000];B[kl];W[ki];B[lj];W[li];B[mj];W[mi];B[nj]"
-                                ";W[ni];B[fk];W[oj];B[ok];W[pk];B[ol];W[pl];B[pm];W[qm];B[pn];W[qn];B[po];W[pj];B[jk];W[qo]"
-                                ";B[pp];W[kj];B[kk];W[qp];B[ij];W[pq];B[oq];W[nq];B[or];W[np];B[op];W[mr];B[mn];W[no];B[nn]"
-                                ";W[hm];B[hl];W[im];B[il];W[gm];B[kn];W[jm];B[km];W[ms];B[qq];W[pr];B[ps];W[qr];B[rq];W[qs]"
-                                ";B[os];W[oo];B[on];W[oh];B[gl];W[fm];B[ql];W[rl];B[qk];W[rk];B[qj];W[ri];B[qi];W[qh];B[hh]"};
-    Game game1 = constructGameFromSgfWithIsometry(sgf_start + ";W[sj];B[eh];W[pi])", isometry);
-    Game game2 = constructGameFromSgfWithIsometry(sgf_start + ";W[pi];B[eh];W[sj])", isometry);
+    const std::string sgf_start{
+        "(;SZ[20]PB[kropla_c1db66445b6:7000]PW[kropla:7000];B[kl];W[ki];B[lj];"
+        "W[li];B[mj];W[mi];B[nj]"
+        ";W[ni];B[fk];W[oj];B[ok];W[pk];B[ol];W[pl];B[pm];W[qm];B[pn];W[qn];B["
+        "po];W[pj];B[jk];W[qo]"
+        ";B[pp];W[kj];B[kk];W[qp];B[ij];W[pq];B[oq];W[nq];B[or];W[np];B[op];W["
+        "mr];B[mn];W[no];B[nn]"
+        ";W[hm];B[hl];W[im];B[il];W[gm];B[kn];W[jm];B[km];W[ms];B[qq];W[pr];B["
+        "ps];W[qr];B[rq];W[qs]"
+        ";B[os];W[oo];B[on];W[oh];B[gl];W[fm];B[ql];W[rl];B[qk];W[rk];B[qj];W["
+        "ri];B[qi];W[qh];B[hh]"};
+    Game game1 = constructGameFromSgfWithIsometry(
+        sgf_start + ";W[sj];B[eh];W[pi])", isometry);
+    Game game2 = constructGameFromSgfWithIsometry(
+        sgf_start + ";W[pi];B[eh];W[sj])", isometry);
     EXPECT_EQ(game1.threats[1].is_in_encl, game2.threats[1].is_in_encl);
     EXPECT_EQ(game1.threats[1].is_in_terr, game2.threats[1].is_in_terr);
     EXPECT_EQ(game1.threats[1].is_in_border, game2.threats[1].is_in_border);

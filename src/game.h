@@ -363,6 +363,7 @@ class Game
     SmallMultimap<7, 7> getEmptyPointsCloseToIndTouchingSomeOtherGroup(
         const SmallMultiset<pti, 4>& connected_groups, pti ind, int who) const;
     void checkThreat_encl(Threat* thr, int who);
+    bool checkIfThreat_encl_isUnnecessary(Threat* thr, pti ind, int who) const;
     void checkThreat_terr(Threat* thr, pti p, int who,
                           std::vector<int8_t>* done = nullptr);
     void checkThreats_postDot(std::vector<pti>& newthr, pti ind, int who);
