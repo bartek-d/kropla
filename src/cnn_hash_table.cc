@@ -1,7 +1,7 @@
 /********************************************************************************************************
- kropla -- a program to play Kropki; file get_cnn_prob_dummy.cc
-    Copyright (C) 2021 Bartek Dyda,
-    email: bartekdyda (at) protonmail (dot) com
+ kropla -- a program to play Kropki; file cnn_hash_table.cc -- storing and
+reading NN. Copyright (C) 2023 Bartek Dyda, email: bartekdyda (at) protonmail
+(dot) com
 
     Some parts are inspired by Pachi http://pachi.or.cz/
       by Petr Baudis and Jean-loup Gailly
@@ -22,15 +22,42 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
 
-#include "get_cnn_prob.h"
+#include "cnn_hash_table.h"
 
-void initialiseCnn() {}
+#include <cstdint>
+#include <map>
+#include <mutex>
+#include <vector>
 
-std::pair<bool, std::vector<float>> getCnnInfo(Game& game,
-                                               bool use_secondary_cnn)
+namespace
 {
-    return {false, {}};
+using CnnInfo = std::vector<float>;
+
+std::map<Position, CnnInfo> table;
+std::mutex table_mutex;
+
+uint64_t ht_queries = 0;
+uint64_t ht_answers = 0;
+}  // namespace
+
+std::pair<bool, std::vector<float>> getCnnInfoFromHT(const Position pos)
+{
+    std::lock_guard<std::mutex> l(table_mutex);
+    ++ht_queries;
+    const auto it = table.find(pos);
+    if (it == table.end()) return {false, {}};
+    ++ht_answers;
+    return {true, it->second};
 }
 
-void updatePriors(Game& game, Treenode* children, int depth) {}
-void printCnnStats() {}
+void saveCnnInfo(const Position pos, const std::vector<float>& info)
+{
+    std::lock_guard<std::mutex> l(table_mutex);
+    table.try_emplace(pos, info);
+}
+
+std::pair<uint64_t, uint64_t> getCnnHtStats()
+{
+    std::lock_guard<std::mutex> l(table_mutex);
+    return {ht_queries, ht_answers};
+}

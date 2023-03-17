@@ -800,6 +800,7 @@ void play_engine(Game &game, std::string &s, int threads_count, int iter_count,
                                                             iter_count, msec)
                                         : mc.findBestMove(game, iter_count));
             auto end_time = std::chrono::high_resolution_clock::now();
+            printCnnStats();
             std::cerr << "Total time: "
                       << std::chrono::duration_cast<std::chrono::microseconds>(
                              end_time - start_time)
