@@ -2598,6 +2598,12 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
                 Enclosure encl = findEnclosure(pt, MASK_DOT, who);
                 if (!encl.isEmpty() and !encl.isInInterior(where))
                 {
+                    /* for debugging */
+                    show();
+                    std::cerr << "Zagrozenie: " << who << " w "
+                              << coord.showPt(where) << std::endl;
+                    std::cerr << encl.show() << '\n';
+
                     auto zobr = encl.zobristKey(who);
                     if (threats[who - 1].findThreatZobrist(zobr) == nullptr)
                     {
@@ -2611,12 +2617,6 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
                         t.encl = std::make_shared<Enclosure>(std::move(encl));
                         addThreat(std::move(t), who);
                     }
-                    /* for debugging */
-                    /*
-                    show();
-                    std::cerr << "Zagrozenie: " << who << " w " <<
-                    coord.showPt(where) << std::endl;
-                    */
                 }
             }
             // worm[where] = 0;   this does the destructor of worm_where_cleanup
@@ -4305,6 +4305,10 @@ void Game::placeDot(int x, int y, int who)
 // places a dot of who at (x,y),
 // TODO: if rules:must-surround, then also makes necessary enclosures
 {
+    if (history.size() > 90) throw std::logic_error("koniec");
+    // debug
+    std::cerr << "Place dot(" << x << ", " << y << ") for player " << who
+              << std::endl;
     pti ind = coord.ind(x, y);
     assert(worm[ind] == 0);
     recalculate_list.clear();
@@ -4553,6 +4557,14 @@ void Game::placeDot(int x, int y, int who)
     connectionsRecalculateNeighb(ind, who);
     checkThreats_postDot(to_check, ind, who);
     checkThreats2moves_postDot(to_check2m, ind, who);
+    // debug:
+    std::cerr << "threats[1].is_in_encl:\n"
+              << coord.showBoard(threats[1].is_in_encl);
+    std::cerr << "threats[1].is_in_terr:\n"
+              << coord.showBoard(threats[1].is_in_terr);
+    std::cerr << "threats[1].is_in_borderl:\n"
+              << coord.showBoard(threats[1].is_in_border);
+
     // remove move [ind] from possible moves
     pattern3_value[0][ind] = 0;
     pattern3_value[1][ind] = 0;
