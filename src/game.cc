@@ -2625,6 +2625,13 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
                 Enclosure encl = findEnclosure(pt, MASK_DOT, who);
                 if (!encl.isEmpty() and !encl.isInInterior(where))
                 {
+                    /* for debugging */
+                    /*
+                    show();
+                    std::cerr << "Zagrozenie: " << who << " w "
+                              << coord.showPt(where) << std::endl;
+                    std::cerr << encl.show() << '\n';
+                    */
                     auto zobr = encl.zobristKey(who);
                     if (threats[who - 1].findThreatZobrist(zobr) == nullptr)
                     {
@@ -2638,12 +2645,6 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
                         t.encl = std::make_shared<Enclosure>(std::move(encl));
                         addThreat(std::move(t), who);
                     }
-                    /* for debugging */
-                    /*
-                    show();
-                    std::cerr << "Zagrozenie: " << who << " w " <<
-                    coord.showPt(where) << std::endl;
-                    */
                 }
             }
             // worm[where] = 0;   this does the destructor of worm_where_cleanup

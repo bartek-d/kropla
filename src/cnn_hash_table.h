@@ -1,7 +1,7 @@
 /********************************************************************************************************
- kropla -- a program to play Kropki; file get_cnn_prob_dummy.cc
-    Copyright (C) 2021 Bartek Dyda,
-    email: bartekdyda (at) protonmail (dot) com
+ kropla -- a program to play Kropki; file cnn_hash_table.h -- storing and
+reading NN. Copyright (C) 2023 Bartek Dyda, email: bartekdyda (at) protonmail
+(dot) com
 
     Some parts are inspired by Pachi http://pachi.or.cz/
       by Petr Baudis and Jean-loup Gailly
@@ -22,15 +22,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
 
-#include "get_cnn_prob.h"
+#pragma once
 
-void initialiseCnn() {}
+#include <cstdint>
+#include <vector>
 
-std::pair<bool, std::vector<float>> getCnnInfo(Game& game,
-                                               bool use_secondary_cnn)
-{
-    return {false, {}};
-}
+using Position = std::pair<uint64_t, uint64_t>;
 
-void updatePriors(Game& game, Treenode* children, int depth) {}
-void printCnnStats() {}
+std::pair<bool, std::vector<float>> getCnnInfoFromHT(const Position pos);
+void saveCnnInfo(const Position pos, const std::vector<float>& info);
+std::pair<uint64_t, uint64_t> getCnnHtStats();
