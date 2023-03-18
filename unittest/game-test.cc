@@ -604,4 +604,84 @@ TEST_P(IsometryFixture8, deleteUnnecessaryThreats)
 INSTANTIATE_TEST_CASE_P(Par, IsometryFixture8,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
+
+class IsometryFixture9 : public ::testing::TestWithParam<unsigned>
+{
+};
+
+TEST_P(IsometryFixture9, inconsistencyInThreats2m_shouldBeRestrictedToInsideTerr)
+{
+    // it would be maybe better if threats2m were more consistent, but at least
+    // they should be outside territories
+    const unsigned isometry = GetParam();
+    const std::string sgf_start{
+        "(;SZ[20]PB[kropla:7000]PW[kropla_c1db66445b6:7000];B[kl];W[ki];B[lj]"
+        ";W[mh];B[il];W[kj];B[kk];W[mj];B[li];W[lh];B[lk];W[mi];B[kh];W[ii]"
+        ";B[kg];W[hj];B[nl];W[ig];B[jh];W[ih];B[lf];W[nf];B[ji];W[jj];B[me]"
+        ";W[ne];B[md];W[nd];B[jk];W[ij];B[mc];W[mk];B[ml];W[ok];B[nk];W[nj]"
+        ";B[oj];W[pj];B[oi];W[pi];B[oh];W[ng];B[ph];W[qh];B[pg];W[qg];B[pf]"
+        ";W[qe];B[pe];W[pd];B[nc];W[od];B[ej];W[gl];B[hm];W[gm];B[gn];W[fn]"
+        ";B[go];W[fo];B[gp];W[fj];B[ei];W[ek];B[ol];W[pk];B[fi];W[dk];B[gj]"
+        ";W[hk];B[fk.ejfkgjfiej];W[fl];B[jp];W[jf];B[qm];W[kf];B[lg];W[pl]"
+        ";B[pm];W[rk];B[rl];W[rf];B[sk];W[rj];B[ci];W[ql];B[ms];W[rm];B[sl]"
+        ";W[sn];B[pp];W[qn];B[pn];W[qo];B[po];W[kr];B[js];W[jr];B[ir];W[ks]"
+        ";B[kt];W[bh];B[lq];W[bj];B[dg];W[is];B[jt];W[iq];B[hr];W[bg];B[de]"
+        ";W[ob];B[jq];W[lt];B[ls];W[cj];B[nb];W[ff];B[cf];W[nq];B[or];W[nr]"
+        ";B[ns];W[fd];B[be];W[jc];B[dh];W[ke];B[hd];W[le];B[mf];W[hc];B[gc]"
+        ";W[gd];B[ic];W[hb];B[ib];W[id];B[he];W[jb];B[ia];W[ie];B[no];W[oq]"
+        ";B[pr];W[gb];B[fc];W[na];B[ma];W[ed];B[eb];W[pq];B[gg];W[hf];B[qp]"
+        ";W[dd];B[gf];W[ge.gdgehfieidhcgd];B[qq];W[hs];B[gr];W[os];B[qr]"
+        ";W[oc];B[bf];W[ef];B[sh];W[hl];B[im];W[df];B[cg];W[es];B[gq];W[rh]"
+        ";B[bn];W[eq];B[dn];W[si];B[co];W[sf];B[sg];W[sc];B[ce];W[bp];B[an]"
+        ";W[qb];B[gh];W[cp];B[ti];W[cm];B[cn];W[dj];B[eh];W[sj];B[ee];W[fe]"
+        ";B[lb];W[lc];B[ld];W[kc];B[mb];W[dm];B[en];W[mg];B[em];W[bs];B[kd]"
+        ";W[el];B[jd];W[ja];B[gs];W[gt];B[sd];W[rd];B[se];W[fm];B[ea];W[re]"
+        ";B[rb];W[dp];B[fs];W[ft];B[er];W[dr];B[fr];W[ec];B[fb];W[ps];B[ds]"
+        ";W[et];B[cs];W[cr];B[rc];W[mq];B[lr];W[qc];B[bl];W[sp];B[rp];W[ro]"
+        ";B[kq.irjsktlslrkqjqir];W[bm];B[al];W[am];B[rg];W[tj];B[sm];W[rn]"
+        ";B[sb];W[tc];B[aq];W[pa];B[bq];W[ch];B[di];W[sq];B[cq];W[dq];B[cl]"
+        ";W[rs];B[fg];W[rr];B[fp];W[tr];B[br];W[eo];B[qs];W[db];B[qt];W[ss]"
+        ";B[jg];W[bc];B[cb];W[ab];B[ca];W[da];B[je];W[if];B[cc];W[to];B[rq]"
+        ";W[cd];B[eg];W[bd];B[ik];W[tf];B[dc];W[ck];B[bi];W[ao];B[bk];W[hi]"
+        ";B[gi];W[dl];B[bb];W[aa];B[kb];W[ac];B[ep];W[ad];B[bo];W[ae];B[do]"
+        ";W[ap];B[af];W[ag];B[ah];W[ai];B[aj];W[ak];B[ar];W[as];B[at];W[ba]"
+        ";B[bt];W[ct];B[dt];W[fa];B[fq];W[ga];B[gk];W[ha];B[hg];W[hh];B[ht]"
+        ";W[it];B[ka];W[la];B[mt];W[nt];B[oa];W[ot];B[pt];W[qa];B[ra];W[rt]"
+        ";B[sa];W[st];B[ta];W[tb];B[td];W[te];B[tg];W[th];B[tk];W[tl];B[tm]"
+        ";W[tn];B[tp];W[jo];B[tq];W[kn];B[in];W[lo];B[kp];W[mn];B[lm];W[om]"
+        ";B[ll];W[hn];B[nm];W[nn];B[io];W[ho];B[ip];W[ts];B[tt];W[oo];B[mp]"
+        ";W[lp];B[qi];W[qf];B[qj];W[qk];B[np];W[op.lolpmqnqopoonnmnlo]"};
+    Game game1 = constructGameFromSgfWithIsometry(
+        sgf_start + "B[jm];W[on];B[km])", isometry);
+    Game game2 = constructGameFromSgfWithIsometry(
+        sgf_start + "B[km];W[on];B[jm])", isometry);
+    /*
+    std::cerr << "Game1:\n";
+    game1.show();
+    std::cerr << "is_in_2m_encl:\n";
+    std::cerr << coord.showBoard(game1.threats[0].is_in_2m_encl);
+    std::cerr << "is_in_2m_encl:\n";
+    std::cerr << coord.showBoard(game2.threats[0].is_in_2m_encl);
+    std::cerr << "------------------------------------------------------------\n";
+    for (auto thr : game1.threats[0].threats2m)
+        std::cerr << thr.show();
+    std::cerr << "------------------------------------------------------------\n";
+    for (auto thr : game2.threats[0].threats2m)
+        std::cerr << thr.show();
+    std::cerr << "------------------------------------------------------------\n";
+    */
+    for (uint32_t i=coord.first; i<=coord.last; ++i)
+        if (coord.dist[i] >= 0 and game1.isInTerr(i, 1) == 0 and game1.isInTerr(i, 2) == 0)
+        {
+            EXPECT_EQ(game1.threats[0].is_in_2m_encl[i], game2.threats[0].is_in_2m_encl[i]);
+            EXPECT_EQ(game1.threats[1].is_in_2m_encl[i], game2.threats[1].is_in_2m_encl[i]);
+            EXPECT_EQ(game1.threats[0].is_in_2m_miai[i], game2.threats[0].is_in_2m_miai[i]);
+            EXPECT_EQ(game1.threats[1].is_in_2m_miai[i], game2.threats[1].is_in_2m_miai[i]);
+        }
+}
+
+INSTANTIATE_TEST_CASE_P(Par, IsometryFixture9,
+                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
+
+
 }  // namespace
