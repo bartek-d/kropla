@@ -14,7 +14,7 @@ else()
     message(STATUS "IPO / LTO not supported: <${error}>")
 endif()
 
-set(CMAKE_CXX_FLAGS "-g -Wall -std=c++17 -O0") # -msse3 -march=native")
+set(CMAKE_CXX_FLAGS "-g -Wall -std=c++17 -O3 -msse3 -march=native")
 #add_definitions(-DNDEBUG)  # -DSPEED_TEST -DDEBUG_SGF
 
 #set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc -Wall -std=c++17 -O3 -DNDEBUG -march=sandybridge")
@@ -24,7 +24,7 @@ set(SHARED_LIBS_DIR "/home/b/kropki/cnn/shared")
 
 unset(USE_CNN)
 #option(USE_CNN "Use CNN for kropla" ON)
-#set(USE_CNN ON)
+set(USE_CNN ON)
 message("Using CNN: " ${USE_CNN})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
