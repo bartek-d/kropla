@@ -30,7 +30,6 @@
 
 #include "get_cnn_prob.h"
 
-#include "cnn_hash_table.h"
 #include "cnn_workers.h"
 
 //#include "board.h"
@@ -172,60 +171,9 @@ std::vector<float> convertToBoard(const std::vector<float>& res)
 std::pair<bool, std::vector<float>> getCnnInfo(Game& game,
                                                bool use_secondary_cnn)
 {
-    std::pair<bool, std::vector<float>> fromHT{false, {}};
-    if (not use_secondary_cnn)
-    {
-        auto pos = Position{game.getHistorySize(), game.getZobrist()};
-        fromHT = getCnnInfoFromHT(pos);
-        if (fromHT.first)
-        {
-            std::cerr << "in HT !!!!!!!!!!!!!!!!!!!!!" << std::endl;
-            // return fromHT;
-        }
-        else
-            std::cerr << "not in HT" << std::endl;
-    }
     auto input = getInputForCnn(game, use_secondary_cnn ? planes2 : planes);
     auto [success, res] = (use_secondary_cnn ? workers_pool2 : workers_pool)
                               ->getCnnInfo(input, coord.wlkx);
-    if (not use_secondary_cnn and success and not fromHT.first)
-    {
-        auto pos = Position{game.getHistorySize(), game.getZobrist()};
-        saveCnnInfo(pos, input);  // res);
-    }
-    if (fromHT.first and success)
-    {
-        std::cerr << "Checking... sizes: " << fromHT.second.size() << " -- "
-                  << input.size();
-        if (fromHT.second.size() != input.size())
-            std::cerr << " Mismatch of size!" << std::endl;
-        // throw std::logic_error("size!");
-        bool same = true;
-        for (uint32_t i = 0; i < fromHT.second.size(); ++i)
-        {
-            if (fromHT.second[i] != input[i])
-            {
-                const uint32_t table_no = i / (coord.wlkx * coord.wlky);
-                const uint32_t table_pos = i % (coord.wlkx * coord.wlky);
-                const uint32_t x = table_pos / coord.wlky;
-                const uint32_t y = table_pos % coord.wlky;
-                const pti ind = coord.ind(x,y);
-                const bool is_inside_terr = game.isInTerr(ind, 1)!=0 or game.isInTerr(ind, 2)!=0;
-                if (is_inside_terr or table_no <= 13)
-                    std::cerr << " IMPORTANT mismatch (" << game.getZobrist() << ")  at " << i
-                              << ": " << fromHT.second[i] << "  vs  " << input[i]
-                              << std::endl;
-                else
-                    std::cerr << " In-terr thr2m mismatch (" << game.getZobrist() << ")  at " << i
-                              << ": " << fromHT.second[i] << "  vs  " << input[i]
-                              << std::endl;
-                same = false;
-            }
-        }
-        if (not same)
-            ;
-        // throw std::logic_error("vectors!");
-    }
     return {success, std::move(convertToBoard(res))};
 }
 
@@ -233,12 +181,13 @@ void updatePriors(Game& game, Treenode* children, int depth)
 {
     if (children == nullptr) return;
     const int max_depth_for_primary_cnn = 4;
-
-    std::cerr << "Trying to update priors for " << game.getZobrist() << " "
-              << children->parent->showParents() << " -> ";
     const auto [is_cnn_available, probs] =
         getCnnInfo(game, depth > max_depth_for_primary_cnn);
-
+    /*
+    std::cerr << "Trying to update priors for "
+              << children->parent->showParents()
+              << " from CNN: " << is_cnn_available << std::endl;
+    */
     if (not is_cnn_available) return;
     float max = 0.0f;
     for (auto* ch = children; true; ++ch)
@@ -298,16 +247,4 @@ void updatePriors(Game& game, Treenode* children, int depth)
         }
         if (ch->isLast()) break;
     }
-}
-
-void printCnnStats()
-{
-    const auto [ht_queries, ht_answers] = getCnnHtStats();
-    std::cerr << "Queries of large CNN: " << ht_queries
-              << ", from that those read from HT: " << ht_answers << std::endl;
-    const auto filename = "htstats.txt";
-    std::fstream file(
-        filename, std::fstream::out | std::fstream::app | std::fstream::ate);
-    file << "Queries of large CNN: " << ht_queries
-         << ", from that those read from HT: " << ht_answers << std::endl;
 }
