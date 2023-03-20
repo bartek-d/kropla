@@ -188,12 +188,15 @@ std::pair<bool, std::vector<float>> getCnnInfo(Game& game,
     auto input = getInputForCnn(game, use_secondary_cnn ? planes2 : planes);
     auto [success, res] = (use_secondary_cnn ? workers_pool2 : workers_pool)
                               ->getCnnInfo(input, coord.wlkx);
-    if (not use_secondary_cnn and success)
+    if (not success)
+        return {false, {}};
+    res = convertToBoard(res);
+    if (not use_secondary_cnn)
     {
         auto pos = Position{game.getHistorySize(), game.getZobrist()};
         saveCnnInfo(pos, res);
     }
-    return {success, std::move(convertToBoard(res))};
+    return {success, std::move(res)};
 }
 
 void updatePriors(Game& game, Treenode* children, int depth)
