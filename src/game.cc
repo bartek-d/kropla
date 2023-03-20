@@ -2531,21 +2531,12 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
     // process our threats marked as TO_CHECK
     // for (int who=1; who<=2; who++)   // <-- not needed, because there are no
     // opponent threats markes as TO_CHECK
+    // In first pass, we check TERR threats, so that in the second one
+    // checkIfThreat_encl_isUnnecessary() works correctly.
     for (unsigned int tn = 0; tn < threats[who - 1].threats.size(); tn++)
     {
         Threat *thr = &threats[who - 1].threats[tn];
-        if (thr->type & ThreatConsts::TO_CHECK)
-        {
-            if (thr->type & ThreatConsts::ENCL)
-            {
-                const bool just_remove_as_unnecessary =
-                    checkIfThreat_encl_isUnnecessary(thr, ind, who);
-                if (just_remove_as_unnecessary)
-                    thr->type |= ThreatConsts::TO_REMOVE;
-                else
-                    checkThreat_encl(thr, who);
-            }
-            else if (thr->type & ThreatConsts::TERR)
+        if ((thr->type & ThreatConsts::TO_CHECK) and (thr->type & ThreatConsts::TERR))
             {
                 thr->type |= ThreatConsts::TO_REMOVE;
                 std::vector<int8_t> done(coord.last + 1, 0);
@@ -2560,6 +2551,21 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
                             &done);  // try to enclose p; cannot use *thr
                                      // because it can be invalidated
                     }
+            }
+    }
+    // Second pass -- check ENCL threats.
+    for (unsigned int tn = 0; tn < threats[who - 1].threats.size(); tn++)
+    {
+        Threat *thr = &threats[who - 1].threats[tn];
+        if (thr->type & ThreatConsts::ENCL)
+        {
+            const bool just_remove_as_unnecessary =
+                checkIfThreat_encl_isUnnecessary(thr, ind, who);
+            if (just_remove_as_unnecessary)
+                thr->type |= ThreatConsts::TO_REMOVE;
+            else if (thr->type & ThreatConsts::TO_CHECK)
+            {
+                checkThreat_encl(thr, who);
             }
         }
     }
@@ -4571,9 +4577,11 @@ void Game::placeDot(int x, int y, int who)
         connectionsRenameGroup(our_group_id, cm[top - 1]);
         top--;
     }
+
     connectionsRecalculateNeighb(ind, who);
     checkThreats_postDot(to_check, ind, who);
     checkThreats2moves_postDot(to_check2m, ind, who);
+
     // remove move [ind] from possible moves
     pattern3_value[0][ind] = 0;
     pattern3_value[1][ind] = 0;

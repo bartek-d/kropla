@@ -604,6 +604,27 @@ TEST_P(IsometryFixture8, deleteUnnecessaryThreats)
 INSTANTIATE_TEST_CASE_P(Par, IsometryFixture8,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
+void checkIfGamesAreSame(const Game& game1, const Game& game2)
+{
+    for (int32_t i=coord.first; i<=coord.last; ++i)
+    {
+        EXPECT_EQ(game1.threats[0].is_in_encl[i], game2.threats[0].is_in_encl[i]) << "  where i -> " << coord.showPt(i);
+        EXPECT_EQ(game1.threats[1].is_in_encl[i], game2.threats[1].is_in_encl[i]) << "  where i -> " << coord.showPt(i);
+        EXPECT_EQ(game1.threats[0].is_in_terr[i], game2.threats[0].is_in_terr[i]) << "  where i -> " << coord.showPt(i);
+        EXPECT_EQ(game1.threats[1].is_in_terr[i], game2.threats[1].is_in_terr[i]) << "  where i -> " << coord.showPt(i);
+        EXPECT_EQ(game1.threats[0].is_in_border[i], game2.threats[0].is_in_border[i]) << "  where i -> " << coord.showPt(i);
+        EXPECT_EQ(game1.threats[1].is_in_border[i], game2.threats[1].is_in_border[i]) << "  where i -> " << coord.showPt(i);
+        if (coord.dist[i] >= 0 and game1.isInTerr(i, 1) == 0 and game1.isInTerr(i, 2) == 0)
+        {
+            EXPECT_EQ(game1.threats[0].is_in_2m_encl[i], game2.threats[0].is_in_2m_encl[i]);
+            EXPECT_EQ(game1.threats[1].is_in_2m_encl[i], game2.threats[1].is_in_2m_encl[i]);
+            EXPECT_EQ(game1.threats[0].is_in_2m_miai[i], game2.threats[0].is_in_2m_miai[i]);
+            EXPECT_EQ(game1.threats[1].is_in_2m_miai[i], game2.threats[1].is_in_2m_miai[i]);
+        }
+
+    }
+}
+
 
 class IsometryFixture9 : public ::testing::TestWithParam<unsigned>
 {
@@ -655,32 +676,30 @@ TEST_P(IsometryFixture9, inconsistencyInThreats2m_shouldBeRestrictedToInsideTerr
         sgf_start + "B[jm];W[on];B[km])", isometry);
     Game game2 = constructGameFromSgfWithIsometry(
         sgf_start + "B[km];W[on];B[jm])", isometry);
-    /*
-    std::cerr << "Game1:\n";
-    game1.show();
-    std::cerr << "is_in_2m_encl:\n";
-    std::cerr << coord.showBoard(game1.threats[0].is_in_2m_encl);
-    std::cerr << "is_in_2m_encl:\n";
-    std::cerr << coord.showBoard(game2.threats[0].is_in_2m_encl);
-    std::cerr << "------------------------------------------------------------\n";
-    for (auto thr : game1.threats[0].threats2m)
-        std::cerr << thr.show();
-    std::cerr << "------------------------------------------------------------\n";
-    for (auto thr : game2.threats[0].threats2m)
-        std::cerr << thr.show();
-    std::cerr << "------------------------------------------------------------\n";
-    */
-    for (uint32_t i=coord.first; i<=coord.last; ++i)
-        if (coord.dist[i] >= 0 and game1.isInTerr(i, 1) == 0 and game1.isInTerr(i, 2) == 0)
-        {
-            EXPECT_EQ(game1.threats[0].is_in_2m_encl[i], game2.threats[0].is_in_2m_encl[i]);
-            EXPECT_EQ(game1.threats[1].is_in_2m_encl[i], game2.threats[1].is_in_2m_encl[i]);
-            EXPECT_EQ(game1.threats[0].is_in_2m_miai[i], game2.threats[0].is_in_2m_miai[i]);
-            EXPECT_EQ(game1.threats[1].is_in_2m_miai[i], game2.threats[1].is_in_2m_miai[i]);
-        }
+    checkIfGamesAreSame(game1, game2);
 }
 
 INSTANTIATE_TEST_CASE_P(Par, IsometryFixture9,
+                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
+
+
+class IsometryFixture10 : public ::testing::TestWithParam<unsigned>
+{
+};
+
+TEST_P(IsometryFixture10, deleteUnnecessaryThreats2)
+{
+    const unsigned isometry = GetParam();
+    const std::string sgf_start{
+        "(;SZ[20]PB[kropla_c1db66445b6:7000]PW[kropla:7000];B[kl];W[ki];B[lj];W[li];B[mj];W[nh];B[jj];W[kj];B[kk];W[ji];B[ij];W[mi];B[nj];W[jf];B[ii];W[ih];B[hh];W[ig];B[oi];W[oh];B[pi];W[ph];B[qi];W[qh];B[ri];W[hg];B[gh];W[gl];B[jk];W[gg];B[fh];W[fg];B[gk];W[fk];B[gj];W[hl];B[fl];W[fm];B[el];W[gn];B[ek];W[me];B[eh];W[pe];B[hk];W[rh];B[si];W[sh];B[re];W[qf];B[rf];W[em];B[dm];W[dn];B[cn];W[do];B[co];W[dp];B[cl];W[cp];B[qe];W[pf];B[bp];W[bq];B[cq];W[dq];B[cr];W[dr];B[ds];W[es];B[cs];W[bo];B[ap];W[fr];B[gp];W[bn];B[cm];W[fp];B[gq];W[fq];B[go];W[fo];B[hn];W[gr];B[io];W[im];B[jo];W[hm];B[hr];W[in];B[ho];W[hs];B[ir];W[is];B[jr];W[jn];B[kn];W[ko];B[kp];W[lo];B[km];W[gm];B[lp];W[mo];B[np];W[mp];B[mq];W[ks];B[no];W[nq];B[mr];W[mn];B[nm];W[ns];B[nr];W[oq];B[or];W[nn];B[on];W[oo];B[ms];W[pp];B[kr];W[pn];B[om];W[pr];B[ps];W[qr];B[pm];W[qn];B[qm];W[kb];B[rm];W[qs];B[nt];W[mm];B[ml];W[eg.mompnqoqppoonnmo];B[kd];W[lc];B[jc];W[hb];B[jb];W[ja];B[hc];W[gc];B[ib];W[ia];B[gb];W[ha];B[gd];W[fc];B[fd];W[ed];B[ec];W[fb];B[ee];W[dd];B[de];W[hd];B[he];W[ic.gchdichbgc];B[fe];W[ce];B[df];W[dg];B[cf];W[ie];B[ld];W[md];B[cd];W[dc];B[be.becfdecdbe];W[eb.dcedfcebdc];B[mc];W[lb];B[nc];W[ob];B[nd];W[pd];B[ne];W[rs];B[na];W[nb];B[mb];W[ma];B[pb];W[oa];B[oc];W[pc];B[qp];W[ro];B[rq];W[sq];B[sp];W[rp];B[so];W[dh];B[ft];W[et];B[tj];W[tk];B[qq];W[sr];B[sk];W[di];B[rn];W[ga.ooppoqprqrrssrsqrproqnpnoo.fbgchbgafb];B[rg];W[ej];B[fj.ekflgkfjek];W[ls];B[tg];W[lr];B[lq];W[sl];B[tl];W[tm];B[qg]"};
+    Game game1 = constructGameFromSgfWithIsometry(
+        sgf_start + ";W[pg];B[sm];W[id])", isometry);
+    Game game2 = constructGameFromSgfWithIsometry(
+        sgf_start + ";W[id];B[sm];W[pg])", isometry);
+    checkIfGamesAreSame(game1, game2);
+}
+
+INSTANTIATE_TEST_CASE_P(Par, IsometryFixture10,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
 
