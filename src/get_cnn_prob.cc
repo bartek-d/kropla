@@ -63,7 +63,7 @@ void initialiseCnn()
         constexpr int max_planes = 20;
         const std::size_t memory_needed =
             coord.maxSize * sizeof(float) * max_planes + sizeof(uint32_t);
-        const bool use_this_thread = true;
+        const bool use_this_thread = false;
         workers_pool = workers::buildWorkerPool("cnn.config", memory_needed,
                                                 coord.wlkx, use_this_thread);
         planes = workers_pool->getPlanes();
