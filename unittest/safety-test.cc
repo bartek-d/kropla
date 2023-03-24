@@ -30,10 +30,10 @@ MoveSuggestions convertToMap(
     const std::vector<Safety::ValueForBoth>& move_value)
 {
     MoveSuggestions m;
-    for (int i = 0; i < move_value.size(); ++i)
+    for (unsigned i = 0; i < move_value.size(); ++i)
     {
-        if (move_value[i][0]) m[MoveDescription{i, 1}] = move_value[i][0];
-        if (move_value[i][1]) m[MoveDescription{i, 2}] = move_value[i][1];
+        if (move_value[i][0]) m[MoveDescription{int(i), 1}] = move_value[i][0];
+        if (move_value[i][1]) m[MoveDescription{int(i), 2}] = move_value[i][1];
     }
     return m;
 }

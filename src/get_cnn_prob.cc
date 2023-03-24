@@ -224,22 +224,8 @@ void updatePriors(Game& game, Treenode* children, int depth)
         std::cerr << "Max is 0.0f, CNN does not work?" << std::endl;
         return;
     }
-    auto get_prior_max = [=]() {
-        const std::array<float, 10> priors{0.0f,  800.f, 500.f, 350.f, 270.f,
-                                           220.f, 200.f, 160.f, 140.f, 120.f};
-        if (unsigned(depth) < priors.size())
-        {
-            return priors[depth] *
-                   (depth > max_depth_for_primary_cnn ? 0.95f : 1.0f);
-        }
-        if (depth > max_depth_for_primary_cnn)
-        {
-            return 60.0f;
-        }
-        return 80.0f;
-    };
     const float prior_max =
-        150.0f / std::sqrt(std::sqrt(max));  // get_prior_max();
+        150.0f / std::sqrt(std::sqrt(max));
     const float min_to_show = 0.05f;
     for (auto* ch = children; true; ++ch)
     {

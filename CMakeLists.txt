@@ -19,7 +19,7 @@ else()
     message(STATUS "IPO / LTO not supported: <${error}>")
 endif()
 
-set(CMAKE_CXX_FLAGS "-s -Wall -O3 -msse3 -march=native")
+set(CMAKE_CXX_FLAGS "-s -Wall -Wextra -Wpedantic -O3 -msse3 -march=native")
 add_definitions(-DNDEBUG)  # -DSPEED_TEST -DDEBUG_SGF
 
 #set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc -Wall -std=c++17 -O3 -DNDEBUG -march=sandybridge")

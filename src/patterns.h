@@ -69,8 +69,7 @@ class Pattern3
     std::array<pattern3_val, PATTERN3_SIZE> values;
     int add_type;
     void addPatterns(pattern3_t p, pattern3_val value);
-    void generateFromStr(const std::string &sarg, pattern3_val value,
-                         int depth);
+    void generateFromStr(const std::string &sarg, pattern3_val value);
     friend struct Pattern3full;
     friend class Pattern3extra_array;
 
@@ -143,8 +142,7 @@ class Pattern3extra_array
     std::array<std::array<Pattern3extra, PATT_COUNT>, PATTERN3_SIZE> values[2];
     int max_occupied;
     void addPatterns(Pattern3full p);
-    void generateFromStr(const std::string &sarg, pattern3_val value,
-                         int depth);
+    void generateFromStr(const std::string &sarg, pattern3_val value);
     void show(pattern3_t p) const;
 
    public:
@@ -198,7 +196,7 @@ class Pattern52
     pattern52_t reflect(pattern52_t p) const;
     pattern52_t reverseColour(pattern52_t p) const;
     void addPatterns(pattern52_t p, real_t value);
-    void generateFromStr(const std::string &sarg, real_t value, int depth);
+    void generateFromStr(const std::string &sarg, real_t value);
 
    public:
     real_t getValue(pattern52_t p, int who) const;

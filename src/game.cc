@@ -3108,7 +3108,7 @@ void Game::addThreat(Threat &&t, int who)
                         ->singular_dots -= descr.at(worm[i]).dots[2 - who];
                     counted_worms.push_back(descr.at(worm[i]).leftmost);
                 }
-                // no break!
+                [[fallthrough]];
             default:
                 if (threats[2 - who].is_in_border[i] >= 1)
                 {  // note: it may be an empty place, but still in_border (play
@@ -3946,7 +3946,7 @@ int Game::checkBorderOneSide(pti ind, pti viter, pti vnorm, int who) const
                       // second edge
 }
 
-void Game::rollout(Treenode *node, int depth)
+void Game::rollout(Treenode *node, int /*depth*/)
 {
     // experiment: add loses to amaf inside opp enclosures; first remember empty
     // points
@@ -4751,7 +4751,7 @@ Enclosure Game::findSimpleEnclosure(std::vector<pti> &tab, pti point, pti mask,
 {
     {
         int count = 0;
-        int direction;
+        int direction{-1};  // initialisation not needed
         for (int i = 0; i < 4; i++)
         {
             pti nb = point + coord.nb4[i];
@@ -7662,7 +7662,7 @@ Move Game::choosePattern3Move(pti move0, pti move1, int who)
     return move;
 }
 
-std::vector<pti> Game::getSafetyMoves(int who)
+std::vector<pti> Game::getSafetyMoves(int /*who*/)
 {
     std::vector<pti> stack;
     std::set<pti> already_saved;
@@ -7865,7 +7865,7 @@ Move Game::chooseAnyMove_pm(int who)
 {
     Move move;
     move.who = who;
-    assert(checkPossibleMovesCorrectness(who));
+    assert(checkPossibleMovesCorrectness());
     if (!possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].empty())
     {
         unsigned number;
@@ -9438,7 +9438,7 @@ bool Game::checkPattern3valuesCorrectness() const
     return status;
 }
 
-bool Game::checkPossibleMovesCorrectness(int who) const
+bool Game::checkPossibleMovesCorrectness() const
 {
     int terr = 0, neutral_or_dame = 0;
     int ext = 0, exnd = 0;

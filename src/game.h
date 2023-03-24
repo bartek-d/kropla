@@ -223,7 +223,7 @@ constexpr int DAME = LIST_DAME << MASK_SHIFT;                  // 0x1000;
 constexpr int TERRM = LIST_TERRM << MASK_SHIFT;                // 0x2000;
 constexpr int REMOVED = LIST_REMOVED << MASK_SHIFT;            // 0x3000;
 constexpr int TYPE_MASK = (NEUTRAL | DAME | TERRM | REMOVED);  // 0x3000;
-};  // namespace PossibleMovesConsts
+}  // namespace PossibleMovesConsts
 
 class PossibleMoves
 {
@@ -265,7 +265,7 @@ constexpr int MOVE_1 = LIST_1 << MASK_SHIFT;                     // 0x1000;
 constexpr int MOVE_2 = LIST_2 << MASK_SHIFT;                     // 0x2000;
 constexpr int REMOVED = LIST_REMOVED << MASK_SHIFT;              // 0x3000;
 constexpr int TYPE_MASK = (MOVE_0 | MOVE_1 | MOVE_2 | REMOVED);  // 0x3000;
-};  // namespace InterestingMovesConsts
+}  // namespace InterestingMovesConsts
 
 class InterestingMoves
 {
@@ -513,7 +513,7 @@ class Game
     bool checkThreatCorrectness();
     bool checkThreat2movesCorrectness();
     bool checkConnectionsCorrectness();
-    bool checkPossibleMovesCorrectness(int who) const;
+    bool checkPossibleMovesCorrectness() const;
     bool checkCorrectness(SgfSequence seq);
     bool checkPattern3valuesCorrectness() const;
 

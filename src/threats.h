@@ -38,7 +38,7 @@ constexpr int TERR = 1;
 constexpr int ENCL = 2;
 constexpr int TO_REMOVE = 64;
 constexpr int TO_CHECK = 128;
-};  // namespace ThreatConsts
+}  // namespace ThreatConsts
 
 struct Threat
 {
@@ -84,7 +84,7 @@ constexpr uint16_t ENCL2_INSIDE_THRESHOLD =
     2 * ENCL2_INSIDE_ADD;  // the threshold to see whether a point can be for
                            // sure captured
 
-};  // namespace Threat2mconsts
+}  // namespace Threat2mconsts
 
 struct Threat2m
 {
@@ -158,7 +158,7 @@ namespace ThrInfoConsts
 constexpr pti MINF = -20000;
 constexpr pti VALUE_WON_DOT = 8;
 constexpr pti VALUE_SAVED_DOT = 8;
-};  // namespace ThrInfoConsts
+}  // namespace ThrInfoConsts
 
 struct ThrInfo
 {

@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <array>
+#include <vector>
 
 /********************************************************************************************************
   Cleanup class
@@ -34,7 +36,7 @@ class CleanupUsingList
     ~CleanupUsingList()
     {
         for (int i = 0; i < count; i++) c[list[i]] &= andMask;
-    };
+    }
 };
 
 template <typename Container, typename T>
@@ -52,11 +54,11 @@ class CleanupUsingListOfValues
         point[count] = p;
         values[count] = val;
         ++count;
-    };
+    }
     ~CleanupUsingListOfValues()
     {
         for (int i = count - 1; i >= 0; --i) c[point[i]] = values[i];
-    };
+    }
 };
 
 template <typename T>
@@ -98,7 +100,7 @@ template <class T, int N>
 int getCapacity(const SmallMultiset<T, N>&)
 {
     return N;
-};
+}
 
 template <class T, int N>
 void SmallMultiset<T, N>::insert(T x)

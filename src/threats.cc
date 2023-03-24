@@ -258,7 +258,7 @@ int debug_foundt2m = 0;
 /// @param[in] safe0  Is placing dot at ind0 safe for who.
 /// @param[in] safe1  Is placing dot at ind1 safe for who.
 int AllThreats::addThreat2moves(pti ind0, pti ind1, bool safe0, bool safe1,
-                                int who, Threat &t)
+                                int /*who*/, Threat &t)
 {
 #ifndef NDEBUG
     // DEBUG: check whether there is a

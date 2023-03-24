@@ -213,7 +213,7 @@ pattern3_t Pattern3::getCodeOfPattern(std::string s)
             case '|':
                 // dot of 1 in atari
                 if (atari_bit[i] >= 0) p |= (1 << atari_bit[i]);
-                // no break!
+                [[fallthrough]];
             case 'Y':
                 // dot of 1 not in atari
                 p |= (1 << field_bit[i]);
@@ -221,7 +221,7 @@ pattern3_t Pattern3::getCodeOfPattern(std::string s)
             case '@':
                 // dot of 2 in atari
                 if (atari_bit[i] >= 0) p |= (1 << atari_bit[i]);
-                // no break!
+                [[fallthrough]];
             case 'Q':
                 // dot of 2 not in atari
                 p |= (2 << field_bit[i]);
@@ -237,8 +237,7 @@ pattern3_t Pattern3::getCodeOfPattern(std::string s)
     return p;
 }
 
-void Pattern3::generateFromStr(const std::string &sarg, pattern3_val value,
-                               int depth)
+void Pattern3::generateFromStr(const std::string &sarg, pattern3_val value)
 {
     for (WildcardReplacer wr(sarg, 9, true); !wr.isAtEnd(); ++wr)
     {
@@ -268,7 +267,7 @@ void Pattern3::generate(const std::vector<std::string> &vs, int type)
     add_type = type;
     for (unsigned i = 0; i < vs.size() - 1; i += 2)
     {
-        generateFromStr(vs[i], stoi(vs[i + 1]), 0);
+        generateFromStr(vs[i], stoi(vs[i + 1]));
     }
 }
 
@@ -621,7 +620,7 @@ void Pattern3extra_array::addPatterns(Pattern3full p)
 }
 
 void Pattern3extra_array::generateFromStr(const std::string &sarg,
-                                          pattern3_val value, int depth)
+                                          pattern3_val value)
 {
     for (WildcardReplacer wr(sarg, 9, true); !wr.isAtEnd(); ++wr)
     {
@@ -639,7 +638,7 @@ void Pattern3extra_array::generate(const std::vector<std::string> &vs)
 {
     for (unsigned i = 0; i < vs.size() - 1; i += 2)
     {
-        generateFromStr(vs[i], stoi(vs[i + 1]), 0);
+        generateFromStr(vs[i], stoi(vs[i + 1]));
     }
 }
 
@@ -701,8 +700,7 @@ void Pattern52::addPatterns(pattern52_t p, real_t value)
                            values[p]);  // TODO: maybe sum would be better?
 }
 
-void Pattern52::generateFromStr(const std::string &sarg, real_t value,
-                                int depth)
+void Pattern52::generateFromStr(const std::string &sarg, real_t value)
 {
     for (WildcardReplacer wr(sarg, 10, false); !wr.isAtEnd(); ++wr)
     {
@@ -755,7 +753,7 @@ void Pattern52::generate(const std::vector<std::string> &vs)
 {
     for (unsigned i = 0; i < vs.size() - 1; i += 2)
     {
-        generateFromStr(vs[i], stof(vs[i + 1]), 0);
+        generateFromStr(vs[i], stof(vs[i + 1]));
     }
 }
 
