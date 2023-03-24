@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.9.4)
 
 project(kropla)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 include(cppcheck.cmake)
 include(clang-format.cmake)
 include(CheckIPOSupported)
@@ -14,7 +19,7 @@ else()
     message(STATUS "IPO / LTO not supported: <${error}>")
 endif()
 
-set(CMAKE_CXX_FLAGS "-s -Wall -std=c++17 -O3 -msse3 -march=native")
+set(CMAKE_CXX_FLAGS "-s -Wall -O3 -msse3 -march=native")
 add_definitions(-DNDEBUG)  # -DSPEED_TEST -DDEBUG_SGF
 
 #set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc -Wall -std=c++17 -O3 -DNDEBUG -march=sandybridge")
@@ -36,23 +41,21 @@ INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR})
 
 #find_package(OpenCV REQUIRED)
-include_directories(src)
 
 if(USE_CNN)
   set(USE_OPENCV 0)
   set(USE_MLSL 0)
 
   find_package(Glog REQUIRED)
-  INCLUDE_DIRECTORIES(${GLOG_INCLUDE_DIR})
-
-  add_subdirectory(caffeintel)
-  include_directories("${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
+  #INCLUDE_DIRECTORIES(${GLOG_INCLUDE_DIR})
 
   add_library(libcaffe SHARED IMPORTED)
   set_target_properties(libcaffe PROPERTIES
     IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/caffeintel/bin/lib/libcaffe.so"
     INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/caffeintel/include" # "${CMAKE_SOURCE_DIR}/caffeintel/bin/include" 
     )
+
+  target_include_directories(libcaffe INTERFACE "${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include" "${GLOG_INCLUDE_DIR}")
 
   #add_library(mlsl SHARED IMPORTED)
   #set_target_properties(mlsl PROPERTIES
@@ -79,13 +82,12 @@ if(USE_CNN)
   #set(MKLDNNROOT "${CMAKE_SOURCE_DIR}/external/mkldnn")
 
   #cmake_policy(SET CMP0079 NEW)
-  include_directories("${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
+#  include_directories("${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
   add_subdirectory(src/caffe)
 
 endif()   # USE_CNN
 
 
-include_directories(src)
 add_subdirectory(external)
 
 if(USE_CNN)
@@ -94,6 +96,8 @@ if(USE_CNN)
   set(CNN_lib "mcaffe" "libcaffe"  "mklml_intel" "iomp5" "mkldnn" "${Boost_LIBRARIES}" "${Boost_SYSTEM_LIBRARY}" "${GLOG_LIBRARY}" "stdc++fs") 
 
   add_executable(check_accuracy src/game.cc src/game.h src/history.cc src/history.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/check_accuracy.cc src/safety.cc src/safety.h src/caffe/mcaffe.h src/caffe/mcaffe.cc ${CNN_src})
+  target_include_directories(check_accuracy PRIVATE src)
+  target_include_directories(check_accuracy PRIVATE  "${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
   target_link_libraries(check_accuracy Threads::Threads mcaffe libcaffe  mklml_intel iomp5 mkldnn ${Boost_LIBRARIES} ${Boost_SYSTEM_LIBRARY} ${GLOG_LIBRARY} stdc++fs)
 else()
   message("Not using CNN")
@@ -109,18 +113,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
   
 add_executable(kropla src/game.cc src/game.h  src/history.cc src/history.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/kropla_main.cc src/safety.cc src/safety.h ${CNN_src})
 target_link_libraries(kropla Threads::Threads ${CNN_lib})
+target_include_directories(kropla PRIVATE src)
+if (USE_CNN)
+    target_include_directories(check_accuracy PRIVATE  "${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
+endif()
 
 add_executable(gather src/game.cc src/game.h  src/history.cc src/history.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/generatedata.cc src/allpattgen.cc src/allpattgen.h  src/safety.cc src/safety.h src/montecarlo.cc src/montecarlo.h  ${CNN_src})
 target_link_libraries(gather Threads::Threads ${CNN_lib})
+target_include_directories(gather PRIVATE src)
+if (USE_CNN)
+    target_include_directories(gather PRIVATE  "${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
+endif()
 
 add_executable(extract src/game.cc src/game.h src/history.cc src/history.h src/game_utils.h src/string_utils.h src/string_utils.cc src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/extract.cc src/safety.cc src/safety.h  src/gzip.cpp src/gzip.hpp ${CNN_src})
 target_link_libraries(extract Threads::Threads HighFive ${CNN_lib} ${ZLIB_LIBRARIES}  ${Boost_LIBRARIES})
+target_include_directories(extract PRIVATE src)
+if (USE_CNN)
+    target_include_directories(extract PRIVATE  "${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
+endif()
 
 if(NOT USE_CNN)
 add_subdirectory(gtest)
 enable_testing()
-include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-#include_directories("${CMAKE_SOURCE_DIR}/caffeintel/src/gmock/include" "${CMAKE_SOURCE_DIR}/caffeintel/src/gtest/include")
 
 add_executable(runUnitTests
   unittest/board-test.cc
@@ -165,12 +179,7 @@ add_executable(runUnitTests
   
 
 target_link_libraries(runUnitTests gtest gmock gtest_main)
+target_include_directories(runUnitTests  PRIVATE ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+target_include_directories(runUnitTests PRIVATE src)
 add_test(runUnitTests runUnitTests )
 endif()
-
-#add_executable(mojecnn src/mcaffe.cpp   src/czytanie.cpp  src/mcaffe.hpp src/util.h src/util.c)
-
-#link_directories("${CMAKE_SOURCE_DIR}/caffeintel/external/mlsl/l_mlsl_2018.1.005/intel64/lib/")
-
-#target_link_libraries(mojecnn LINK_PUBLIC Threads::Threads  libcaffe mlsl mklml_intel iomp5 ${Boost_LIBRARIES} ${Boost_SYSTEM_LIBRARY} )
-#target_link_libraries(mojecnn  Threads::Threads  libcaffe mklml_intel iomp5 mkldnn ${Boost_LIBRARIES} ${Boost_SYSTEM_LIBRARY} ${GLOG_LIBRARY}) # mlsl
