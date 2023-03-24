@@ -132,9 +132,14 @@ if (USE_CNN)
     target_include_directories(extract PRIVATE  "${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
 endif()
 
-if(NOT USE_CNN)
 add_subdirectory(gtest)
 enable_testing()
+
+if(USE_CNN)
+    set(MCAFFE_src "src/caffe/mcaffe.h" "src/caffe/mcaffe.cc")
+else()
+    set(MCAFFE_src "")
+endif()
 
 add_executable(runUnitTests
   unittest/board-test.cc
@@ -174,12 +179,15 @@ add_executable(runUnitTests
  src/safety.h
  src/montecarlo.cc
  src/montecarlo.h
+ ${MCAFFE_src}
  ${CNN_src}
  )
   
 
-target_link_libraries(runUnitTests gtest gmock gtest_main)
+target_link_libraries(runUnitTests gtest gmock gtest_main Threads::Threads ${CNN_lib})
 target_include_directories(runUnitTests  PRIVATE ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 target_include_directories(runUnitTests PRIVATE src)
-add_test(runUnitTests runUnitTests )
+if (USE_CNN)
+    target_include_directories(runUnitTests PRIVATE  "${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
 endif()
+add_test(runUnitTests runUnitTests )
