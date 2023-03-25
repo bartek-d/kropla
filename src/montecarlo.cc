@@ -238,6 +238,7 @@ void MonteCarlo::saveMCstats(int n, int max_moves, bool saveCnnStats) const
             for (auto [move_ind, playouts] : playouts_per_move)
                 file << "[" << coord.indToSgf(move_ind)
                      << ":" << playouts << "]";
+            file << '\n';
         }
         if (saveCnnStats)
         {
