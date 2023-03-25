@@ -34,6 +34,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <filesystem>
 
 #include "command.h"
 #include "game.h"
@@ -65,13 +66,14 @@ constexpr real_t increase_komi_threshhold = 0.75;
 constexpr real_t decrease_komi_threshhold = 0.15;
 constexpr int MC_EXPAND_THRESHOLD = 8;
 
-constexpr bool save_mc_stats = false;
+bool save_mc_stats = false;
 }  // namespace montec
 
 MonteCarlo::MonteCarlo()  //: finish_sim(false), finish_threads(false),
                           // finished_threads(0), iterations(0)
 {
     montec::root.parent = &montec::root;
+    montec::save_mc_stats = std::filesystem::exists("savemc.config");
 }
 
 std::string MonteCarlo::findBestMove(Game &pos, int iter_count)
@@ -197,8 +199,8 @@ std::string MonteCarlo::findBestMove(Game &pos, int iter_count)
     }
     if (montec::root.children != nullptr)
     {
-        const int max_moves = 10;
-        saveMCstats(n, max_moves);
+        const int max_moves = n;
+        saveMCstats(n, max_moves, false);
         return montec::root.children[0].getMoveSgf();
     }
     else
@@ -207,7 +209,7 @@ std::string MonteCarlo::findBestMove(Game &pos, int iter_count)
     }
 }
 
-void MonteCarlo::saveMCstats(int n, int max_moves) const
+void MonteCarlo::saveMCstats(int n, int max_moves, bool saveCnnStats) const
 {
     if (montec::save_mc_stats)
     {
@@ -215,47 +217,62 @@ void MonteCarlo::saveMCstats(int n, int max_moves) const
         std::fstream file(filename, std::fstream::out | std::fstream::app |
                                         std::fstream::ate);
         file << montec::root.children[0].getMoveSgf();
-        file << "LB";
         const int limit = std::min(n, max_moves);
+        std::map<pti, uint32_t> playouts_per_move;
         for (int i = 0; i < limit; ++i)
         {
             const auto playouts = (montec::root.children[i].t.playouts -
                                    montec::root.children[i].prior.playouts);
-            if (playouts == 0) break;
-            file << "[" << coord.indToSgf(montec::root.children[i].move.ind)
-                 << ":" << i << "]";
+            if (playouts == 0) continue;
+            const auto ind = montec::root.children[i].move.ind;
+            if (auto it = playouts_per_move.find(ind); it == playouts_per_move.end()) {
+                playouts_per_move[ind] = playouts;
+            }
+            else {
+                it->second += playouts;
+            }
         }
-        file << "C[";
-        for (int i = 0; i < limit; ++i)
+        if (not playouts_per_move.empty())
         {
-            const auto playouts = (montec::root.children[i].t.playouts -
-                                   montec::root.children[i].prior.playouts);
-            if (playouts == 0) break;
-            file << i << " "
-                 << coord.indToSgf(montec::root.children[i].move.ind) << ": "
-                 << playouts << "  cnn: " << montec::root.children[i].cnn_prob
-                 << "\n";
+            file << "LB";
+            for (auto [move_ind, playouts] : playouts_per_move)
+                file << "[" << coord.indToSgf(move_ind)
+                     << ":" << playouts << "]";
         }
-        using MoveCnnProb = std::pair<pti, float>;
-        std::vector<MoveCnnProb> moves_cnn(n, MoveCnnProb{0, -1.0f});
-        std::transform(montec::root.children.load(),
-                       montec::root.children.load() + n, moves_cnn.begin(),
-                       [](const auto &node) {
-                           return MoveCnnProb{node.move.ind, node.cnn_prob};
-                       });
+        if (saveCnnStats)
+        {
+            file << "C[";
+            for (int i = 0; i < limit; ++i)
+            {
+                const auto playouts = (montec::root.children[i].t.playouts -
+                                       montec::root.children[i].prior.playouts);
+                if (playouts == 0) break;
+                file << i << " "
+                     << coord.indToSgf(montec::root.children[i].move.ind) << ": "
+                     << playouts << "  cnn: " << montec::root.children[i].cnn_prob
+                     << "\n";
+            }
+            using MoveCnnProb = std::pair<pti, float>;
+            std::vector<MoveCnnProb> moves_cnn(n, MoveCnnProb{0, -1.0f});
+            std::transform(montec::root.children.load(),
+                           montec::root.children.load() + n, moves_cnn.begin(),
+                           [](const auto &node) {
+                               return MoveCnnProb{node.move.ind, node.cnn_prob};
+                           });
 
-        std::sort(moves_cnn.begin(), moves_cnn.end(),
-                  [](const MoveCnnProb &mc1, const MoveCnnProb &mc2) {
-                      return mc1.second > mc2.second;
-                  });
-        file << "\nCNN:\n";
-        for (int i = 0; i < limit; ++i)
-        {
-            if (moves_cnn[i].second < 1e-4) break;
-            file << i << " " << coord.indToSgf(moves_cnn[i].first) << ": "
-                 << moves_cnn[i].second << "\n";
+            std::sort(moves_cnn.begin(), moves_cnn.end(),
+                      [](const MoveCnnProb &mc1, const MoveCnnProb &mc2) {
+                          return mc1.second > mc2.second;
+                      });
+            file << "\nCNN:\n";
+            for (int i = 0; i < limit; ++i)
+            {
+                if (moves_cnn[i].second < 1e-4) break;
+                file << i << " " << coord.indToSgf(moves_cnn[i].first) << ": "
+                     << moves_cnn[i].second << "\n";
+            }
+            file << "]" << std::endl;
         }
-        file << "]" << std::endl;
     }
 }
 
@@ -742,8 +759,8 @@ std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
     std::string res = "";
     if (montec::root.children != nullptr)
     {
-        const int max_moves = 10;
-        saveMCstats(n, max_moves);
+        const int max_moves = n;
+        saveMCstats(n, max_moves, false);
 
         res = montec::root.children[0].getMoveSgf();
     }

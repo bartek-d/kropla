@@ -55,7 +55,7 @@ class MonteCarlo
     void showBestContinuation(const Treenode *node, const std::string &prefix,
                               const std::string &added_to_prefix,
                               unsigned depth) const;
-    void saveMCstats(int n, int max_moves) const;
+    void saveMCstats(int n, int max_moves, bool saveCnnStat) const;
 };
 
 namespace montec
