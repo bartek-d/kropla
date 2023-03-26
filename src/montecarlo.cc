@@ -61,6 +61,7 @@ std::atomic<int64_t> redundantGenerateMovesCount{0};
 DebugInfo root_debug_info;
 
 bool finish_threads(false);
+uint64_t time_seed{0};
 constexpr int start_increasing = 200;
 constexpr real_t increase_komi_threshhold = 0.75;
 constexpr real_t decrease_komi_threshhold = 0.15;
@@ -452,7 +453,7 @@ int MonteCarlo::runSimulations(int max_iter_count, unsigned thread_no,
                 }
             }
         }
-        unsigned seed = thread_no + threads_count * i;
+        unsigned seed = montec::time_seed + thread_no + threads_count * i;
         descend(alloc, &montec::root, seed);
         i++;
         montec::iterations++;
@@ -575,6 +576,7 @@ std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
               montec::generateMovesCount_depths.end(), 0);
     montec::cnnReads = 0;
     montec::threads_to_be_finished = threads;
+    montec::time_seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::vector<std::future<int>> concurrent;
     concurrent.reserve(threads);
     for (int t = 0; t < threads; t++)
