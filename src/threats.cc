@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <limits>
 
 bool Threat::isShortcut(pti x) const
 {

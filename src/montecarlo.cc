@@ -33,6 +33,7 @@
 #include <future>
 #include <iostream>
 #include <memory>
+#include <thread>
 #include <mutex>
 #include <filesystem>
 
