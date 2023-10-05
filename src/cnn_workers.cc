@@ -273,14 +273,13 @@ void WorkersPool::child_worker(void* data)
 try
 {
     const uint32_t wlkx = *static_cast<uint32_t*>(data);
-    cnn.caffe_init(wlkx, model_file_name, weights_file_name,
-                   DEFAULT_CNN_BOARD_SIZE);
+    cnn.init(wlkx, model_file_name, weights_file_name, DEFAULT_CNN_BOARD_SIZE);
     float* datafl = static_cast<float*>(add(data, sizeof(uint32_t)));
-    auto res = cnn.caffe_get_data(datafl, wlkx, planes, wlkx);
+    auto res = cnn.get_data(datafl, wlkx, planes, wlkx);
     static_cast<uint32_t*>(data)[0] = true;
     memcpy(data, static_cast<void*>(res.data()), sizeOfVec(res));
 }
-catch (const CaffeException& exc)
+catch (const CnnException& exc)
 {
     std::cerr << "Failed to load cnn" << std::endl;
     static_cast<uint32_t*>(data)[0] = false;
@@ -292,7 +291,7 @@ WorkersPool::WorkersPool(const std::string& config_file, int wlkx,
 {
     if (not madeQuiet)
     {
-        cnn.quiet_caffe("kropla");
+        cnn.quiet_logs("kropla");
         madeQuiet = true;
     }
     constexpr int default_n_workers = 7;
@@ -313,8 +312,8 @@ WorkersPool::WorkersPool(const std::string& config_file, int wlkx,
             planes = 10;
         }
         if (use_this_thread)
-            cnn.caffe_init(wlkx, model_file_name, weights_file_name,
-                           DEFAULT_CNN_BOARD_SIZE);
+            cnn.init(wlkx, model_file_name, weights_file_name,
+                     DEFAULT_CNN_BOARD_SIZE);
         try
         {
             n_workers = std::stoi(n_workers_str);
@@ -370,7 +369,7 @@ try
     if (acquired_lock)
     {
         auto debug_time = std::chrono::high_resolution_clock::now();
-        auto res = cnn.caffe_get_data(input.data(), wlkx, planes, wlkx);
+        auto res = cnn.get_data(input.data(), wlkx, planes, wlkx);
         lock.unlock();
         std::cerr << "Forward time, this thread [micros]: "
                   << std::chrono::duration_cast<std::chrono::microseconds>(
@@ -385,7 +384,7 @@ try
            static_cast<void*>(res.data()), sizeOfVec(res));
     return {true, res};
 }
-catch (const CaffeException& exc)
+catch (const CnnException& exc)
 {
     std::cerr << "Failed to load cnn" << std::endl;
     return {false, {}};

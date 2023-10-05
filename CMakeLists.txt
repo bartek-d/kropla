@@ -11,21 +11,13 @@ include(clang-format.cmake)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT supported OUTPUT error)
 
-if( supported )
-    message(STATUS "IPO / LTO enabled")
-    # set_property(TARGET nameoftarget PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
-    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-else()
-    message(STATUS "IPO / LTO not supported: <${error}>")
-endif()
-
-set(CMAKE_CXX_FLAGS "-s -Wall -Wextra -Wpedantic -O3 -msse3 -march=native")
+set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Wpedantic -O3 -msse3 -march=native")
 add_definitions(-DNDEBUG)  # -DSPEED_TEST -DDEBUG_SGF
 
 #set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc -Wall -std=c++17 -O3 -DNDEBUG -march=sandybridge")
 
 #set(SHARED_LIBS_DIR "${CMAKE_SOURCE_DIR}/cnn-shared")
-set(SHARED_LIBS_DIR "/home/b/kropki/cnn/shared")
+#set(SHARED_LIBS_DIR "/home/b/kropki/cnn/shared")
 
 unset(USE_CNN)
 #option(USE_CNN "Use CNN for kropla" ON)
@@ -36,6 +28,9 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system iostreams)
 find_package(ZLIB REQUIRED)
+
+list(APPEND CMAKE_PREFIX_PATH "/home/b/kropki/libtorch/libtorch")
+find_package(Torch REQUIRED)
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR})
@@ -64,20 +59,23 @@ if(USE_CNN)
 
   add_library(iomp5 SHARED IMPORTED)
   set_target_properties(iomp5 PROPERTIES
-    #  IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/caffeintel/external/mkl/mklml_lnx_2019.0.3.20190220/lib/libiomp5.so"
-    IMPORTED_LOCATION "${SHARED_LIBS_DIR}/libiomp5.so"
+    #IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/caffeintel/external/mkl/mklml_lnx_2019.0.3.20190220/lib/libiomp5.so"
+    IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/cnn-shared/libiomp5.so"    
+    #IMPORTED_LOCATION "${SHARED_LIBS_DIR}/libiomp5.so"
     )
 
   add_library(mklml_intel SHARED IMPORTED)
   set_target_properties(mklml_intel PROPERTIES
-    #  IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/caffeintel/external/mkl/mklml_lnx_2019.0.3.20190220/lib/libmklml_intel.so"
-    IMPORTED_LOCATION "${SHARED_LIBS_DIR}/libmklml_intel.so"
+      #IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/caffeintel/external/mkl/mklml_lnx_2019.0.3.20190220/lib/libmklml_intel.so"
+     IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/cnn-shared/libmklml_intel.so"    
+    #IMPORTED_LOCATION "${SHARED_LIBS_DIR}/libmklml_intel.so"
     )
 
   add_library(mkldnn SHARED IMPORTED)
   set_target_properties(mkldnn PROPERTIES
-    #  IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/caffeintel/external/mkldnn/install/lib/libmkldnn.so"
-    IMPORTED_LOCATION "${SHARED_LIBS_DIR}/libmkldnn.so"
+    #IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/caffeintel/external/mkldnn/install/lib/libmkldnn.so"
+     IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/cnn-shared/libmkldnn.so"
+    #IMPORTED_LOCATION "${SHARED_LIBS_DIR}/libmkldnn.so"
     )
   #set(MKLDNNROOT "${CMAKE_SOURCE_DIR}/external/mkldnn")
 
@@ -118,6 +116,14 @@ if (USE_CNN)
     target_include_directories(check_accuracy PRIVATE  "${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
 endif()
 
+if( supported )
+    message(STATUS "IPO / LTO enabled")
+    set_property(TARGET kropla PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+    # set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+else()
+    message(STATUS "IPO / LTO not supported: <${error}>")
+endif()
+
 add_executable(gather src/game.cc src/game.h  src/history.cc src/history.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/generatedata.cc src/allpattgen.cc src/allpattgen.h  src/safety.cc src/safety.h src/montecarlo.cc src/montecarlo.h  ${CNN_src})
 target_link_libraries(gather Threads::Threads ${CNN_lib})
 target_include_directories(gather PRIVATE src)
@@ -132,11 +138,21 @@ if (USE_CNN)
     target_include_directories(extract PRIVATE  "${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
 endif()
 
+add_executable(extracttensors src/game.cc src/game.h src/history.cc src/history.h src/game_utils.h src/string_utils.h src/string_utils.cc src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/extracttensors.cc src/safety.cc src/safety.h  src/gzip.cpp src/gzip.hpp
+"src/get_cnn_prob_dummy.cc" "src/get_cnn_prob.h")
+target_link_libraries(extracttensors Threads::Threads ${CNN_lib} ${ZLIB_LIBRARIES}  ${Boost_LIBRARIES} "${TORCH_LIBRARIES}")
+target_include_directories(extracttensors PRIVATE src)
+if (USE_CNN)
+    target_include_directories(extracttensors PRIVATE  "${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
+endif()
+
+
+
 add_subdirectory(gtest)
 enable_testing()
 
 if(USE_CNN)
-    set(MCAFFE_src "src/caffe/mcaffe.h" "src/caffe/mcaffe.cc")
+    set(MCAFFE_src "src/caffe/mcnn.h" "src/caffe/mcaffe.h" "src/caffe/mcaffe.cc")
 else()
     set(MCAFFE_src "")
 endif()

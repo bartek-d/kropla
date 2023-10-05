@@ -2536,22 +2536,23 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
     for (unsigned int tn = 0; tn < threats[who - 1].threats.size(); tn++)
     {
         Threat *thr = &threats[who - 1].threats[tn];
-        if ((thr->type & ThreatConsts::TO_CHECK) and (thr->type & ThreatConsts::TERR))
-            {
-                thr->type |= ThreatConsts::TO_REMOVE;
-                std::vector<int8_t> done(coord.last + 1, 0);
-                std::shared_ptr<Enclosure> encl =
-                    thr->encl;  // thr may be invalidated by adding new threats
-                                // in checkThreat_terr
-                for (auto p : encl->interior)
-                    if (!done[p] and whoseDotMarginAt(p) != who)
-                    {
-                        checkThreat_terr(
-                            &threats[who - 1].threats[tn], p, who,
-                            &done);  // try to enclose p; cannot use *thr
-                                     // because it can be invalidated
-                    }
-            }
+        if ((thr->type & ThreatConsts::TO_CHECK) and
+            (thr->type & ThreatConsts::TERR))
+        {
+            thr->type |= ThreatConsts::TO_REMOVE;
+            std::vector<int8_t> done(coord.last + 1, 0);
+            std::shared_ptr<Enclosure> encl =
+                thr->encl;  // thr may be invalidated by adding new threats
+                            // in checkThreat_terr
+            for (auto p : encl->interior)
+                if (!done[p] and whoseDotMarginAt(p) != who)
+                {
+                    checkThreat_terr(
+                        &threats[who - 1].threats[tn], p, who,
+                        &done);  // try to enclose p; cannot use *thr
+                                 // because it can be invalidated
+                }
+        }
     }
     // Second pass -- check ENCL threats.
     for (unsigned int tn = 0; tn < threats[who - 1].threats.size(); tn++)
@@ -3261,10 +3262,10 @@ void Game::removeMarkedAndAtPoint(pti ind, int who)
         // removeMarkedThreats(threats[who-1].threats);
 
         threats[who - 1].threats.erase(
-            std::remove_if(
-                threats[who - 1].threats.begin(),
-                threats[who - 1].threats.end(),
-                [](Threat &t) { return (t.type & ThreatConsts::TO_REMOVE); }),
+            std::remove_if(threats[who - 1].threats.begin(),
+                           threats[who - 1].threats.end(),
+                           [](Threat &t)
+                           { return (t.type & ThreatConsts::TO_REMOVE); }),
             threats[who - 1].threats.end());
     }
 }
@@ -3324,10 +3325,10 @@ void Game::removeMarked(int who)
         // removeMarkedThreats(threats[who-1].threats);
 
         threats[who - 1].threats.erase(
-            std::remove_if(
-                threats[who - 1].threats.begin(),
-                threats[who - 1].threats.end(),
-                [](Threat &t) { return (t.type & ThreatConsts::TO_REMOVE); }),
+            std::remove_if(threats[who - 1].threats.begin(),
+                           threats[who - 1].threats.end(),
+                           [](Threat &t)
+                           { return (t.type & ThreatConsts::TO_REMOVE); }),
             threats[who - 1].threats.end());
     }
 }
@@ -4132,7 +4133,9 @@ void Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure>> &encl_moves,
     }
     */
     std::copy_if(ml_priorities.begin(), ml_priorities.end(),
-                 back_inserter(ml_priority_vect), [move](ThrInfo &t) {
+                 back_inserter(ml_priority_vect),
+                 [move](ThrInfo &t)
+                 {
                      return (t.type & ThreatConsts::TERR) ||
                             (t.move == move and (t.type & ThreatConsts::ENCL));
                  });
@@ -4620,7 +4623,8 @@ void Game::show() const
 
 void Game::show(const std::vector<pti> &moves) const
 {
-    auto col_getter = [&](int x, int y) {
+    auto col_getter = [&](int x, int y)
+    {
         int value =
             (worm[coord.ind(x, y)] == 0) ? 0 : (worm[coord.ind(x, y)] % 4);
         if (value == 0)
@@ -4632,7 +4636,8 @@ void Game::show(const std::vector<pti> &moves) const
         }
         return value;
     };
-    auto str_getter = [&](int x, int y) -> std::string {
+    auto str_getter = [&](int x, int y) -> std::string
+    {
         pti what = coord.ind(x, y);
         const bool found =
             (std::find(moves.begin(), moves.end(), what) != moves.end());
@@ -5703,7 +5708,8 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
     bool update_safety_dame = false;
     std::set<std::pair<pti, pti>> singular_worms{};
     bool some_worms_were_not_singular = false;
-    auto updateSingInfo = [&](pti leftmost) {
+    auto updateSingInfo = [&](pti leftmost)
+    {
         if (threats[2 - who].is_in_encl[leftmost] +
                 threats[2 - who].is_in_terr[leftmost] ==
             1)
@@ -7472,7 +7478,8 @@ Move Game::chooseAtariResponse(pti lastMove, int who)
             threats[who - 1].is_in_encl[t.where0] == 0 and
             (coord.distBetweenPts_infty(t.where0, lastMove) <= 1 or
              std::any_of(t.thr_list.begin(), t.thr_list.end(),
-                         [lastMove](const Threat &thr) {
+                         [lastMove](const Threat &thr)
+                         {
                              return std::find(thr.encl->border.begin(),
                                               thr.encl->border.end(),
                                               lastMove) !=
@@ -8694,9 +8701,8 @@ bool Game::checkSoftSafetyCorrectness()
     Safety s;
     s.init(this);
     bool shown = false;
-    auto almost_eq = [](float x, float y) {
-        return x >= y - 1e-4 and x <= y + 1e-4;
-    };
+    auto almost_eq = [](float x, float y)
+    { return x >= y - 1e-4 and x <= y + 1e-4; };
     for (int ind = coord.first; ind <= coord.last; ind++)
     {
         if (not almost_eq(s.getSafetyOf(ind), safety_soft.getSafetyOf(ind)))

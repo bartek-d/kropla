@@ -55,7 +55,8 @@ std::string applyIsometry(const std::string sgfCoord, unsigned isometry,
                           Coord &coord)
 {
     std::string result{};
-    auto reflect = [&coord](char c) {
+    auto reflect = [&coord](char c)
+    {
         return coord.numberToLetter(coord.wlkx - 1 - coord.sgfCoordToInt(c))
             .front();
     };

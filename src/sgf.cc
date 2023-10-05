@@ -261,7 +261,8 @@ void SgfTree::makeMove(SgfProperty move)
 {
     auto pos = std::find_if(
         cursor.lock()->children.begin(), cursor.lock()->children.end(),
-        [move](std::shared_ptr<SgfNode> &s) {
+        [move](std::shared_ptr<SgfNode> &s)
+        {
             auto it = s->findProp(move.first);
             return (it != s->props.end() && it->second[0] == move.second[0]);
         });

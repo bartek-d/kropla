@@ -188,8 +188,7 @@ std::pair<bool, std::vector<float>> getCnnInfo(Game& game,
     auto input = getInputForCnn(game, use_secondary_cnn ? planes2 : planes);
     auto [success, res] = (use_secondary_cnn ? workers_pool2 : workers_pool)
                               ->getCnnInfo(input, coord.wlkx);
-    if (not success)
-        return {false, {}};
+    if (not success) return {false, {}};
     res = convertToBoard(res);
     if (not use_secondary_cnn)
     {
@@ -224,8 +223,7 @@ void updatePriors(Game& game, Treenode* children, int depth)
         std::cerr << "Max is 0.0f, CNN does not work?" << std::endl;
         return;
     }
-    const float prior_max =
-        150.0f / std::sqrt(std::sqrt(max));
+    const float prior_max = 150.0f / std::sqrt(std::sqrt(max));
     const float min_to_show = 0.05f;
     for (auto* ch = children; true; ++ch)
     {

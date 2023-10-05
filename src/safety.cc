@@ -233,7 +233,8 @@ void Safety::markMoveForPlayer(int who, pti where, pti value)
 
 void Safety::markMovesAsOld()
 {
-    auto saveOnlyGoodMove = [](auto& move_val) {
+    auto saveOnlyGoodMove = [](auto& move_val)
+    {
         if (move_val > 0)
             move_val += add_this_to_make_old;
         else

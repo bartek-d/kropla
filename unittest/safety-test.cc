@@ -73,13 +73,15 @@ TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialised1)
     constexpr pti bad_move = -10;
     constexpr pti good_move = 10;
     auto move_at1 = [&](auto pstr,
-                        pti value) -> std::pair<const MoveDescription, pti> {
+                        pti value) -> std::pair<const MoveDescription, pti>
+    {
         return {MoveDescription{
                     coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 1},
                 value};
     };
     auto move_at2 = [&](auto pstr,
-                        pti value) -> std::pair<const MoveDescription, pti> {
+                        pti value) -> std::pair<const MoveDescription, pti>
+    {
         return {MoveDescription{
                     coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 2},
                 value};
@@ -135,13 +137,15 @@ TEST_P(IsometryFixtureS2, safetyIsCorrectlyInitialised2)
     MoveSuggestions suggestions = convertToMap(safety.getMoveValues());
     constexpr pti bad_move = -10;
     auto move_at1 = [&](auto pstr,
-                        pti value) -> std::pair<const MoveDescription, pti> {
+                        pti value) -> std::pair<const MoveDescription, pti>
+    {
         return {MoveDescription{
                     coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 1},
                 value};
     };
     auto move_at2 = [&](auto pstr,
-                        pti value) -> std::pair<const MoveDescription, pti> {
+                        pti value) -> std::pair<const MoveDescription, pti>
+    {
         return {MoveDescription{
                     coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 2},
                 value};
@@ -194,20 +198,23 @@ TEST_P(IsometryFixtureS3, safetyIsCorrectlyInitialised3)
     constexpr pti good_move = 10;
     constexpr pti x_player = 2;
     auto move_at_for = [&](auto pstr, pti value,
-                           pti who) -> std::pair<const MoveDescription, pti> {
+                           pti who) -> std::pair<const MoveDescription, pti>
+    {
         return {MoveDescription{
                     coord.sgfToPti(applyIsometry(pstr, isometry, coord)), who},
                 value};
     };
 
     auto move_at1 = [&](auto pstr,
-                        pti value) -> std::pair<const MoveDescription, pti> {
+                        pti value) -> std::pair<const MoveDescription, pti>
+    {
         return {MoveDescription{
                     coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 1},
                 value};
     };
     auto move_at2 = [&](auto pstr,
-                        pti value) -> std::pair<const MoveDescription, pti> {
+                        pti value) -> std::pair<const MoveDescription, pti>
+    {
         return {MoveDescription{
                     coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 2},
                 value};
@@ -330,20 +337,23 @@ TEST_P(IsometryFixtureS3d,
     constexpr pti good_move = 10;
     constexpr pti x_player = 2;
     auto move_at_for = [&](auto pstr, pti value,
-                           pti who) -> std::pair<const MoveDescription, pti> {
+                           pti who) -> std::pair<const MoveDescription, pti>
+    {
         return {MoveDescription{
                     coord.sgfToPti(applyIsometry(pstr, isometry, coord)), who},
                 value};
     };
 
     auto move_at1 = [&](auto pstr,
-                        pti value) -> std::pair<const MoveDescription, pti> {
+                        pti value) -> std::pair<const MoveDescription, pti>
+    {
         return {MoveDescription{
                     coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 1},
                 value};
     };
     auto move_at2 = [&](auto pstr,
-                        pti value) -> std::pair<const MoveDescription, pti> {
+                        pti value) -> std::pair<const MoveDescription, pti>
+    {
         return {MoveDescription{
                     coord.sgfToPti(applyIsometry(pstr, isometry, coord)), 2},
                 value};
@@ -442,9 +452,8 @@ TEST_P(IsometryFixtureS4, moveSuggestionsAreCorrect)
     EXPECT_EQ(0.0f, safety.getSafetyOf(
                         coord.sgfToPti(applyIsometry("ef", isometry, coord))));
     auto moveSugg = safety.getCurrentlyAddedSugg();
-    auto move = [&](auto pstr) -> pti {
-        return coord.sgfToPti(applyIsometry(pstr, isometry, coord));
-    };
+    auto move = [&](auto pstr) -> pti
+    { return coord.sgfToPti(applyIsometry(pstr, isometry, coord)); };
 
     EXPECT_THAT(moveSugg[0], testing::UnorderedElementsAre(move("eg")));
     EXPECT_THAT(moveSugg[1], testing::UnorderedElementsAre(
@@ -485,9 +494,8 @@ TEST_P(IsometryFixtureS5,
     game.makeSgfMove(applyIsometry("cf", isometry, coord), 1);
     safety.updateAfterMove(&game, safety.getUpdateValueForAllMargins());
     auto moveSugg = safety.getCurrentlyAddedSugg();
-    auto move = [&](auto pstr) -> pti {
-        return coord.sgfToPti(applyIsometry(pstr, isometry, coord));
-    };
+    auto move = [&](auto pstr) -> pti
+    { return coord.sgfToPti(applyIsometry(pstr, isometry, coord)); };
 
     EXPECT_THAT(moveSugg[0], testing::UnorderedElementsAre(move("eg")));
     EXPECT_THAT(moveSugg[1], testing::UnorderedElementsAre(
@@ -570,9 +578,8 @@ TEST_P(IsometryFixtureS7,
     safety.updateAfterMove(
         &game, safety.getUpdateValueForMarginsContaining(move1), move1);
 
-    auto move = [&](auto pstr) -> pti {
-        return coord.sgfToPti(applyIsometry(pstr, isometry, coord));
-    };
+    auto move = [&](auto pstr) -> pti
+    { return coord.sgfToPti(applyIsometry(pstr, isometry, coord)); };
     auto moveSuggNow = safety.getCurrentlyAddedSugg();
     EXPECT_THAT(moveSuggNow[0], testing::UnorderedElementsAre(
                                     move("dg"), move("eg"), move("ef"),
@@ -618,9 +625,8 @@ TEST_P(IsometryFixtureS8,
     safety.updateAfterMove(
         &game, safety.getUpdateValueForMarginsContaining(move1), move1);
 
-    auto move = [&](auto pstr) -> pti {
-        return coord.sgfToPti(applyIsometry(pstr, isometry, coord));
-    };
+    auto move = [&](auto pstr) -> pti
+    { return coord.sgfToPti(applyIsometry(pstr, isometry, coord)); };
     auto moveSuggNow = safety.getCurrentlyAddedSugg();
     EXPECT_THAT(moveSuggNow[0], testing::UnorderedElementsAre(
                                     move("dg"), move("eg"), move("ef"),

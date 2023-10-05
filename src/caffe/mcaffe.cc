@@ -43,20 +43,22 @@ int MCaffe::shape_size(const vector<int>& shape) const
 }
 
 /* Make caffe quiet */
-void MCaffe::quiet_caffe(const char* name) const
+void MCaffe::quiet_logs(const char* name) const
 {
     FLAGS_logtostderr = 1;
     google::InitGoogleLogging(name);
 }
 
-void MCaffe::caffe_load(const std::string& model_file,
-                        const std::string& weights_file, int default_size)
+bool MCaffe::is_ready() const { return (net != nullptr); }
+
+void MCaffe::load(const std::string& model_file,
+                  const std::string& weights_file, int default_size)
 {
     if (not std::filesystem::exists(model_file) or
         not std::filesystem::exists(weights_file))
     {
-        throw CaffeException("File " + model_file + " or " + weights_file +
-                             " does not exist");
+        throw CnnException("File " + model_file + " or " + weights_file +
+                           " does not exist");
     }
     Caffe::set_mode(Caffe::CPU);
     /* Load the network. */
@@ -65,13 +67,13 @@ void MCaffe::caffe_load(const std::string& model_file,
     net_size = default_size;
 }
 
-void MCaffe::caffe_init(int size, const std::string& model_file,
-                        const std::string& weights_file, int default_size)
+void MCaffe::init(int size, const std::string& model_file,
+                  const std::string& weights_file, int default_size)
 {
     if (net && net_size == size) return; /* Nothing to do. */
     if (!net)
     {
-        caffe_load(model_file, weights_file, default_size);
+        load(model_file, weights_file, default_size);
     }
 
     /* If network is fully convolutional it can handle any boardsize,
@@ -85,8 +87,8 @@ void MCaffe::caffe_init(int size, const std::string& model_file,
     }
 }
 
-std::vector<float> MCaffe::caffe_get_data(float* data, int size, int planes,
-                                          int psize)
+std::vector<float> MCaffe::get_data(float* data, int size, int planes,
+                                    int psize)
 {
     assert(net && net_size == size);
     //	Blob<float> *blob = new Blob<float>(1, planes, psize, psize);

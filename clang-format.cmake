@@ -8,7 +8,7 @@ file(GLOB ALL_SOURCE_FILES
 
 add_custom_target(
         clangformat
-        COMMAND /usr/bin/clang-format-11
+        COMMAND /usr/bin/clang-format
 	-i
         ${ALL_SOURCE_FILES}
 )

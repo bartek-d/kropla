@@ -1,8 +1,8 @@
 #pragma once
 
 #include <algorithm>
-#include <cassert>
 #include <array>
+#include <cassert>
 #include <vector>
 
 /********************************************************************************************************

@@ -25,29 +25,22 @@
 #pragma once
 
 #define CPU_ONLY 1
-#include <memory>
-#include <vector>
 
 #include "caffe/caffe.hpp"
+#include "mcnn.h"
 
-struct CaffeException : public std::runtime_error
-{
-    CaffeException(const std::string& error_message)
-        : std::runtime_error(error_message){};
-};
-
-class MCaffe
+class MCaffe : public CnnProxy
 {
    public:
     MCaffe();
-    void quiet_caffe(const char* name) const;
-    bool caffe_ready() const { return (net != nullptr); }
-    void caffe_load(const std::string& model_file,
-                    const std::string& weights_file, int default_size);
-    void caffe_init(int size, const std::string& model_file,
-                    const std::string& weights_file, int default_size);
-    std::vector<float> caffe_get_data(float* data, int size, int planes,
-                                      int psize);
+    void quiet_logs(const char* name) const override;
+    bool is_ready() const override;
+    void load(const std::string& model_file, const std::string& weights_file,
+              int default_size) override;
+    void init(int size, const std::string& model_file,
+              const std::string& weights_file, int default_size) override;
+    std::vector<float> get_data(float* data, int size, int planes,
+                                int psize) override;
 
    private:
     int shape_size(const std::vector<int>& shape) const;

@@ -512,17 +512,17 @@ Threat *AllThreats::findThreatWhichContains(pti ind)
 
 Threat *AllThreats::findThreatZobrist(uint64_t zobr)
 {
-    auto pos = std::find_if(
-        threats.begin(), threats.end(),
-        [zobr](const Threat &t) { return (t.zobrist_key == zobr); });
+    auto pos = std::find_if(threats.begin(), threats.end(),
+                            [zobr](const Threat &t)
+                            { return (t.zobrist_key == zobr); });
     return (pos != threats.end()) ? (&*pos) : nullptr;
 }
 
 const Threat *AllThreats::findThreatZobrist_const(uint64_t zobr) const
 {
-    const auto pos = std::find_if(
-        threats.begin(), threats.end(),
-        [zobr](const Threat &t) { return (t.zobrist_key == zobr); });
+    const auto pos = std::find_if(threats.begin(), threats.end(),
+                                  [zobr](const Threat &t)
+                                  { return (t.zobrist_key == zobr); });
     return (pos != threats.end()) ? (&*pos) : nullptr;
 }
 
@@ -601,9 +601,8 @@ void AllThreats::removeMarkedAndAtPoint2moves(pti ind)
         {
             // removeEmptyThreats2m(threats2m); -- for vectors
             threats2m.erase(std::remove_if(threats2m.begin(), threats2m.end(),
-                                           [](Threat2m &t2) {
-                                               return t2.thr_list.empty();
-                                           }),
+                                           [](Threat2m &t2)
+                                           { return t2.thr_list.empty(); }),
                             threats2m.end());
         }
     }
@@ -647,9 +646,8 @@ void AllThreats::removeMarked2moves()
         {
             // removeEmptyThreats2m(threats2m);
             threats2m.erase(std::remove_if(threats2m.begin(), threats2m.end(),
-                                           [](Threat2m &t2) {
-                                               return t2.thr_list.empty();
-                                           }),
+                                           [](Threat2m &t2)
+                                           { return t2.thr_list.empty(); }),
                             threats2m.end());
         }
     }

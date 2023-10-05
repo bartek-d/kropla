@@ -29,13 +29,13 @@
 #include <atomic>
 #include <chrono>  // chrono::high_resolution_clock, only to measure elapsed time
 #include <condition_variable>
+#include <filesystem>
 #include <fstream>
 #include <future>
 #include <iostream>
 #include <memory>
-#include <thread>
 #include <mutex>
-#include <filesystem>
+#include <thread>
 
 #include "command.h"
 #include "game.h"
@@ -156,7 +156,8 @@ std::string MonteCarlo::findBestMove(Game &pos, int iter_count)
         montec::root.children[n - 1].markAsNotLast();
         std::sort(montec::root.children.load(),
                   montec::root.children.load() + n,
-                  [](Treenode &t1, Treenode &t2) {
+                  [](Treenode &t1, Treenode &t2)
+                  {
                       return t1.t.playouts - t1.prior.playouts >
                              t2.t.playouts - t2.prior.playouts;
                   });
@@ -183,7 +184,8 @@ std::string MonteCarlo::findBestMove(Game &pos, int iter_count)
                 montec::root.children[i].children[nn - 1].markAsNotLast();
                 std::sort(montec::root.children[i].children.load(),
                           montec::root.children[i].children.load() + nn,
-                          [](Treenode &t1, Treenode &t2) {
+                          [](Treenode &t1, Treenode &t2)
+                          {
                               return t1.t.playouts - t1.prior.playouts >
                                      t2.t.playouts - t2.prior.playouts;
                           });
@@ -227,10 +229,13 @@ void MonteCarlo::saveMCstats(int n, int max_moves, bool saveCnnStats) const
                                    montec::root.children[i].prior.playouts);
             if (playouts == 0) continue;
             const auto ind = montec::root.children[i].move.ind;
-            if (auto it = playouts_per_move.find(ind); it == playouts_per_move.end()) {
+            if (auto it = playouts_per_move.find(ind);
+                it == playouts_per_move.end())
+            {
                 playouts_per_move[ind] = playouts;
             }
-            else {
+            else
+            {
                 it->second += playouts;
             }
         }
@@ -238,8 +243,8 @@ void MonteCarlo::saveMCstats(int n, int max_moves, bool saveCnnStats) const
         {
             file << "LB";
             for (auto [move_ind, playouts] : playouts_per_move)
-                file << "[" << coord.indToSgf(move_ind)
-                     << ":" << playouts << "]";
+                file << "[" << coord.indToSgf(move_ind) << ":" << playouts
+                     << "]";
             file << '\n';
         }
         if (saveCnnStats)
@@ -251,9 +256,9 @@ void MonteCarlo::saveMCstats(int n, int max_moves, bool saveCnnStats) const
                                        montec::root.children[i].prior.playouts);
                 if (playouts == 0) break;
                 file << i << " "
-                     << coord.indToSgf(montec::root.children[i].move.ind) << ": "
-                     << playouts << "  cnn: " << montec::root.children[i].cnn_prob
-                     << "\n";
+                     << coord.indToSgf(montec::root.children[i].move.ind)
+                     << ": " << playouts
+                     << "  cnn: " << montec::root.children[i].cnn_prob << "\n";
             }
             using MoveCnnProb = std::pair<pti, float>;
             std::vector<MoveCnnProb> moves_cnn(n, MoveCnnProb{0, -1.0f});
@@ -264,9 +269,8 @@ void MonteCarlo::saveMCstats(int n, int max_moves, bool saveCnnStats) const
                            });
 
             std::sort(moves_cnn.begin(), moves_cnn.end(),
-                      [](const MoveCnnProb &mc1, const MoveCnnProb &mc2) {
-                          return mc1.second > mc2.second;
-                      });
+                      [](const MoveCnnProb &mc1, const MoveCnnProb &mc2)
+                      { return mc1.second > mc2.second; });
             file << "\nCNN:\n";
             for (int i = 0; i < limit; ++i)
             {
@@ -577,14 +581,15 @@ std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
               montec::generateMovesCount_depths.end(), 0);
     montec::cnnReads = 0;
     montec::threads_to_be_finished = threads;
-    montec::time_seed = std::chrono::system_clock::now().time_since_epoch().count();
+    montec::time_seed =
+        std::chrono::system_clock::now().time_since_epoch().count();
     std::vector<std::future<int>> concurrent;
     concurrent.reserve(threads);
     for (int t = 0; t < threads; t++)
     {
-        concurrent.push_back(std::async(std::launch::async, [=] {
-            return runSimulations(iter_count, t, threads);
-        }));
+        concurrent.push_back(
+            std::async(std::launch::async,
+                       [=] { return runSimulations(iter_count, t, threads); }));
     }
     auto time_begin = std::chrono::high_resolution_clock::now();
     if (msec > 0)
@@ -687,7 +692,8 @@ std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
         montec::root.children[n - 1].markAsNotLast();
         std::sort(montec::root.children.load(),
                   montec::root.children.load() + n,
-                  [](Treenode &t1, Treenode &t2) {
+                  [](Treenode &t1, Treenode &t2)
+                  {
                       return t1.t.playouts - t1.prior.playouts >
                              t2.t.playouts - t2.prior.playouts;
                   });
@@ -720,9 +726,8 @@ std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
                 montec::root.children[i].children[nn - 1].markAsNotLast();
                 std::sort(montec::root.children[i].children.load(),
                           montec::root.children[i].children.load() + nn,
-                          [](Treenode &t1, Treenode &t2) {
-                              return t1.t.playouts > t2.t.playouts;
-                          });
+                          [](Treenode &t1, Treenode &t2)
+                          { return t1.t.playouts > t2.t.playouts; });
                 montec::root.children[i].children[nn - 1].markAsLast();
             }
             for (int j = 0; j < max_moves && j < nn; j++)

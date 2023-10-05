@@ -1,7 +1,7 @@
 /********************************************************************************************************
- kropla -- a program to play Kropki; file extract.cc -- main file for extracting
-trainign data for NN. Copyright (C) 2021, 2022 Bartek Dyda, email: bartekdyda
-(at) protonmail (dot) com
+ kropla -- a program to play Kropki; file extracttensors.cc -- main file for
+extracting trainign data for NN. Copyright (C) 2021, 2022, 2023 Bartek Dyda,
+email: bartekdyda (at) protonmail (dot) com
 
     Some parts are inspired by Pachi http://pachi.or.cz/
       by Petr Baudis and Jean-loup Gailly
@@ -22,14 +22,13 @@ trainign data for NN. Copyright (C) 2021, 2022 Bartek Dyda, email: bartekdyda
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
 
+#include <torch/torch.h>
+
 #include <algorithm>
 #include <array>
 #include <boost/multi_array.hpp>
 #include <cstring>
 #include <fstream>
-#include <highfive/H5DataSet.hpp>
-#include <highfive/H5DataSpace.hpp>
-#include <highfive/H5File.hpp>
 #include <iostream>
 #include <queue>
 #include <set>
@@ -120,6 +119,9 @@ auto DataCollector::getCurrentArray() { return data[curr_size]; }
 
 void DataCollector::save(int move, int label)
 {
+    if (label < 0 or label >= BSIZEX * BSIZEY)
+        throw std::runtime_error("Niepoprawny label = " +
+                                 std::to_string(label));
     data_labels[move][curr_size] = label;
     if (move == MOVES_USED - 1)
     {
@@ -146,47 +148,56 @@ auto DataCollector::convertLabelsToArray(int move_no) const
 
 void DataCollector::dump()
 {
+    std::cout << "dump()\n";
     try
     {
-        std::string filename{"board_" + std::to_string(file_no) + ".h5"};
-        HighFive::File file(filename, HighFive::File::ReadWrite |
-                                          HighFive::File::Create |
-                                          HighFive::File::Truncate);
-        // gzip config
-        HighFive::DataSetCreateProps dsprops;
-        dsprops.add(HighFive::Chunking(
-            std::vector<hsize_t>{1, PLANES, BSIZEX, BSIZEY}));
-        dsprops.add(HighFive::Deflate(9));
-        // Create the dataset
-        const std::string DATASET_NAME("bdata");
-        HighFive::DataSet dataset = file.createDataSet<float>(
-            DATASET_NAME, HighFive::DataSpace::From(data), dsprops);
-        dataset.write(data);
+        std::string filename{"board_" + std::to_string(file_no) + ".pt"};
+        torch::Tensor output_tensor =
+            torch::from_blob(data.origin(), {curr_size, PLANES, BSIZEX, BSIZEY})
+                .clone();
+        /*
+        torch::Tensor output_tensor = torch::zeros({curr_size, PLANES, BSIZEX,
+        BSIZEY}); for (int i=0; i<curr_size; ++i)
+          {
+            if (i%100==0) std::cout << "." << std::flush;
+            for (int j=0; j<PLANES; ++j)
+              for (int k=0; k<BSIZEX; ++k)
+                for (int l=0; l<BSIZEY; ++l)
+                  output_tensor[i][j][k][l] = data[i][j][k][l];
+          }
+        */
+        torch::save(output_tensor, filename);
+        std::cout << " data saved.\n";
 
-        const bool use_verbose_format = true;
-        for (int m = 0; m < MOVES_USED; ++m)
+        /*
+        auto test_Tens = torch::from_blob(data.origin(), {curr_size, PLANES,
+        BSIZEX, BSIZEY}).clone(); for (int i=0; i<curr_size; ++i) for (int j=0;
+        j<PLANES; ++j) for (int k=0; k<BSIZEX; ++k) for (int l=0; l<BSIZEY; ++l)
+                  if (output_tensor[i][j][k][l].item<float>() !=
+        test_Tens[i][j][k][l].item<float>()) std::cout << i << " " << j << " "
+        << k << " " << l << ": " <<output_tensor[i][j][k][l] << "!=" <<
+        test_Tens[i][j][k][l] << std::endl;
+        */
+
+        torch::Tensor labels_tensor =
+            torch::zeros({curr_size, MOVES_USED, BSIZEX, BSIZEY});
+        for (int i = 0; i < curr_size; ++i)
         {
-            const std::string LABELS_NAME(std::string{"blabels"} +
-                                          (m == 0 ? "" : std::to_string(m)));
-            if (use_verbose_format and m == 0)
+            if (i % 100 == 0) std::cout << "." << std::flush;
+            for (int move_no = 0; move_no < MOVES_USED; ++move_no)
             {
-                auto lab = convertLabelsToArray(m);
-                HighFive::DataSet labels = file.createDataSet<float>(
-                    LABELS_NAME, HighFive::DataSpace::From(lab));
-                labels.write(lab);
-            }
-            else
-            {
-                HighFive::DataSet labels = file.createDataSet<int>(
-                    LABELS_NAME, HighFive::DataSpace::From(data_labels[m]));
-                labels.write(data_labels[m]);
+                const unsigned x = data_labels[move_no][i] / BSIZEY;
+                const unsigned y = data_labels[move_no][i] % BSIZEY;
+                labels_tensor[i][move_no][x][y] = 1.0f;
             }
         }
+        torch::save(labels_tensor, filename + ".labels");
+        std::cout << " labels saved." << std::endl;
     }
-    catch (const HighFive::Exception& err)
+    catch (...)
     {
-        // catch and print any HDF5 error
-        std::cerr << err.what() << std::endl;
+        std::cerr << "Jakis blad w DataCollector::dump()" << std::endl;
+        throw;
     }
     curr_size = 0;
     ++file_no;
@@ -239,6 +250,7 @@ void CompressedData::permute_last()
 void CompressedData::save_last()
 {
     int count = std::min<int>(cont.size(), TAB_SIZE);
+
     for (int i = 0; i < count; ++i)
     {
         auto u = unzip(cont.back());
@@ -253,7 +265,7 @@ void CompressedData::save_last()
 
 void CompressedData::save(std::string s)
 {
-    if (++count % 10000 == 0) std::cout << "..." << count << std::endl;
+    if (++count % 10000 != 0) std::cout << "..." << count << "  " << s.size();
     cont.emplace_back(std::move(s));
     if (cont.size() >= THRESHOLD)
     {
@@ -283,6 +295,25 @@ int applyIsometry(int p, unsigned isometry)
     if (isometry & 1) x = coord.wlkx - 1 - x;
     if (isometry & 2) y = coord.wlky - 1 - y;
     if (isometry & 4) std::swap(x, y);
+    if (x >= coord.wlkx or y >= coord.wlky or x < 0 or y < 0)
+        throw std::runtime_error("applyIsom with x,y=" + std::to_string(x) +
+                                 " " + std::to_string(y));
+    return coord.ind(x, y);
+}
+
+int applyIsometryInverse(int p, unsigned isometry)
+// isometry & 1: reflect w/r to Y
+// isometry & 2: reflect w/r to X
+// isometry & 4: reflect w/r to x==y (swap x--y)
+{
+    int x = coord.x[p];
+    int y = coord.y[p];
+    if (isometry & 4) std::swap(x, y);
+    if (isometry & 2) y = coord.wlky - 1 - y;
+    if (isometry & 1) x = coord.wlkx - 1 - x;
+    if (x >= coord.wlkx or y >= coord.wlky or x < 0 or y < 0)
+        throw std::runtime_error("applyIsomInv with x,y=" + std::to_string(x) +
+                                 " " + std::to_string(y));
     return coord.ind(x, y);
 }
 
@@ -293,7 +324,7 @@ void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
     game.show();
     std::cerr << "Move " << move.show() << " was about to play." << std::endl;
     */
-    const unsigned max_isometry = (BSIZEX == BSIZEY) ? 8 : 4;
+    const unsigned max_isometry = 1;  // do not apply isometries for tensors!
     for (unsigned isometry = 0; isometry < max_isometry; ++isometry)
     {
         Datum datum;
@@ -302,7 +333,7 @@ void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
             for (int y = 0; y < BSIZEY; ++y)
             {
                 int p_orig = coord.ind(x, y);
-                int p = applyIsometry(p_orig, isometry);
+                int p = applyIsometryInverse(p_orig, isometry);
                 int on_move = game.whoNowMoves();
                 int opponent = 3 - on_move;
                 data[0][x][y] = (game.whoseDotMarginAt(p) == 0) ? 1.0f : 0.0f;
@@ -385,6 +416,8 @@ void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
         {
             int move_isom = applyIsometry(moves.at(m).ind, isometry);
             int label = coord.x[move_isom] * BSIZEY + coord.y[move_isom];
+            if (label < 0 or label >= BSIZEX * BSIZEY)
+                throw std::runtime_error("label");
             // collector.save(m, label);
             datum.labels[m] = label;
         }
@@ -459,14 +492,21 @@ void gatherDataFromSgfSequence(SgfSequence& seq,
         if (whichSide.at(game.whoNowMoves()))
         {
             std::vector<Move> subsequentMoves;
+            bool moves_are_correct = true;
             for (int j = 0; j < MOVES_USED; ++j)
             {
                 auto [move, points_to_enclose] =
                     getMoveFromSgfNode(game, seq[i + j]);
+                if (move.ind == 0 or
+                    move.who != (j % 2 == 0 ? game.whoNowMoves()
+                                            : 3 - game.whoNowMoves()))
+                {
+                    moves_are_correct = false;
+                    break;
+                }
                 subsequentMoves.push_back(move);
             }
-            if (subsequentMoves[0].ind != 0 and
-                subsequentMoves[0].who == game.whoNowMoves())
+            if (moves_are_correct)
             {
                 gatherDataFromPosition(game, subsequentMoves);
             }
