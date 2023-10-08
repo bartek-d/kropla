@@ -29,11 +29,14 @@ find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system iostreams)
 find_package(ZLIB REQUIRED)
 
-list(APPEND CMAKE_PREFIX_PATH "/home/b/kropki/libtorch/libtorch")
-find_package(Torch REQUIRED)
+#list(APPEND CMAKE_PREFIX_PATH "/home/b/kropki/libtorch/libtorch")
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR})
+
+if(USE_CNN)
+  add_subdirectory(src/torch)
+endif()
 
 #find_package(OpenCV REQUIRED)
 
@@ -83,6 +86,8 @@ if(USE_CNN)
 #  include_directories("${CMAKE_SOURCE_DIR}/caffeintel/include" "${CMAKE_SOURCE_DIR}/caffeintel/bin/include")
   add_subdirectory(src/caffe)
 
+#find_package(Torch REQUIRED)
+
 endif()   # USE_CNN
 
 
@@ -91,7 +96,7 @@ add_subdirectory(external)
 if(USE_CNN)
   message("Using CNN")
   set(CNN_src "src/get_cnn_prob.cc" "src/get_cnn_prob.h" "src/cnn_workers.cc" "src/cnn_workers.h" "src/cnn_hash_table.cc" "src/cnn_hash_table.h")
-  set(CNN_lib "mcaffe" "libcaffe"  "mklml_intel" "iomp5" "mkldnn" "${Boost_LIBRARIES}" "${Boost_SYSTEM_LIBRARY}" "${GLOG_LIBRARY}" "stdc++fs") 
+  set(CNN_lib "mcaffe" "libcaffe"  "mklml_intel" "iomp5" "mkldnn" "${Boost_LIBRARIES}" "${Boost_SYSTEM_LIBRARY}" "${GLOG_LIBRARY}" "stdc++fs" "mtorch" "${TORCH_LIBRARIES}") 
 
   add_executable(check_accuracy src/game.cc src/game.h src/history.cc src/history.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/check_accuracy.cc src/safety.cc src/safety.h src/caffe/mcaffe.h src/caffe/mcaffe.cc ${CNN_src})
   target_include_directories(check_accuracy PRIVATE src)
@@ -124,6 +129,9 @@ else()
     message(STATUS "IPO / LTO not supported: <${error}>")
 endif()
 
+message(STATUS "src: ${CNN_src}")
+message(STATUS "--lib: ${CNN_lib}")
+
 add_executable(gather src/game.cc src/game.h  src/history.cc src/history.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/generatedata.cc src/allpattgen.cc src/allpattgen.h  src/safety.cc src/safety.h src/montecarlo.cc src/montecarlo.h  ${CNN_src})
 target_link_libraries(gather Threads::Threads ${CNN_lib})
 target_include_directories(gather PRIVATE src)
@@ -152,7 +160,7 @@ add_subdirectory(gtest)
 enable_testing()
 
 if(USE_CNN)
-    set(MCAFFE_src "src/caffe/mcnn.h" "src/caffe/mcaffe.h" "src/caffe/mcaffe.cc")
+    set(MCAFFE_src "src/mcnn.h" "src/caffe/mcaffe.h" "src/caffe/mcaffe.cc") # "src/caffe/mtorch.cc")
 else()
     set(MCAFFE_src "")
 endif()

@@ -34,11 +34,14 @@ protonmail (dot) com
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <fstream>
 #include <mutex>
 #include <string>
 #include <vector>
 
-#include "caffe/mcaffe.h"
+//#include "caffe/mcaffe.h"
+//#include "torch/mtorch.h"
+#include "mcnn.h"
 
 namespace
 {
@@ -57,7 +60,7 @@ std::size_t sizeOfVec(const std::vector<T>& v)
 
 std::mutex caffe_mutex;
 bool is_parent{true};
-bool madeQuiet = false;
+  //bool madeQuiet = false;
 
 }  // namespace
 
@@ -162,6 +165,7 @@ class WorkersPool : public WorkersPoolBase
     bool setupWorkers(int n, std::size_t memory_needed);
     int findWorker();
     void releaseWorker(int which);
+    void initialiseCnn(const uint32_t wlkx);
 
     std::mutex jobs_mutex;
     std::condition_variable cv;
@@ -172,12 +176,16 @@ class WorkersPool : public WorkersPoolBase
     std::vector<pid_t> pids;
     std::vector<SharedMemWithSemaphores> mems;
 
-    MCaffe cnn;
+  std::unique_ptr<CnnProxy> cnn{nullptr};
     bool use_this_thread{false};
     int planes = 10;
     std::string config_file;
     std::string model_file_name{};
     std::string weights_file_name{};
+    enum class CnnLib
+      {
+	Caffe, Torch
+      } cnn_lib{CnnLib::Caffe};
     constexpr static int DEFAULT_CNN_BOARD_SIZE = 20;
 };
 
@@ -269,13 +277,32 @@ void WorkersPool::worker(int number, SharedMemWithSemaphores& sh)
     exit(0);
 }
 
+void  WorkersPool::initialiseCnn(const uint32_t wlkx)
+{
+  if (cnn_lib == CnnLib::Caffe)
+    cnn = buildCaffe();
+  else
+    cnn = buildTorch();
+  std::cerr << "Initialise " << wlkx << "x" << wlkx << " with " <<
+    ((cnn_lib == CnnLib::Caffe) ? "caffe" : "torch") << std::endl;
+  try {
+    cnn->init(wlkx, model_file_name, weights_file_name, DEFAULT_CNN_BOARD_SIZE);
+  } catch (...)
+    {
+      std::cerr << "Initialise failed :( " << wlkx << " " <<
+	model_file_name << " " << weights_file_name << " " << DEFAULT_CNN_BOARD_SIZE << std::endl;
+      return;
+    }
+  std::cerr << "Initialise OK" << std::endl;
+}
+
 void WorkersPool::child_worker(void* data)
 try
 {
     const uint32_t wlkx = *static_cast<uint32_t*>(data);
-    cnn.init(wlkx, model_file_name, weights_file_name, DEFAULT_CNN_BOARD_SIZE);
+    initialiseCnn(wlkx);
     float* datafl = static_cast<float*>(add(data, sizeof(uint32_t)));
-    auto res = cnn.get_data(datafl, wlkx, planes, wlkx);
+    auto res = cnn->get_data(datafl, wlkx, planes, wlkx);
     static_cast<uint32_t*>(data)[0] = true;
     memcpy(data, static_cast<void*>(res.data()), sizeOfVec(res));
 }
@@ -289,11 +316,13 @@ WorkersPool::WorkersPool(const std::string& config_file, int wlkx,
                          bool use_this_thread, std::size_t memory_needed)
     : use_this_thread{use_this_thread}, config_file{config_file}
 {
-    if (not madeQuiet)
-    {
-        cnn.quiet_logs("kropla");
-        madeQuiet = true;
-    }
+  /*
+  if (not madeQuiet)
+      {
+	MCaffe::quiet_logs("kropla");
+	madeQuiet = true;
+      }
+  */
     constexpr int default_n_workers = 7;
     int n_workers = default_n_workers;
     {
@@ -304,6 +333,16 @@ WorkersPool::WorkersPool(const std::string& config_file, int wlkx,
             if (std::getline(t, model_file_name))
                 if (std::getline(t, weights_file_name))
                     std::getline(t, n_workers_str);
+	const std::string torch_id = "torch:";
+	if (model_file_name.substr(0, torch_id.length()) == torch_id)
+	  {
+	    model_file_name = model_file_name.substr(torch_id.length());
+	    cnn_lib = CnnLib::Torch;
+	  }
+	else
+	  {
+	    cnn_lib = CnnLib::Caffe;
+	  }
         planes = std::stoi(number_of_planes);
         if (planes != 7 and planes != 10 and planes != 20)
         {
@@ -312,8 +351,9 @@ WorkersPool::WorkersPool(const std::string& config_file, int wlkx,
             planes = 10;
         }
         if (use_this_thread)
-            cnn.init(wlkx, model_file_name, weights_file_name,
-                     DEFAULT_CNN_BOARD_SIZE);
+	  {
+	    initialiseCnn(wlkx);
+	  }
         try
         {
             n_workers = std::stoi(n_workers_str);
@@ -369,7 +409,7 @@ try
     if (acquired_lock)
     {
         auto debug_time = std::chrono::high_resolution_clock::now();
-        auto res = cnn.get_data(input.data(), wlkx, planes, wlkx);
+        auto res = cnn->get_data(input.data(), wlkx, planes, wlkx);
         lock.unlock();
         std::cerr << "Forward time, this thread [micros]: "
                   << std::chrono::duration_cast<std::chrono::microseconds>(

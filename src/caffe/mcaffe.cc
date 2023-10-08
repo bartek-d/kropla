@@ -28,12 +28,18 @@ NN. Copyright (C) 2021 Bartek Dyda, email: bartekdyda (at) protonmail (dot) com
 #include <cassert>
 #include <filesystem>
 #include <iostream>
+#include <mutex>
 
 #include "glog/logging.h"
 
 using namespace caffe;
 
-MCaffe::MCaffe() { setenv("OMP_NUM_THREADS", "1", true); }
+MCaffe::MCaffe()
+{
+  setenv("OMP_NUM_THREADS", "1", true);
+  static std::once_flag quiet;
+  std::call_once(quiet, []() { MCaffe::quiet_logs("kropla"); });
+}
 
 int MCaffe::shape_size(const vector<int>& shape) const
 {
@@ -43,7 +49,7 @@ int MCaffe::shape_size(const vector<int>& shape) const
 }
 
 /* Make caffe quiet */
-void MCaffe::quiet_logs(const char* name) const
+void MCaffe::quiet_logs(const char* name)
 {
     FLAGS_logtostderr = 1;
     google::InitGoogleLogging(name);
@@ -109,4 +115,9 @@ std::vector<float> MCaffe::get_data(float* data, int size, int planes,
         if (result[i] < 0.00001) result[i] = 0.00001;
     }
     return result;
+}
+
+std::unique_ptr<CnnProxy> buildCaffe()
+{
+  return std::make_unique<MCaffe>();
 }
