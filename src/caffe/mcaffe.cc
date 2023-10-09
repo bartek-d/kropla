@@ -37,8 +37,8 @@ using namespace caffe;
 MCaffe::MCaffe()
 {
   setenv("OMP_NUM_THREADS", "1", true);
-  static std::once_flag quiet;
-  std::call_once(quiet, []() { MCaffe::quiet_logs("kropla"); });
+  //  static std::once_flag quiet;
+  //std::call_once(quiet, []() { MCaffe::quiet_logs("kropla"); });
 }
 
 int MCaffe::shape_size(const vector<int>& shape) const
@@ -52,6 +52,7 @@ int MCaffe::shape_size(const vector<int>& shape) const
 void MCaffe::quiet_logs(const char* name)
 {
     FLAGS_logtostderr = 1;
+    FLAGS_minloglevel = 0;
     google::InitGoogleLogging(name);
 }
 
@@ -120,4 +121,10 @@ std::vector<float> MCaffe::get_data(float* data, int size, int planes,
 std::unique_ptr<CnnProxy> buildCaffe()
 {
   return std::make_unique<MCaffe>();
+}
+
+void makeLogsQuiet()
+{
+  static std::once_flag quiet;
+  std::call_once(quiet, []() { MCaffe::quiet_logs("kropla"); });
 }

@@ -323,6 +323,7 @@ WorkersPool::WorkersPool(const std::string& config_file, int wlkx,
 	madeQuiet = true;
       }
   */
+    makeLogsQuiet();
     constexpr int default_n_workers = 7;
     int n_workers = default_n_workers;
     {
