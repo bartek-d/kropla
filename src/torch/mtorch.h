@@ -42,4 +42,5 @@ class MTorch : public CnnProxy
 
    private:
     std::shared_ptr<Net> net = nullptr;
+    torch::NoGradGuard no_grad{};
 };

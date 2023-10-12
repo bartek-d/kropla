@@ -21,6 +21,7 @@
 
 #include "mtorch.h"
 
+#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -149,7 +150,10 @@ std::pair<int, std::vector<LayerInfo>> read_cnn_def(const std::string& filename)
 }
 
 
-MTorch::MTorch() = default;
+MTorch::MTorch()
+{
+  setenv("OMP_NUM_THREADS", "1", true);
+}
 
 bool MTorch::is_ready() const
 { return (net != nullptr); }
@@ -182,7 +186,7 @@ std::vector<float> MTorch::get_data(float* data, int size, int planes,
 
   float sum = 0.0;
   for (int i=0; i< result.size(); ++i) {
-    result[i] =  std::exp(prediction[0][i].item<float>());
+    result[i] =  std::exp(prediction[0][0][i].item<float>());
     sum += result[i];
   }
 

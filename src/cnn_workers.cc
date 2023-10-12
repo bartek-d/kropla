@@ -279,12 +279,14 @@ void WorkersPool::worker(int number, SharedMemWithSemaphores& sh)
 
 void  WorkersPool::initialiseCnn(const uint32_t wlkx)
 {
-  if (cnn_lib == CnnLib::Caffe)
-    cnn = buildCaffe();
-  else
-    cnn = buildTorch();
-  std::cerr << "Initialise " << wlkx << "x" << wlkx << " with " <<
-    ((cnn_lib == CnnLib::Caffe) ? "caffe" : "torch") << std::endl;
+  if (cnn == nullptr) {
+    std::cerr << "Initialise " << wlkx << "x" << wlkx << " with " <<
+      ((cnn_lib == CnnLib::Caffe) ? "caffe" : "torch") << std::endl;
+    if (cnn_lib == CnnLib::Caffe)
+      cnn = buildCaffe();
+    else
+      cnn = buildTorch();
+  }
   try {
     cnn->init(wlkx, model_file_name, weights_file_name, DEFAULT_CNN_BOARD_SIZE);
   } catch (...)
@@ -293,7 +295,6 @@ void  WorkersPool::initialiseCnn(const uint32_t wlkx)
 	model_file_name << " " << weights_file_name << " " << DEFAULT_CNN_BOARD_SIZE << std::endl;
       return;
     }
-  std::cerr << "Initialise OK" << std::endl;
 }
 
 void WorkersPool::child_worker(void* data)
