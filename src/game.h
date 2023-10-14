@@ -549,6 +549,7 @@ extern Pattern52 patt52_inner;
 extern int komi;  // added to terr points of white (i.e. > 0 -> good for white),
                   // komi=2 -> 1 dot
 extern int komi_ratchet;
+extern std::string program_path;
 }  // namespace global
 
 extern int debug_allt2m, debug_sing_smallt2m, debug_sing_larget2m,

@@ -76,6 +76,7 @@ Pattern52 patt52_edge({});
 Pattern52 patt52_inner({});
 int komi;
 int komi_ratchet;
+std::string program_path;
 }  // namespace global
 
 /********************************************************************************************************
@@ -859,7 +860,7 @@ Game::Game(SgfSequence seq, int max_moves, bool must_surround)
           });
     */
     // global::patt3.showCode();  <-- to precalculate
-    global::patt3.readFromFile("patterns.bin");
+    global::patt3.readFromFile(global::program_path + "patterns.bin");
 
     global::patt3_symm.generate(
         {// hane pattern - enclosing hane
