@@ -143,7 +143,7 @@ std::pair<int, std::vector<LayerInfo>> read_cnn_def(const std::string& filename)
     if (auto layer_opt = string2layer_info(s))
       v.push_back(*layer_opt);
     else if (not s.empty()) {
-      std::cout << "Ostrzezenie, ignoruje ciag: " << s << ".\n";
+      std::cerr << "Ostrzezenie, ignoruje ciag: " << s << ".\n";
     }
   }
   return {input_chan, v};
@@ -162,7 +162,7 @@ void MTorch::load(const std::string& model_file, const std::string& weights_file
 		  int default_size)
 {
   auto [in_channels, netdef] = read_cnn_def(model_file);
-  std::cout << "netdef: " << netdef << '\n';
+  std::cerr << "netdef: " << netdef << '\n';
   net = std::make_shared<Net>(in_channels, netdef);
   torch::load(net, weights_file);
   net->eval();

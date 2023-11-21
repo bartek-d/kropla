@@ -303,7 +303,12 @@ try
     const uint32_t wlkx = *static_cast<uint32_t*>(data);
     initialiseCnn(wlkx);
     float* datafl = static_cast<float*>(add(data, sizeof(uint32_t)));
+    auto debug_time = std::chrono::high_resolution_clock::now();
     auto res = cnn->get_data(datafl, wlkx, planes, wlkx);
+    std::cerr << "Forward time, child worker [micros]: "
+	      << std::chrono::duration_cast<std::chrono::microseconds>(
+		 std::chrono::high_resolution_clock::now() - debug_time).count()
+	      << "  config: " << config_file << std::endl;
     static_cast<uint32_t*>(data)[0] = true;
     memcpy(data, static_cast<void*>(res.data()), sizeOfVec(res));
 }
