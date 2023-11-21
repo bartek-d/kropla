@@ -153,6 +153,7 @@ std::pair<int, std::vector<LayerInfo>> read_cnn_def(const std::string& filename)
 MTorch::MTorch()
 {
   setenv("OMP_NUM_THREADS", "1", true);
+  torch::globalContext().setFlushDenormal(true);
 }
 
 bool MTorch::is_ready() const
