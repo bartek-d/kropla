@@ -542,6 +542,7 @@ int main(int argc, char* argv[])
     std::set<std::string> allowedPlayers{};
     std::set<std::string> forbiddenPlayers{};
     int min_rank = 4000;
+    bool all_allowed = false;
     for (auto& p : players)
     {
         switch (p[0])
@@ -554,6 +555,9 @@ int main(int argc, char* argv[])
                 min_rank = std::stoi(p.substr(1));
                 std::cout << "MIN RANK: " << min_rank << std::endl;
                 break;
+   	    case '$':
+	        all_allowed = true;
+		break;
             default:
                 std::cout << "PLAYER: " << p << std::endl;
                 allowedPlayers.insert(p);
@@ -571,29 +575,37 @@ int main(int argc, char* argv[])
 
         SgfParser parser(s);
         auto seq = parser.parseMainVar();
-        if (seq[0].findProp("PB") == seq[0].props.end() or
-            seq[0].findProp("PW") == seq[0].props.end() or
-            seq[0].findProp("BR") == seq[0].props.end() or
-            seq[0].findProp("WR") == seq[0].props.end())
+	if (not all_allowed)
+	{
+	  if (seq[0].findProp("PB") == seq[0].props.end() or
+	      seq[0].findProp("PW") == seq[0].props.end() or
+	      seq[0].findProp("BR") == seq[0].props.end() or
+	      seq[0].findProp("WR") == seq[0].props.end())
             continue;
+	}
         bool must_surround = false;
         {
             auto res = seq[0].findProp("RU");
             if (res != seq[0].props.end() and res->second[0] == "russian")
                 must_surround = true;
         }
-        auto blue = seq[0].findProp("PB")->second[0];
-        auto red = seq[0].findProp("PW")->second[0];
-        auto blueRank = robust_stoi(seq[0].findProp("BR")->second[0]);
-        auto redRank = robust_stoi(seq[0].findProp("WR")->second[0]);
-        bool blueOk = (allowedPlayers.find(blue) != allowedPlayers.end() or
-                       blueRank >= min_rank) and
-                      (forbiddenPlayers.find(blue) == forbiddenPlayers.end());
-        bool redOk = (allowedPlayers.find(red) != allowedPlayers.end() or
-                      redRank >= min_rank) and
-                     (forbiddenPlayers.find(red) == forbiddenPlayers.end());
-        std::cout << sgf_file << " -- game: " << blue << " [" << blueRank
-                  << "] -- " << red << " [" << redRank << "]  ";
+	bool blueOk = true;
+	bool redOk = true;
+	if (not all_allowed)
+	{
+	  auto blue = seq[0].findProp("PB")->second[0];
+	  auto red = seq[0].findProp("PW")->second[0];
+	  auto blueRank = robust_stoi(seq[0].findProp("BR")->second[0]);
+	  auto redRank = robust_stoi(seq[0].findProp("WR")->second[0]);
+	  blueOk = (allowedPlayers.find(blue) != allowedPlayers.end() or
+			 blueRank >= min_rank) and
+	    (forbiddenPlayers.find(blue) == forbiddenPlayers.end());
+	  redOk = (allowedPlayers.find(red) != allowedPlayers.end() or
+			redRank >= min_rank) and
+	    (forbiddenPlayers.find(red) == forbiddenPlayers.end());
+	  std::cout << sgf_file << " -- game: " << blue << " [" << blueRank
+		    << "] -- " << red << " [" << redRank << "]  ";
+	}
         if (blueOk and redOk)
         {
             gatherDataFromSgfSequence(seq, {{1, blueOk}, {2, redOk}},
