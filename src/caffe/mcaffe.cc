@@ -36,9 +36,9 @@ using namespace caffe;
 
 MCaffe::MCaffe()
 {
-  setenv("OMP_NUM_THREADS", "1", true);
-  //  static std::once_flag quiet;
-  //std::call_once(quiet, []() { MCaffe::quiet_logs("kropla"); });
+    setenv("OMP_NUM_THREADS", "1", true);
+    //  static std::once_flag quiet;
+    // std::call_once(quiet, []() { MCaffe::quiet_logs("kropla"); });
 }
 
 int MCaffe::shape_size(const vector<int>& shape) const
@@ -118,13 +118,10 @@ std::vector<float> MCaffe::get_data(float* data, int size, int planes,
     return result;
 }
 
-std::unique_ptr<CnnProxy> buildCaffe()
-{
-  return std::make_unique<MCaffe>();
-}
+std::unique_ptr<CnnProxy> buildCaffe() { return std::make_unique<MCaffe>(); }
 
 void makeLogsQuiet()
 {
-  static std::once_flag quiet;
-  std::call_once(quiet, []() { MCaffe::quiet_logs("kropla"); });
+    static std::once_flag quiet;
+    std::call_once(quiet, []() { MCaffe::quiet_logs("kropla"); });
 }

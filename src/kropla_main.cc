@@ -103,9 +103,7 @@ std::string sgf185253(
 int main(int argc, char* argv[])
 {
     auto getDirectory = [](std::string s)
-    {
-      return s.substr(0, s.find_last_of('/')+1);
-    };
+    { return s.substr(0, s.find_last_of('/') + 1); };
     global::program_path = getDirectory(argv[0]);
     std::string s(sgf185253);
     enum class Mode

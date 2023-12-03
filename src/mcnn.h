@@ -26,8 +26,8 @@
 
 #include <memory>
 #include <stdexcept>
-#include <vector>
 #include <string>
+#include <vector>
 
 struct CnnException : public std::runtime_error
 {

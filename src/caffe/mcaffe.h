@@ -26,8 +26,8 @@
 
 #define CPU_ONLY 1
 
-#include "caffe/caffe.hpp"
 #include "../mcnn.h"
+#include "caffe/caffe.hpp"
 
 class MCaffe : public CnnProxy
 {
@@ -37,9 +37,9 @@ class MCaffe : public CnnProxy
     bool is_ready() const override;
     void load(const std::string& model_file, const std::string& weights_file,
               int default_size) override;
-    __attribute__((visibility("default")))
-    void init(int size, const std::string& model_file,
-              const std::string& weights_file, int default_size) override;
+    __attribute__((visibility("default"))) void init(
+        int size, const std::string& model_file,
+        const std::string& weights_file, int default_size) override;
     std::vector<float> get_data(float* data, int size, int planes,
                                 int psize) override;
 
