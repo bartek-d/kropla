@@ -25,12 +25,12 @@
 #pragma once
 
 #include <utility>
+#include <vector>
 
-#include "bvector.hpp"
 #include "game.h"
 
 void initialiseCnn();
-std::pair<bool, stdb::vector<float>> getCnnInfo(Game& game,
-                                                bool use_secondary_cnn = false);
+std::pair<bool, std::vector<float>> getCnnInfo(Game& game,
+                                               bool use_secondary_cnn = false);
 void updatePriors(Game& game, Treenode* children, int depth);
 void printCnnStats();

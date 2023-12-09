@@ -29,7 +29,6 @@ NN. Copyright (C) 2021 Bartek Dyda, email: bartekdyda (at) protonmail (dot) com
 #include <filesystem>
 #include <iostream>
 #include <mutex>
-#include <vector>
 
 #include "glog/logging.h"
 
@@ -42,7 +41,7 @@ MCaffe::MCaffe()
     // std::call_once(quiet, []() { MCaffe::quiet_logs("kropla"); });
 }
 
-int MCaffe::shape_size(const std::vector<int>& shape) const
+int MCaffe::shape_size(const vector<int>& shape) const
 {
     int size = 1;
     for (unsigned int i = 0; i < shape.size(); i++) size *= shape[i];
@@ -88,7 +87,7 @@ void MCaffe::init(int size, const std::string& model_file,
      * just need to resize the input layer. */
     if (net_size != size)
     {
-        const std::vector<int>& shape = net->input_blobs()[0]->shape();
+        const vector<int>& shape = net->input_blobs()[0]->shape();
         net->input_blobs()[0]->Reshape(shape[0], shape[1], size, size);
         net->Reshape(); /* Forward the dimension change. */
         net_size = size;

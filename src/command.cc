@@ -148,7 +148,7 @@ std::string CommandParser::spaces(int n) const
     return s;
 }
 
-stdb::vector<std::string> CommandParser::parse(const std::string& b)
+std::vector<std::string> CommandParser::parse(const std::string& b)
 {
     buf = b;
     parsed.clear();

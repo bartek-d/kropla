@@ -78,7 +78,7 @@ std::string Threat::show() const
     return out.str() + encl->show();
 }
 
-void removeMarkedThreats(stdb::vector<Threat> &thr_list)
+void removeMarkedThreats(std::vector<Threat> &thr_list)
 {
     int s = thr_list.size();
     for (int i = 0; i < s; ++i)
@@ -124,7 +124,7 @@ Threat2m::removeMarked()
 }
 */
 
-void removeEmptyThreats2m(stdb::vector<Threat2m> &thr_list)
+void removeEmptyThreats2m(std::vector<Threat2m> &thr_list)
 {
     int s = thr_list.size();
     for (int i = 0; i < s; ++i)
@@ -297,7 +297,7 @@ int AllThreats::addThreat2moves(pti ind0, pti ind1, bool safe0, bool safe1,
             t2.where0 = ind0;
             t2.flags = safe0 ? Threat2mconsts::FLAG_SAFE : 0;
             t.where = ind1;
-            t2.thr_list = stdb::vector<Threat>{t};
+            t2.thr_list = std::vector<Threat>{t};
             if (t.opp_dots)
             {
                 t2.min_win = t.opp_dots;

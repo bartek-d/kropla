@@ -426,7 +426,7 @@ const Safety::GoodMoves& Safety::getPreviouslyAddedSugg() const
     return prevAddedMoveSugg;
 }
 
-const stdb::vector<Safety::ValueForBoth>& Safety::getMoveValues() const
+const std::vector<Safety::ValueForBoth>& Safety::getMoveValues() const
 {
     return move_value;
 }

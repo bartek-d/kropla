@@ -27,9 +27,9 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "board.h"
-#include "bvector.hpp"
 
 /********************************************************************************************************
   Pattern3 class for handling 3x3 patterns
@@ -75,7 +75,7 @@ class Pattern3
 
    public:
     pattern3_val getValue(pattern3_t p, int who) const;
-    void generate(const stdb::vector<std::string> &vs, int type = TYPE_REPLACE);
+    void generate(const std::vector<std::string> &vs, int type = TYPE_REPLACE);
     void readFromFile(const std::string &filename);
     void setEmptyValue(pattern3_val v) { values[0] = v; };
     static pattern3_t rotate(pattern3_t p);
@@ -108,7 +108,7 @@ struct Pattern3extra
     static const uint8_t WHICH_POINT_SHIFT = 2;
     static const uint8_t VALUE_MASK = 3;
     static const pti MASK_DOT = 3;  // should equal Game::MASK_DOT !
-    bool checkConditions(const stdb::vector<pti> &w, pti ind) const;
+    bool checkConditions(const std::vector<pti> &w, pti ind) const;
     void rotate();
     void reflect();
     void reverseColour();
@@ -147,8 +147,8 @@ class Pattern3extra_array
 
    public:
     // pattern3_val getValue(pattern3_t p, int who) const;
-    void generate(const stdb::vector<std::string> &vs);
-    void setValues(stdb::vector<pti> &val, const stdb::vector<pti> &w,
+    void generate(const std::vector<std::string> &vs);
+    void setValues(std::vector<pti> &val, const std::vector<pti> &w,
                    pattern3_t patt3_at, pti ind, int who) const;
     Pattern3extra_array();
 };
@@ -200,7 +200,7 @@ class Pattern52
 
    public:
     real_t getValue(pattern52_t p, int who) const;
-    void generate(const stdb::vector<std::string> &vs);
+    void generate(const std::vector<std::string> &vs);
     std::string show(pattern52_t p) const;
     void showCode() const;
     Pattern52(const std::array<real_t, 0x40000> &v) : values{v} {}

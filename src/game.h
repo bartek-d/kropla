@@ -33,10 +33,9 @@
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
-#include "../3rdparty/short_alloc.h"
 #include "board.h"
-#include "bvector.hpp"
 #include "enclosure.h"
 #include "game_utils.h"
 #include "history.h"
@@ -45,8 +44,6 @@
 #include "threats.h"
 
 typedef std::set<pti, std::greater<pti>> PointsSet;
-template <class T, std::size_t BufSize = 16>
-using SmallVector = std::vector<T, short_alloc<T, BufSize, alignof(T)>>;
 
 /********************************************************************************************************
   Worm description class
@@ -64,29 +61,12 @@ struct WormDescr
     const static int32_t SAFE_VALUE =
         20000;  // safety := SAFE_VALUE when the worm touches the edge
     const static int32_t SAFE_THRESHOLD = 10000;
-    stdb::vector<pti,
-                 short_alloc<pti, 16, alignof(pti)>>::allocator_type::arena_type
-        arena;
-    stdb::vector<pti, short_alloc<pti, 16, alignof(pti)>> neighb{
-        arena};  // numbers of other worms that touch this one
+    std::vector<pti> neighb;  // numbers of other worms that touch this one
     std::string show() const;
-    WormDescr(const WormDescr& other)
-        : leftmost{other.leftmost},
-          group_id{other.group_id},
-          safety{other.safety},
-          neighb{other.neighb, arena}
-    {
-        dots[0] = other.dots[0];
-        dots[1] = other.dots[1];
-    }
-    WormDescr() = default;
-    WormDescr& operator=(const WormDescr&) = delete;
-    WormDescr& operator=(WormDescr&&) = delete;
-    ~WormDescr() = default;
 };
 
 /********************************************************************************************************
-  connections class
+  Connections class
 *********************************************************************************************************/
 struct OneConnection
 {
@@ -156,7 +136,7 @@ struct DebugInfo
 struct Treenode
 {
     Treenode* parent{nullptr};
-    // stdb::vector<Treenode> children;
+    // std::vector<Treenode> children;
     std::atomic<Treenode*> children{nullptr};
     std::shared_ptr<Game> game_ptr{nullptr};
     Movestats t;
@@ -247,8 +227,8 @@ constexpr int TYPE_MASK = (NEUTRAL | DAME | TERRM | REMOVED);  // 0x3000;
 
 class PossibleMoves
 {
-    stdb::vector<pti> mtype;  // type of move OR-ed with its index on the list
-                              // (neutral, dame or bad)
+    std::vector<pti> mtype;  // type of move OR-ed with its index on the list
+                             // (neutral, dame or bad)
     void removeFromList(pti p);
     enum class EdgeType
     {
@@ -260,7 +240,7 @@ class PossibleMoves
     void newDotOnEdge(pti p, EdgeType edge);
 
    public:
-    stdb::vector<pti> lists[3];     // neutral, dame, bad;
+    std::vector<pti> lists[3];      // neutral, dame, bad;
     bool left, top, right, bottom;  // are margins empty?
 
     void generate();
@@ -289,12 +269,12 @@ constexpr int TYPE_MASK = (MOVE_0 | MOVE_1 | MOVE_2 | REMOVED);  // 0x3000;
 
 class InterestingMoves
 {
-    stdb::vector<pti>
+    std::vector<pti>
         mtype;  // type of move OR-ed with its index on the list (0, 1 or 2)
     void removeFromList(pti p);
 
    public:
-    stdb::vector<pti> lists[3];  // list0, list1, list2
+    std::vector<pti> lists[3];  // list0, list1, list2
 
     void generate();
     void changeMove(pti p, int new_type);
@@ -303,34 +283,34 @@ class InterestingMoves
 
 class Game
 {
-    stdb::vector<pti> worm;
-    stdb::vector<pti> nextDot;
+    std::vector<pti> worm;
+    std::vector<pti> nextDot;
     std::unordered_map<pti, WormDescr> descr;
 
    public:
     AllThreats threats[2];
 
    private:
-    stdb::vector<OneConnection> connects[2];
+    std::vector<OneConnection> connects[2];
     Score score[2];
     int lastWormNo[2];  // lastWormNo used in worm, for players 1,2
     int nowMoves;       // =1 or 2
     History history{};
     //
-    stdb::vector<pti> recalculate_list;
+    std::vector<pti> recalculate_list;
     PossibleMoves possible_moves;
     InterestingMoves interesting_moves;
-    stdb::vector<pattern3_val> pattern3_value[2];
-    stdb::vector<pattern3_t> pattern3_at;
+    std::vector<pattern3_val> pattern3_value[2];
+    std::vector<pattern3_t> pattern3_at;
     static thread_local std::default_random_engine engine;
     // fields for functions generating list of moves (ml prefix, 'move list')
-    stdb::vector<ThrInfo> ml_priorities;
-    stdb::vector<uint64_t> ml_deleted_opp_thr;
-    stdb::vector<ThrInfo> ml_priority_vect;
-    stdb::vector<pti> ml_special_moves;
-    stdb::vector<std::shared_ptr<Enclosure>> ml_encl_moves;
-    stdb::vector<std::shared_ptr<Enclosure>> ml_opt_encl_moves;
-    stdb::vector<uint64_t> ml_encl_zobrists;
+    std::vector<ThrInfo> ml_priorities;
+    std::vector<uint64_t> ml_deleted_opp_thr;
+    std::vector<ThrInfo> ml_priority_vect;
+    std::vector<pti> ml_special_moves;
+    std::vector<std::shared_ptr<Enclosure>> ml_encl_moves;
+    std::vector<std::shared_ptr<Enclosure>> ml_opt_encl_moves;
+    std::vector<uint64_t> ml_encl_zobrists;
     int update_soft_safety{0};  // if safety_soft needs to be recalculated after
                                 // dot+(enclosure), and which margins
     Safety safety_soft;
@@ -365,32 +345,31 @@ class Game
     void wormMergeOther(pti dst, pti src);
     void wormMergeSame(pti dst, pti src);
     void wormMerge_common(pti dst, pti src);
-    int floodFillExterior(stdb::vector<pti>& tab, pti mark_by,
+    int floodFillExterior(std::vector<pti>& tab, pti mark_by,
                           pti stop_at) const;
     static const constexpr float COST_INFTY = 1000.0;
-    stdb::vector<pti> findImportantMoves(pti who);
+    std::vector<pti> findImportantMoves(pti who);
     float costOfPoint(pti p, int who) const;
     float floodFillCost(int who) const;
-    stdb::vector<pti> findThreats_preDot(pti ind, int who);
+    std::vector<pti> findThreats_preDot(pti ind, int who);
     std::array<int, 2> findThreats2moves_preDot__getRange(pti ind, pti nb,
                                                           int i, int who) const;
     std::array<int, 5> findClosableNeighbours(pti ind, pti forbidden1,
                                               pti forbidden2, int who) const;
-    void addClosableNeighbours(stdb::vector<pti>& tab, pti p0, pti p1, pti p2,
+    void addClosableNeighbours(std::vector<pti>& tab, pti p0, pti p1, pti p2,
                                int who) const;
     bool haveConnection(pti p1, pti p2, int who) const;
-    stdb::vector<pti> findThreats2moves_preDot(pti ind, int who);
+    std::vector<pti> findThreats2moves_preDot(pti ind, int who);
     SmallMultimap<7, 7> getEmptyPointsCloseToIndTouchingSomeOtherGroup(
         const SmallMultiset<pti, 4>& connected_groups, pti ind, int who) const;
     void checkThreat_encl(Threat* thr, int who);
     bool checkIfThreat_encl_isUnnecessary(Threat* thr, pti ind, int who) const;
     void checkThreat_terr(Threat* thr, pti p, int who,
-                          stdb::vector<int8_t>* done = nullptr);
-    void checkThreats_postDot(stdb::vector<pti>& newthr, pti ind, int who);
+                          std::vector<int8_t>* done = nullptr);
+    void checkThreats_postDot(std::vector<pti>& newthr, pti ind, int who);
     void checkThreat2moves_encl(Threat* thr, pti where0, int who);
     int addThreat2moves(pti ind0, pti ind1, int who, Enclosure&& encl);
-    void checkThreats2moves_postDot(stdb::vector<pti>& newthr, pti ind,
-                                    int who);
+    void checkThreats2moves_postDot(std::vector<pti>& newthr, pti ind, int who);
     void addThreat(Threat&& t, int who);
     void removeMarked(int who);
     void removeMarkedAndAtPoint(pti ind, int who);
@@ -416,12 +395,12 @@ class Game
     int checkLadderStep(pti x, PointsSet& ladder_breakers, pti v1, pti v2,
                         pti escaping_group, bool ladder_ext, int escapes,
                         int iteration = 0);
-    void getEnclMoves(stdb::vector<std::shared_ptr<Enclosure>>& encl_moves,
-                      stdb::vector<std::shared_ptr<Enclosure>>& opt_encl_moves,
-                      stdb::vector<uint64_t>& encl_zobrists, pti move, int who);
+    void getEnclMoves(std::vector<std::shared_ptr<Enclosure>>& encl_moves,
+                      std::vector<std::shared_ptr<Enclosure>>& opt_encl_moves,
+                      std::vector<uint64_t>& encl_zobrists, pti move, int who);
     bool appendSimplifyingEncl(
-        stdb::vector<std::shared_ptr<Enclosure>>& encl_moves,
-        uint64_t& zobrists, int who);
+        std::vector<std::shared_ptr<Enclosure>>& encl_moves, uint64_t& zobrists,
+        int who);
     void getSimplifyingEnclAndPriorities(int who);
     int checkBorderMove(pti ind, int who) const;
     int checkBorderOneSide(pti ind, pti viter, pti vnorm, int who) const;
@@ -429,7 +408,7 @@ class Game
     void possibleMoves_updateSafetyDame();
     int checkInterestingMove(pti p) const;
     int checkDame(pti p) const;
-    stdb::vector<pti> getPatt3extraValues() const;
+    std::vector<pti> getPatt3extraValues() const;
 
    public:
     Game() = delete;
@@ -437,31 +416,31 @@ class Game
     int whoNowMoves() { return nowMoves; };
     void replaySgfSequence(SgfSequence seq, int max_moves);
     void placeDot(int x, int y, int who);
-    Enclosure findNonSimpleEnclosure(stdb::vector<pti>& tab, pti point,
-                                     pti mask, pti value) const;
+    Enclosure findNonSimpleEnclosure(std::vector<pti>& tab, pti point, pti mask,
+                                     pti value) const;
     Enclosure findNonSimpleEnclosure(pti point, pti mask, pti value);
-    Enclosure findSimpleEnclosure(stdb::vector<pti>& tab, pti point, pti mask,
+    Enclosure findSimpleEnclosure(std::vector<pti>& tab, pti point, pti mask,
                                   pti value) const;
     Enclosure findSimpleEnclosure(pti point, pti mask, pti value);
-    Enclosure findEnclosure(stdb::vector<pti>& tab, pti point, pti mask,
+    Enclosure findEnclosure(std::vector<pti>& tab, pti point, pti mask,
                             pti value) const;
     Enclosure findEnclosure(pti point, pti mask, pti value);
-    Enclosure findEnclosure_notOptimised(stdb::vector<pti>& tab, pti point,
+    Enclosure findEnclosure_notOptimised(std::vector<pti>& tab, pti point,
                                          pti mask, pti value) const;
     Enclosure findEnclosure_notOptimised(pti point, pti mask, pti value);
-    Enclosure findInterior(stdb::vector<pti> border) const;
+    Enclosure findInterior(std::vector<pti> border) const;
     void makeEnclosure(const Enclosure& encl, bool remove_it_from_threats);
     std::pair<int, int> countTerritory(int now_moves) const;
     std::pair<int, int> countTerritory_simple(int now_moves) const;
     std::pair<int16_t, int16_t> countDotsTerrInEncl(const Enclosure& encl,
                                                     int who,
                                                     bool optimise = true) const;
-    std::pair<Move, stdb::vector<std::string>> extractSgfMove(std::string m,
-                                                              int who) const;
+    std::pair<Move, std::vector<std::string>> extractSgfMove(std::string m,
+                                                             int who) const;
     void makeSgfMove(const std::string& m, int who);
     void makeMove(const Move& m);
     void makeMoveWithPointsToEnclose(
-        const Move& m, const stdb::vector<std::string>& to_enclose);
+        const Move& m, const std::vector<std::string>& to_enclose);
 
     bool isDotAt(pti ind) const
     {
@@ -508,12 +487,12 @@ class Game
     Move chooseAtariResponse(pti lastMove, int who);
     Move chooseSoftSafetyResponse(int who);
     Move chooseSoftSafetyContinuation(int who);
-    Move selectMoveRandomlyFrom(const stdb::vector<pti>& moves, int who);
+    Move selectMoveRandomlyFrom(const std::vector<pti>& moves, int who);
     Move choosePattern3Move(pti move0, pti move1, int who);
-    stdb::vector<pti> getSafetyMoves(int who);
+    std::vector<pti> getSafetyMoves(int who);
     Move chooseSafetyMove(int who);
     Move chooseAnyMove(int who);
-    stdb::vector<pti> getGoodTerrMoves(int who) const;
+    std::vector<pti> getGoodTerrMoves(int who) const;
     Move chooseAnyMove_pm(int who);
     Move chooseInterestingMove(int who);
     Move chooseLastGoodReply(int who);
@@ -545,9 +524,9 @@ class Game
         return threats[who];
     }
     void show() const;
-    void show(const stdb::vector<pti>& moves) const;
+    void show(const std::vector<pti>& moves) const;
     void showSvg(const std::string& filename,
-                 const stdb::vector<pti>& tab) const;
+                 const std::vector<pti>& tab) const;
     void showConnections();
     void showGroupsId();
     void showThreats2m();

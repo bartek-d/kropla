@@ -25,11 +25,10 @@ reading NN. Copyright (C) 2023 Bartek Dyda, email: bartekdyda (at) protonmail
 #pragma once
 
 #include <cstdint>
-
-#include "bvector.hpp"
+#include <vector>
 
 using Position = std::pair<uint64_t, uint64_t>;
 
-std::pair<bool, stdb::vector<float>> getCnnInfoFromHT(const Position pos);
-void saveCnnInfo(const Position pos, const stdb::vector<float>& info);
+std::pair<bool, std::vector<float>> getCnnInfoFromHT(const Position pos);
+void saveCnnInfo(const Position pos, const std::vector<float>& info);
 std::pair<uint64_t, uint64_t> getCnnHtStats();

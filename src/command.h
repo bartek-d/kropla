@@ -23,12 +23,11 @@
 
 #include <stdexcept>
 #include <string>
-
-#include "bvector.hpp"
+#include <vector>
 
 class CommandParser
 {
-    stdb::vector<std::string> parsed;
+    std::vector<std::string> parsed;
     std::string buf;
     std::string::size_type pos;
     int eatWS();
@@ -39,7 +38,7 @@ class CommandParser
     std::string spaces(int n) const;
 
    public:
-    stdb::vector<std::string> parse(const std::string& b);
+    std::vector<std::string> parse(const std::string& b);
     class CPException : public std::runtime_error
     {
        public:

@@ -3,8 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-
-#include "bvector.hpp"
+#include <vector>
 
 /********************************************************************************************************
   Cleanup class
@@ -91,7 +90,7 @@ class SmallMultiset
     bool contains(T x) const;
     int size() const { return count; };
     bool hasAtLeastTwoDistinctElements() const;
-    stdb::vector<T> getUniqueSet() const;
+    std::vector<T> getUniqueSet() const;
     bool empty() const { return (count == 0); };
     void clear() { count = 0; };
     std::string show();
@@ -141,9 +140,9 @@ bool SmallMultiset<T, N>::hasAtLeastTwoDistinctElements() const
 }
 
 template <class T, int N>
-stdb::vector<T> SmallMultiset<T, N>::getUniqueSet() const
+std::vector<T> SmallMultiset<T, N>::getUniqueSet() const
 {
-    stdb::vector<T> uni;
+    std::vector<T> uni;
     uni.reserve(count);
     for (int i = 0; i < count; ++i)
         if (std::find(uni.begin(), uni.end(), data[i]) == uni.end())

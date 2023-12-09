@@ -35,15 +35,15 @@
 struct GroupNeighbours
 {
     GroupNeighbours() = delete;
-    GroupNeighbours(Game& game, stdb::vector<uint8_t>& neighbours, pti group_id,
+    GroupNeighbours(Game& game, std::vector<uint8_t>& neighbours, pti group_id,
                     pti forbidden_point, uint8_t mask, int who);
     bool isGroupClose(pti group_id) const;
-    stdb::vector<pti> neighbours_list{};
-    stdb::vector<pti> neighbour_groups{};
+    std::vector<pti> neighbours_list{};
+    std::vector<pti> neighbour_groups{};
 
    private:
     void addPointIfItIsNeighbour(const std::array<pti, 4>& groups, pti group_id,
-                                 stdb::vector<uint8_t>& neighbours,
-                                 uint8_t mask, pti i);
+                                 std::vector<uint8_t>& neighbours, uint8_t mask,
+                                 pti i);
     void addNeighbourGroups(const std::array<pti, 4>& groups, pti group_id);
 };

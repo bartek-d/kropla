@@ -8,12 +8,12 @@ Influence::Influence(int n) { allocMem(n); }
 
 void Influence::allocMem(int n)
 {
-    influence[0] = stdb::vector<float>(n, 0.0);
-    influence[1] = stdb::vector<float>(n, 0.0);
-    influence[2] = stdb::vector<float>(n, 0.0);
-    working = stdb::vector<float>(n, 0.0);
+    influence[0] = std::vector<float>(n, 0.0);
+    influence[1] = std::vector<float>(n, 0.0);
+    influence[2] = std::vector<float>(n, 0.0);
+    working = std::vector<float>(n, 0.0);
     //  PointInfluence pi;
-    influence_from = stdb::vector<PointInfluence>(n, PointInfluence());
+    influence_from = std::vector<PointInfluence>(n, PointInfluence());
     turned_off = false;
 }
 

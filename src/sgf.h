@@ -25,27 +25,26 @@
 #include <memory>  // unique pointer
 #include <string>
 #include <utility>  // std::pair
-
-#include "bvector.hpp"
+#include <vector>
 
 /********************************************************************************************************
   SgfParser class and classes for keeping the sgf.
 *********************************************************************************************************/
-typedef std::pair<std::string, stdb::vector<std::string> > SgfProperty;
+typedef std::pair<std::string, std::vector<std::string> > SgfProperty;
 
 std::string toString(const SgfProperty& sgf_prop);
 
 struct SgfNode
 {
-    stdb::vector<SgfProperty> props;
+    std::vector<SgfProperty> props;
     std::list<std::shared_ptr<SgfNode> > children;
     std::weak_ptr<SgfNode> parent;
     SgfNode() : props(), children(), parent(){};
     std::string toString(bool mainVar = false) const;
-    stdb::vector<SgfProperty>::iterator findProp(const std::string& pr);
+    std::vector<SgfProperty>::iterator findProp(const std::string& pr);
 };
 
-typedef stdb::vector<SgfNode> SgfSequence;
+typedef std::vector<SgfNode> SgfSequence;
 
 class SgfParser
 {
@@ -80,7 +79,7 @@ class SgfTree
    public:
     SgfTree();
     void changeBoardSize(int x, int y);
-    void addChild(stdb::vector<SgfProperty>&& prs, bool as_first = false);
+    void addChild(std::vector<SgfProperty>&& prs, bool as_first = false);
     void addComment(const std::string& cmt);
     void addProperty(SgfProperty prop);
     void makeMove(SgfProperty move);

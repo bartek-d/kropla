@@ -26,7 +26,7 @@
 
 #include "game.h"
 
-GroupNeighbours::GroupNeighbours(Game& game, stdb::vector<uint8_t>& neighbours,
+GroupNeighbours::GroupNeighbours(Game& game, std::vector<uint8_t>& neighbours,
                                  pti group_id, pti forbidden_point,
                                  uint8_t mask, int who)
 {
@@ -47,7 +47,7 @@ bool GroupNeighbours::isGroupClose(pti group_id) const
 
 void GroupNeighbours::addPointIfItIsNeighbour(const std::array<pti, 4>& groups,
                                               pti group_id,
-                                              stdb::vector<uint8_t>& neighbours,
+                                              std::vector<uint8_t>& neighbours,
                                               uint8_t mask, pti i)
 {
     for (int j = 0; j < 4; ++j)
