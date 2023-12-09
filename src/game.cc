@@ -3772,7 +3772,8 @@ void Game::getSimplifyingEnclAndPriorities(int who)
     if (!something_left) return;
     // this could be omitted, duplicates might slow down later, but checking for
     // them is also slow
-    ml_deleted_opp_thr.clear();
+    std::vector<uint64_t> ml_deleted_opp_thr;
+    ml_deleted_opp_thr.reserve(threats[who - 1].threats.size());
     for (auto &t : threats[who - 1].threats)
     {
         if ((t.type & ThreatConsts::TERR) and (t.terr_points == 0))
@@ -5778,8 +5779,8 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
             // important only when (is_in_our_terr_or_encl == true)
     SmallVector<pti, 32>::allocator_type::arena_type arena_gids_to_delete;
     SmallVector<pti, 32> gids_to_delete{arena_gids_to_delete};
-    SmallVector<pti, 256>::allocator_type::arena_type arena_stack;
-    SmallVector<pti, 256> stack{arena_stack};
+    std::vector<pti> stack;
+    stack.reserve(coord.last + 1);
     for (auto &p : encl.interior)
     {
         if (worm[p] == 0)

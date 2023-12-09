@@ -322,7 +322,6 @@ class Game
     static thread_local std::default_random_engine engine;
     // fields for functions generating list of moves (ml prefix, 'move list')
     std::vector<ThrInfo> ml_priorities;
-    std::vector<uint64_t> ml_deleted_opp_thr;
     std::vector<ThrInfo> ml_priority_vect;
     std::vector<pti> ml_special_moves;
     std::vector<std::shared_ptr<Enclosure>> ml_encl_moves;
