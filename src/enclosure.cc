@@ -124,7 +124,7 @@ bool Enclosure::checkIfRedundant(pti p1) const
 
 std::string Enclosure::show() const
 {
-    std::vector<pti> tab(coord.getSize(), 0);
+    stdb::vector<pti> tab(coord.getSize(), 0);
     for (auto &e : border) tab[e] = 1;
     for (auto &e : interior) tab[e] |= 2;
     std::stringstream out;

@@ -24,9 +24,9 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include "board.h"
+#include "bvector.hpp"
 #include "sgf.h"
 
 /********************************************************************************************************
@@ -38,13 +38,13 @@ enclosure).
 *********************************************************************************************************/
 struct Enclosure
 {
-    std::vector<pti> interior;
-    std::vector<pti> border;
-    Enclosure(std::vector<pti> const &i, std::vector<pti> const &b)
+    stdb::vector<pti> interior;
+    stdb::vector<pti> border;
+    Enclosure(stdb::vector<pti> const &i, stdb::vector<pti> const &b)
         : interior(i), border(b)
     {
     }
-    Enclosure(std::vector<pti> &&i, std::vector<pti> &&b)
+    Enclosure(stdb::vector<pti> &&i, stdb::vector<pti> &&b)
         : interior(std::move(i)), border(std::move(b))
     {
     }
@@ -52,7 +52,7 @@ struct Enclosure
     std::set<pti,std::greater<pti>> interior;
     std::set<pti,std::greater<pti>> border;
 
-    Enclosure(std::vector<pti> i, std::vector<pti> b) : interior(i.begin(),
+    Enclosure(stdb::vector<pti> i, stdb::vector<pti> b) : interior(i.begin(),
     i.end()), border(b.begin(), b.end()) {};
     */
     Enclosure() = default;
@@ -83,7 +83,7 @@ extern Enclosure empty_enclosure;
 *********************************************************************************************************/
 struct Move
 {
-    std::vector<std::shared_ptr<Enclosure> > enclosures;
+    stdb::vector<std::shared_ptr<Enclosure> > enclosures;
     uint64_t zobrist_key{0};
     pti ind;
     pti who{-1};

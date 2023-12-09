@@ -23,9 +23,9 @@
 
 #include <list>
 #include <memory>
-#include <vector>
 
 #include "board.h"
+#include "bvector.hpp"
 #include "enclosure.h"
 
 /********************************************************************************************************
@@ -53,8 +53,9 @@ struct Threat
         0};  // == number of dots in border that are in some opp's threats
     uint64_t zobrist_key;
     std::shared_ptr<Enclosure> encl;
-    std::vector<uint64_t> opp_thr;  // zobrist keys of opp's threats that
-                                    // enclose some border points of this threat
+    stdb::vector<uint64_t>
+        opp_thr;  // zobrist keys of opp's threats that
+                  // enclose some border points of this threat
     std::array<pti, 4>
         shortcuts;  // this is only used for Threat2m (TODO: maybe inherit a new
                     // class with this field?)
@@ -96,9 +97,9 @@ struct Threat2m
              // in AllThreats::is_in_2m_encl/is_in_2m_miai
     int16_t win_move_count{
         0};  // number of threats in thr_list with opp-dot capture
-    std::vector<pti> is_in_encl2;  // this we assign to 0 only after we have at
-                                   // least 2 threats
-    std::vector<Threat> thr_list;
+    stdb::vector<pti> is_in_encl2;  // this we assign to 0 only after we have at
+                                    // least 2 threats
+    stdb::vector<Threat> thr_list;
     bool isSafe() const { return (flags & Threat2mconsts::FLAG_SAFE) != 0; };
     // void removeMarked();
     std::string show() const;
@@ -109,14 +110,14 @@ struct Threat2m
 *********************************************************************************************************/
 struct AllThreats
 {
-    std::vector<Threat> threats;
-    //  std::vector<Threat2m> threats2m;
+    stdb::vector<Threat> threats;
+    //  stdb::vector<Threat2m> threats2m;
     std::list<Threat2m> threats2m;
-    std::vector<pti> is_in_encl;
-    std::vector<pti> is_in_terr;
-    std::vector<pti> is_in_border;
-    std::vector<pti> is_in_2m_encl;
-    std::vector<pti> is_in_2m_miai;
+    stdb::vector<pti> is_in_encl;
+    stdb::vector<pti> is_in_terr;
+    stdb::vector<pti> is_in_border;
+    stdb::vector<pti> is_in_2m_encl;
+    stdb::vector<pti> is_in_2m_miai;
     AllThreats()
         : is_in_encl(coord.getSize(), 0),
           is_in_terr(coord.getSize(), 0),
@@ -162,9 +163,9 @@ constexpr pti VALUE_SAVED_DOT = 8;
 
 struct ThrInfo
 {
-    std::vector<uint64_t> opp_thr;
-    std::vector<pti> saved_worms;  // list of our saved worms, to calculated
-                                   // saved_dots correctly
+    stdb::vector<uint64_t> opp_thr;
+    stdb::vector<pti> saved_worms;  // list of our saved worms, to calculated
+                                    // saved_dots correctly
     uint64_t zobrist_key;
     const Threat *thr_pointer{nullptr};
     pti type{0};

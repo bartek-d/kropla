@@ -27,15 +27,16 @@ protonmail (dot) com
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <vector>
+
+#include "bvector.hpp"
 
 namespace workers
 {
 class WorkersPoolBase
 {
    public:
-    virtual std::pair<bool, std::vector<float>> getCnnInfo(
-        std::vector<float>& input, uint32_t wlkx) = 0;
+    virtual std::pair<bool, stdb::vector<float>> getCnnInfo(
+        stdb::vector<float>& input, uint32_t wlkx) = 0;
     virtual int getPlanes() const = 0;
     virtual ~WorkersPoolBase() = default;
 };

@@ -47,7 +47,7 @@ void gatherDataFromPosition(Game& game, Move& move, unsigned move_no)
             return prob < other.prob;
         }
     };
-    std::priority_queue<MoveAndProb, std::vector<MoveAndProb>> queue;
+    std::priority_queue<MoveAndProb, stdb::vector<MoveAndProb>> queue;
     for (int y = 0; y < coord.wlky; ++y)
     {
         for (int x = 0; x < coord.wlkx; ++x)
@@ -84,8 +84,8 @@ void showSafetyMoves(Game& game, unsigned move_no)
     game.show(moves);
 }
 
-std::pair<Move, std::vector<std::string>> getMoveFromSgfNode(const Game& game,
-                                                             SgfNode node)
+std::pair<Move, stdb::vector<std::string>> getMoveFromSgfNode(const Game& game,
+                                                              SgfNode node)
 {
     if (node.findProp("B") != node.props.end())
     {

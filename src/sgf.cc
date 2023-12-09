@@ -74,7 +74,7 @@ std::string SgfNode::toString(bool mainVar) const
     }
 }
 
-std::vector<SgfProperty>::iterator SgfNode::findProp(const std::string &pr)
+stdb::vector<SgfProperty>::iterator SgfNode::findProp(const std::string &pr)
 {
     return std::find_if(props.begin(), props.end(),
                         [&pr](SgfProperty &p) { return p.first == pr; });
@@ -152,7 +152,7 @@ std::string SgfParser::propIdent()
 SgfProperty SgfParser::property()
 {
     std::string id = propIdent();
-    std::vector<std::string> values;
+    stdb::vector<std::string> values;
     values.push_back(propValue());
     for (;;)
     {
@@ -239,7 +239,7 @@ void SgfTree::changeBoardSize(int x, int y)
                    : (std::to_string(x) + ":" + std::to_string(y))}});
 }
 
-void SgfTree::addChild(std::vector<SgfProperty> &&prs, bool as_first)
+void SgfTree::addChild(stdb::vector<SgfProperty> &&prs, bool as_first)
 {
     SgfNode node;
     node.props = std::move(prs);

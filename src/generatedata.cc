@@ -146,7 +146,7 @@ void PatternStats::show() const
             return stats < other.stats;
         }
     };
-    std::priority_queue<StatsAndPatt, std::vector<StatsAndPatt>> queue;
+    std::priority_queue<StatsAndPatt, stdb::vector<StatsAndPatt>> queue;
     for (pattern3_t p = 0; p < PATTERN3_SIZE; ++p)
     {
         if (stats[p].present > 0)
@@ -346,8 +346,8 @@ void gatherDataFromPosition(Game& game, Move& move)
     }
 }
 
-std::pair<Move, std::vector<std::string>> getMoveFromSgfNode(const Game& game,
-                                                             SgfNode node)
+std::pair<Move, stdb::vector<std::string>> getMoveFromSgfNode(const Game& game,
+                                                              SgfNode node)
 {
     if (node.findProp("B") != node.props.end())
     {

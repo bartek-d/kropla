@@ -101,11 +101,12 @@ std::string WormDescr::show() const
   Some helper functions
 *********************************************************************************************************/
 
-void addOppThreatZobrist(std::vector<uint64_t> &v, uint64_t z)
+void addOppThreatZobrist(stdb::vector<uint64_t> &v, uint64_t z)
 {
     if (v.empty())
     {
-        v.push_back(z);
+        v.reserve(8);
+        v.push_back(__FILE__, __LINE__, z);
     }
     else if (v.back() == z)
     {
@@ -116,7 +117,7 @@ void addOppThreatZobrist(std::vector<uint64_t> &v, uint64_t z)
         auto pos = std::find(v.begin(), v.end(), z);
         if (pos == v.end())
         {
-            v.push_back(z);
+            v.push_back(__FILE__, __LINE__, z);
         }
         else
         {
@@ -125,7 +126,7 @@ void addOppThreatZobrist(std::vector<uint64_t> &v, uint64_t z)
     }
 }
 
-void removeOppThreatZobrist(std::vector<uint64_t> &v, uint64_t z)
+void removeOppThreatZobrist(stdb::vector<uint64_t> &v, uint64_t z)
 {
     auto pos = std::find(v.begin(), v.end(), z);
     if (pos != v.end())
@@ -471,7 +472,7 @@ int TreenodeAllocator::getSize(Treenode *ch)
 *********************************************************************************************************/
 /*
 class ListOfPlaces {
-  std::vector<pti> list;
+  stdb::vector<pti> list;
 public:
   ListOfPlaces();
   void addPoint(pti p);
@@ -489,7 +490,7 @@ void
 ListOfPlaces::addPoint(pti p)
 {
   assert(std::find(list.begin(), list.end(), p) == list.end());
-  list.push_back(p);
+  list.push_back(__FILE__, __LINE__, p);
 }
 
 void
@@ -588,20 +589,22 @@ void PossibleMoves::generate()
     lists[0].reserve(coord.last);
     lists[1].reserve(coord.last);
     lists[2].reserve(coord.last);
-    mtype = std::vector<pti>(coord.getSize(), PossibleMovesConsts::REMOVED);
+    mtype = stdb::vector<pti>(coord.getSize(), PossibleMovesConsts::REMOVED);
     for (int i = coord.first; i <= coord.last; ++i)
     {
         if (coord.dist[i] > 0)
         {
             mtype[i] = PossibleMovesConsts::NEUTRAL |
                        lists[PossibleMovesConsts::LIST_NEUTRAL].size();
-            lists[PossibleMovesConsts::LIST_NEUTRAL].push_back(i);
+            lists[PossibleMovesConsts::LIST_NEUTRAL].push_back(__FILE__,
+                                                               __LINE__, i);
         }
         else if (coord.dist[i] == 0)
         {
             mtype[i] = PossibleMovesConsts::DAME |
                        lists[PossibleMovesConsts::LIST_DAME].size();
-            lists[PossibleMovesConsts::LIST_DAME].push_back(i);
+            lists[PossibleMovesConsts::LIST_DAME].push_back(__FILE__, __LINE__,
+                                                            i);
         }
     }
     left = true;
@@ -620,7 +623,8 @@ void PossibleMoves::changeMove(pti p, int new_type)
         removeFromList(p);
         mtype[p] = lists[new_type >> PossibleMovesConsts::MASK_SHIFT].size() |
                    new_type;
-        lists[new_type >> PossibleMovesConsts::MASK_SHIFT].push_back(p);
+        lists[new_type >> PossibleMovesConsts::MASK_SHIFT].push_back(
+            __FILE__, __LINE__, p);
     }
     else
     {
@@ -678,7 +682,7 @@ void InterestingMoves::generate()
     lists[0].reserve(coord.last);
     lists[1].reserve(coord.last);
     lists[2].reserve(coord.last);
-    mtype = std::vector<pti>(coord.getSize(), InterestingMovesConsts::REMOVED);
+    mtype = stdb::vector<pti>(coord.getSize(), InterestingMovesConsts::REMOVED);
 }
 
 /// new_type should be MOVE_0, MOVE_1, MOVE_2 or REMOVED
@@ -697,7 +701,8 @@ void InterestingMoves::changeMove(pti p, int new_type)
         mtype[p] =
             lists[new_type >> InterestingMovesConsts::MASK_SHIFT].size() |
             new_type;
-        lists[new_type >> InterestingMovesConsts::MASK_SHIFT].push_back(p);
+        lists[new_type >> InterestingMovesConsts::MASK_SHIFT].push_back(
+            __FILE__, __LINE__, p);
     }
     else
     {
@@ -756,15 +761,15 @@ Game::Game(SgfSequence seq, int max_moves, bool must_surround)
     sgf_tree.changeBoardSize(coord.wlkx, coord.wlky);
 #endif
     // reserve memory
-    worm = std::vector<pti>(coord.getSize(), 0);
-    nextDot = std::vector<pti>(coord.getSize(), 0);
+    worm = stdb::vector<pti>(coord.getSize(), 0);
+    nextDot = stdb::vector<pti>(coord.getSize(), 0);
     recalculate_list.reserve(coord.wlkx * coord.wlky);
     const pattern3_t empty_point = 0;
-    pattern3_value[0] = std::vector<pattern3_val>(coord.getSize(), 0);
-    pattern3_value[1] = std::vector<pattern3_val>(coord.getSize(), 0);
-    pattern3_at = std::vector<pattern3_t>(coord.getSize(), empty_point);
-    connects[0] = std::vector<OneConnection>(coord.getSize(), OneConnection());
-    connects[1] = std::vector<OneConnection>(coord.getSize(), OneConnection());
+    pattern3_value[0] = stdb::vector<pattern3_val>(coord.getSize(), 0);
+    pattern3_value[1] = stdb::vector<pattern3_val>(coord.getSize(), 0);
+    pattern3_at = stdb::vector<pattern3_t>(coord.getSize(), empty_point);
+    connects[0] = stdb::vector<OneConnection>(coord.getSize(), OneConnection());
+    connects[1] = stdb::vector<OneConnection>(coord.getSize(), OneConnection());
     threats[0] = AllThreats();
     threats[1] = AllThreats();
     lastWormNo[0] = 1;
@@ -1543,12 +1548,13 @@ void Game::replaySgfSequence(SgfSequence seq, int max_moves)
     }
 }
 
-std::vector<pti> Game::findThreats_preDot(pti ind, int who)
+stdb::vector<pti> Game::findThreats_preDot(pti ind, int who)
 // find possible new threats because of the (future) dot of who at [ind]
 // Each possible threat is a pair of pti's, first denote a point where to play,
 // second gives a code which neighbours may go inside.
 {
-    std::vector<pti> possible_threats;
+    stdb::vector<pti> possible_threats;
+    possible_threats.reserve(32);
     Threat *smallest_terr = nullptr;
     unsigned int smallest_size = coord.maxSize;
     // find smallest territory that [ind] is (if any), return immediately if we
@@ -1654,7 +1660,7 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
     // check our enclosures containing [ind]
     if (threats[who - 1].is_in_encl[ind] || threats[who - 1].is_in_border[ind])
     {
-        std::vector<Threat *> this_encl;
+        stdb::vector<Threat *> this_encl;
         for (auto &thr : threats[who - 1].threats)
         {
             if (thr.type & ThreatConsts::ENCL)
@@ -1666,7 +1672,9 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
                          ThreatConsts::TERR);  // switch ENCL bit to TERR
                     thr.where = 0;
                     threats[who - 1].changeEnclToTerr(thr);
-                    this_encl.push_back(&thr);
+                    if (this_encl.empty())
+                        this_encl.reserve(__FILE__, __LINE__, 8);
+                    this_encl.push_back(__FILE__, __LINE__, &thr);
                     // thr.zobrist_key does not change
                 }
                 else if (thr.encl->isInInterior(ind))
@@ -1685,7 +1693,7 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
         // check enclosures inside our new territory
         if (!this_encl.empty())
         {
-            std::vector<int8_t> this_interior(coord.last + 1, 0);
+            stdb::vector<int8_t> this_interior(coord.last + 1, 0);
             for (auto tt : this_encl)
                 for (auto i : tt->encl->interior) this_interior[i] = 1;
             for (auto &thr : threats[who - 1].threats)
@@ -1732,7 +1740,7 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
                     }
                     if (count >= 2)
                     {
-                        possible_threats.push_back(i);
+                        possible_threats.push_back(__FILE__, __LINE__, i);
                         int w = 0;  // find the code for the neighbourhood
                         for (int j = 7; j >= 0; j--)
                         {
@@ -1752,7 +1760,8 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
                             w <<= 2;
                         }
                         w >>= 2;
-                        possible_threats.push_back(coord.connections_tab[w]);
+                        possible_threats.push_back(__FILE__, __LINE__,
+                                                   coord.connections_tab[w]);
                     }
                 }
             }
@@ -1789,8 +1798,9 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
             w >>= 2;
             if (coord.connections_tab[w])
             {
-                possible_threats.push_back(nb);
-                possible_threats.push_back(coord.connections_tab[w]);
+                possible_threats.push_back(__FILE__, __LINE__, nb);
+                possible_threats.push_back(__FILE__, __LINE__,
+                                           coord.connections_tab[w]);
             }
         }
     }
@@ -1925,7 +1935,7 @@ std::array<int, 5> Game::findClosableNeighbours(pti ind, pti forbidden1,
 /// 3 points: p0, p1, p2 should be on the boundary of an enclosure, so check
 /// them and take the optimal one. Points p0, p1, p2 do not have to be adjacent.
 /// TODO: use connections_tab, like in usual Threats
-void Game::addClosableNeighbours(std::vector<pti> &tab, pti p0, pti p1, pti p2,
+void Game::addClosableNeighbours(stdb::vector<pti> &tab, pti p0, pti p1, pti p2,
                                  int who) const
 {
     auto cn0 = findClosableNeighbours(p0, p1, p2, who);
@@ -1933,18 +1943,21 @@ void Game::addClosableNeighbours(std::vector<pti> &tab, pti p0, pti p1, pti p2,
     auto cn2 = findClosableNeighbours(p2, p0, p1, who);
     if (cn0[0] <= cn1[0] and cn0[0] <= cn2[0])
     {
-        for (int i = 0; i < cn0[0]; i++) tab.push_back(cn0[i + 1]);
-        tab.push_back(cn0[0]);
+        for (int i = 0; i < cn0[0]; i++)
+            tab.push_back(__FILE__, __LINE__, cn0[i + 1]);
+        tab.push_back(__FILE__, __LINE__, cn0[0]);
     }
     else if (cn1[0] <= cn2[0])
     {
-        for (int i = 0; i < cn1[0]; i++) tab.push_back(cn1[i + 1]);
-        tab.push_back(cn1[0]);
+        for (int i = 0; i < cn1[0]; i++)
+            tab.push_back(__FILE__, __LINE__, cn1[i + 1]);
+        tab.push_back(__FILE__, __LINE__, cn1[0]);
     }
     else
     {
-        for (int i = 0; i < cn2[0]; i++) tab.push_back(cn2[i + 1]);
-        tab.push_back(cn2[0]);
+        for (int i = 0; i < cn2[0]; i++)
+            tab.push_back(__FILE__, __LINE__, cn2[i + 1]);
+        tab.push_back(__FILE__, __LINE__, cn2[0]);
     }
 }
 
@@ -1966,7 +1979,7 @@ bool Game::haveConnection(pti p1, pti p2, int who) const
     return false;
 }
 
-std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
+stdb::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
 // find possible new threats in 2 moves because of the (future) dot of who at
 // [ind] Each possible threat consists of:
 //  points (possibly) to enclose,
@@ -1976,7 +1989,7 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
 // enclose).
 {
     if (not threats[who - 1].isActiveThreats2m()) return {};
-    std::vector<pti> possible_threats;
+    stdb::vector<pti> possible_threats;
     // find groups in the neighbourhood
     std::array<pti, 4> groups = connects[who - 1][ind].groups_id;
     int top = connects[who - 1][ind].count();
@@ -2042,8 +2055,10 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                                         addClosableNeighbours(possible_threats,
                                                               ind, nb, nb2,
                                                               who);
-                                        possible_threats.push_back(nb);
-                                        possible_threats.push_back(nb2);
+                                        possible_threats.push_back(
+                                            __FILE__, __LINE__, nb);
+                                        possible_threats.push_back(
+                                            __FILE__, __LINE__, nb2);
                                         goto threat_added;
                                     }
                             }
@@ -2164,42 +2179,44 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                             int count = 0;
                             if (coord.dist[ind + coord.nb8[i + 7]] >= 1)
                             {
-                                possible_threats.push_back(ind +
-                                                           coord.nb8[i + 7]);
+                                possible_threats.push_back(
+                                    __FILE__, __LINE__, ind + coord.nb8[i + 7]);
                                 count++;
                             }
                             if (coord.dist[ind + coord.nb8[i + 1]] >= 1)
                             {
-                                possible_threats.push_back(ind +
-                                                           coord.nb8[i + 1]);
+                                possible_threats.push_back(
+                                    __FILE__, __LINE__, ind + coord.nb8[i + 1]);
                                 count++;
                             }
-                            possible_threats.push_back(count);
+                            possible_threats.push_back(__FILE__, __LINE__,
+                                                       count);
                         }
                         else if (!haveConnection(nb, nb2, who))
                         {
                             int count = 0;
                             if (coord.dist[nb + coord.nb8[j + 7]] >= 1)
                             {
-                                possible_threats.push_back(nb +
-                                                           coord.nb8[j + 7]);
+                                possible_threats.push_back(
+                                    __FILE__, __LINE__, nb + coord.nb8[j + 7]);
                                 count++;
                             }
                             if (coord.dist[nb + coord.nb8[j + 1]] >= 1)
                             {
-                                possible_threats.push_back(nb +
-                                                           coord.nb8[j + 1]);
+                                possible_threats.push_back(
+                                    __FILE__, __LINE__, nb + coord.nb8[j + 1]);
                                 count++;
                             }
-                            possible_threats.push_back(count);
+                            possible_threats.push_back(__FILE__, __LINE__,
+                                                       count);
                         }
                         else
                         {
                             addClosableNeighbours(possible_threats, ind, nb,
                                                   nb2, who);
                         }
-                        possible_threats.push_back(nb);
-                        possible_threats.push_back(nb2);
+                        possible_threats.push_back(__FILE__, __LINE__, nb);
+                        possible_threats.push_back(__FILE__, __LINE__, nb2);
                         /*
                         if (no_thr_expexcted) {
                           // dla pokazania ustaw kropki na ind, nb, nb2
@@ -2245,10 +2262,10 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
         //  b. maybe there are 2 moves somewhere connecting these groups (and
         //  thus posing a threat in 2 moves) c. maybe there is a third group
         //  which is of distance 1 to each of the just connected 2 groups
-        std::vector<pti> unique_connected_groups =
+        stdb::vector<pti> unique_connected_groups =
             connected_groups.getUniqueSet();
-        std::vector<uint8_t> neighbours(coord.getSize(), 0);
-        std::vector<GroupNeighbours> group_neighb;
+        stdb::vector<uint8_t> neighbours(coord.getSize(), 0);
+        stdb::vector<GroupNeighbours> group_neighb;
         int mask = 1;
         for (pti gid : unique_connected_groups)
         {
@@ -2291,8 +2308,9 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                             continue;
                         addClosableNeighbours(possible_threats, ind,
                                               point_close_to_1, point2, who);
-                        possible_threats.push_back(point_close_to_1);
-                        possible_threats.push_back(point2);
+                        possible_threats.push_back(__FILE__, __LINE__,
+                                                   point_close_to_1);
+                        possible_threats.push_back(__FILE__, __LINE__, point2);
                     }
                 }
             }
@@ -2322,8 +2340,10 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                                 addClosableNeighbours(possible_threats, ind,
                                                       point_close_to_1, nb,
                                                       who);
-                                possible_threats.push_back(point_close_to_1);
-                                possible_threats.push_back(nb);
+                                possible_threats.push_back(__FILE__, __LINE__,
+                                                           point_close_to_1);
+                                possible_threats.push_back(__FILE__, __LINE__,
+                                                           nb);
                             }
                         }
                     }
@@ -2353,8 +2373,10 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                             addClosableNeighbours(possible_threats, ind,
                                                   point_close_to_1,
                                                   point_close_to_2, who);
-                            possible_threats.push_back(point_close_to_1);
-                            possible_threats.push_back(point_close_to_2);
+                            possible_threats.push_back(__FILE__, __LINE__,
+                                                       point_close_to_1);
+                            possible_threats.push_back(__FILE__, __LINE__,
+                                                       point_close_to_2);
                         }
                     }
                 }
@@ -2467,7 +2489,7 @@ bool Game::checkIfThreat_encl_isUnnecessary(Threat *thr, pti ind, int who) const
 }
 
 void Game::checkThreat_terr(Threat *thr, pti p, int who,
-                            std::vector<int8_t> *done)
+                            stdb::vector<int8_t> *done)
 /// Try to enclose point [p] by who.
 /// @param[in] thr  Threat with a territory to check, it may happen that the
 /// territory found will be the same
@@ -2514,7 +2536,7 @@ void Game::checkThreat_terr(Threat *thr, pti p, int who,
     }
 }
 
-void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
+void Game::checkThreats_postDot(stdb::vector<pti> &newthr, pti ind, int who)
 {
     assert(who == 1 || who == 2);
     /*
@@ -2541,7 +2563,7 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
             (thr->type & ThreatConsts::TERR))
         {
             thr->type |= ThreatConsts::TO_REMOVE;
-            std::vector<int8_t> done(coord.last + 1, 0);
+            stdb::vector<int8_t> done(coord.last + 1, 0);
             std::shared_ptr<Enclosure> encl =
                 thr->encl;  // thr may be invalidated by adding new threats
                             // in checkThreat_terr
@@ -2741,7 +2763,7 @@ int debug_allt2m = 0, debug_sing_smallt2m = 0, debug_sing_larget2m = 0,
     debug_skippedt2m = 0;
 int debug_n = 0, debug_N = 0;
 
-void Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind,
+void Game::checkThreats2moves_postDot(stdb::vector<pti> &newthr, pti ind,
                                       int who)
 {
     if (not threats[who - 1].isActiveThreats2m()) return;
@@ -2835,8 +2857,8 @@ void Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind,
                             assert(worm[t2.where0] == 0 and worm[t.where] == 0);
                             addClosableNeighbours(newthr, ind, t.where,
                                                   t2.where0, who);
-                            newthr.push_back(t2.where0);
-                            newthr.push_back(t.where);
+                            newthr.push_back(__FILE__, __LINE__, t2.where0);
+                            newthr.push_back(__FILE__, __LINE__, t.where);
                         }
                     }
                 }
@@ -3045,7 +3067,7 @@ void Game::pointNowInDanger2moves(pti ind, int who)
             Pattern3::isPatternPossible(pattern3_at[nb]))
         {
             pattern3_at[nb] = PATTERN3_IMPOSSIBLE;
-            recalculate_list.push_back(nb);
+            recalculate_list.push_back(__FILE__, __LINE__, nb);
         }
     }
     if (whoseDotMarginAt(ind) == 0)
@@ -3149,9 +3171,9 @@ void Game::addThreat(Threat &&t, int who)
         // become in danger now, and that means that curr move should change its
         // pattern3_at
         pattern3_at[t.where] = PATTERN3_IMPOSSIBLE;
-        recalculate_list.push_back(t.where);
+        recalculate_list.push_back(__FILE__, __LINE__, t.where);
     }
-    threats[who - 1].threats.push_back(std::move(t));
+    threats[who - 1].threats.push_back(__FILE__, __LINE__, std::move(t));
 }
 
 void Game::subtractThreat(const Threat &t, int who)
@@ -3217,7 +3239,7 @@ void Game::subtractThreat(const Threat &t, int who)
                     Pattern3::isPatternPossible(pattern3_at[nb]))
                 {
                     pattern3_at[nb] = PATTERN3_IMPOSSIBLE;
-                    recalculate_list.push_back(nb);
+                    recalculate_list.push_back(__FILE__, __LINE__, nb);
                 }
             }
             if (threats[2 - who].is_in_terr[i] == 0 and
@@ -3498,7 +3520,7 @@ pattern3_val Game::getPattern3Value(pti ind, int who) const
 
 void Game::showPattern3Values(int who) const
 {
-    std::vector<pti> val(coord.getSize(), 0);
+    stdb::vector<pti> val(coord.getSize(), 0);
     for (int i = coord.first; i <= coord.last; i++)
     {
         if (coord.dist[i] >= 0)
@@ -3618,7 +3640,7 @@ real_t Game::getPattern52Value(pti ind, int who) const
 
 void Game::showPattern52Values(int who) const
 {
-    std::vector<pti> val(coord.getSize(), 0);
+    stdb::vector<pti> val(coord.getSize(), 0);
     for (int i = coord.first; i <= coord.last; i++)
     {
         if (coord.dist[i] >= 0 and coord.dist[i] <= 1)
@@ -3739,7 +3761,7 @@ int Game::checkLadderStep(pti x, PointsSet &ladder_breakers, pti v1, pti v2,
 
 /// Finds simplifying enclosures (=those that have 0 territory).
 bool Game::appendSimplifyingEncl(
-    std::vector<std::shared_ptr<Enclosure>> &encl_moves, uint64_t &zobrists,
+    stdb::vector<std::shared_ptr<Enclosure>> &encl_moves, uint64_t &zobrists,
     int who)
 {
     zobrists = 0;
@@ -3749,7 +3771,7 @@ bool Game::appendSimplifyingEncl(
         if ((t.type & ThreatConsts::TERR) and (t.terr_points == 0))
         {
             assert(t.opp_dots);
-            encl_moves.push_back(t.encl);
+            encl_moves.push_back(__FILE__, __LINE__, t.encl);
             zobrists ^= t.zobrist_key;
         }
         else if (t.opp_dots and !t.opp_thr.empty())
@@ -3765,7 +3787,7 @@ void Game::getSimplifyingEnclAndPriorities(int who)
 {
     ml_encl_moves.clear();
     ml_encl_zobrists.clear();
-    ml_encl_zobrists.push_back(0);
+    ml_encl_zobrists.push_back(__FILE__, __LINE__, 0);
     bool something_left =
         appendSimplifyingEncl(ml_encl_moves, ml_encl_zobrists[0], who);
     ml_priorities.clear();
@@ -3783,7 +3805,7 @@ void Game::getSimplifyingEnclAndPriorities(int who)
                               ml_deleted_opp_thr.end(),
                               z) == ml_deleted_opp_thr.end())
                 {
-                    ml_deleted_opp_thr.push_back(z);
+                    ml_deleted_opp_thr.push_back(__FILE__, __LINE__, z);
                 }
             }
         }
@@ -3818,14 +3840,15 @@ void Game::getSimplifyingEnclAndPriorities(int who)
                                               worm[p]) == ti.saved_worms.end())
                                 {
                                     // our worm not yet counted
-                                    ti.saved_worms.push_back(worm[p]);
+                                    ti.saved_worms.push_back(__FILE__, __LINE__,
+                                                             worm[p]);
                                     ti.saved_dots +=
                                         descr.at(worm[p]).dots[who - 1];
                                 }
                             }
                         }
                     }
-                    ti.opp_thr.push_back(z);
+                    ti.opp_thr.push_back(__FILE__, __LINE__, z);
                 }
             }
             if (!ti.opp_thr.empty())
@@ -3836,7 +3859,7 @@ void Game::getSimplifyingEnclAndPriorities(int who)
                 ti.move = t.where;
                 ti.won_dots = t.opp_dots;
                 ti.priority_value = ti.calculatePriorityValue();
-                ml_priorities.push_back(std::move(ti));
+                ml_priorities.push_back(__FILE__, __LINE__, std::move(ti));
             }
         }
     }
@@ -3957,7 +3980,7 @@ void Game::rollout(Treenode *node, int /*depth*/)
     //       the generateMoves-playout phase. Solution: save empty points at
     //       findBestMove. BUT on the other hand, sometimes it's good to play in
     //       opp's terr to reduce it.
-    std::vector<pti> amafboard(coord.getSize(), 0);
+    stdb::vector<pti> amafboard(coord.getSize(), 0);
     const int amaf_empty = -5;
     for (auto i = coord.first; i <= coord.last; i++)
     {
@@ -4115,21 +4138,22 @@ std::default_random_engine &Game::getRandomEngine() { return engine; }
 /// zeroed, then added).
 /// @param[out] encl_zobrists  First is added the zobrist for all encl_moves.
 /// Then zobrists for optional enclosures are added at the end.
-void Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure>> &encl_moves,
-                        std::vector<std::shared_ptr<Enclosure>> &opt_encl_moves,
-                        std::vector<uint64_t> &encl_zobrists, pti move, int who)
+void Game::getEnclMoves(
+    stdb::vector<std::shared_ptr<Enclosure>> &encl_moves,
+    stdb::vector<std::shared_ptr<Enclosure>> &opt_encl_moves,
+    stdb::vector<uint64_t> &encl_zobrists, pti move, int who)
 {
     // ml_encl_moves.clear();   this is already done in
     // Game::getSimplifyingEnclAndPriorities()
     opt_encl_moves.clear();
-    encl_zobrists.push_back(0);
+    encl_zobrists.push_back(__FILE__, __LINE__, 0);
     if (ml_priorities.empty()) return;
     ml_priority_vect.clear();
     /*
     for (auto &t : ml_priorities) {
       if ((t.type & ThreatConsts::TERR) || (t.move == move and (t.type &
-    ThreatConsts::ENCL))) { ml_priority_vect.push_back(t);   // TODO: use
-    copy_if ?
+    ThreatConsts::ENCL))) { ml_priority_vect.push_back(__FILE__, __LINE__, t);
+    // TODO: use copy_if ?
       }
     }
     */
@@ -4150,7 +4174,7 @@ void Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure>> &encl_moves,
             if (t.where != 0)
             {
                 assert(t.type & ThreatConsts::ENCL);
-                ml_special_moves.push_back(t.where);
+                ml_special_moves.push_back(__FILE__, __LINE__, t.where);
             }
         }
         for (auto &t : ml_priorities)
@@ -4158,7 +4182,7 @@ void Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure>> &encl_moves,
             if (t.move != 0)
             {
                 assert(t.type & ThreatConsts::ENCL);
-                ml_special_moves.push_back(t.move);
+                ml_special_moves.push_back(__FILE__, __LINE__, t.move);
             }
         }
     }
@@ -4260,13 +4284,15 @@ void Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure>> &encl_moves,
             }
             if (it->priority_value > 0)
             {
-                encl_moves.push_back(it->thr_pointer->encl);
+                encl_moves.push_back(__FILE__, __LINE__, it->thr_pointer->encl);
                 encl_zobrists_0 ^= it->thr_pointer->zobrist_key;
             }
             else
             {
-                opt_encl_moves.push_back(it->thr_pointer->encl);
-                encl_zobrists.push_back(it->thr_pointer->zobrist_key);
+                opt_encl_moves.push_back(__FILE__, __LINE__,
+                                         it->thr_pointer->encl);
+                encl_zobrists.push_back(__FILE__, __LINE__,
+                                        it->thr_pointer->zobrist_key);
             }
         }
         else
@@ -4388,8 +4414,8 @@ void Game::placeDot(int x, int y, int who)
         AlreadyThere:;
         }
     }
-    std::vector<pti> to_check = findThreats_preDot(ind, who);
-    std::vector<pti> to_check2m = findThreats2moves_preDot(ind, who);
+    stdb::vector<pti> to_check = findThreats_preDot(ind, who);
+    stdb::vector<pti> to_check2m = findThreats2moves_preDot(ind, who);
     // remove opp threats that need to put at ind
     // This is important to do before glueing worms, because otherwise counting
     // singular_dot becomes complicated.
@@ -4468,6 +4494,8 @@ void Game::placeDot(int x, int y, int who)
         dsc.group_id = c;
         dsc.safety = 0;
         descr.insert({c, std::move(dsc)});
+        // descr[c] = std::move(dsc);
+        // descr.insert({c, dsc});
     }
     // update safety info
     {
@@ -4567,8 +4595,10 @@ void Game::placeDot(int x, int y, int who)
                           descr.at(worm[ind]).neighb.end(),
                           worm[nb]) == descr.at(worm[ind]).neighb.end())
             {
-                descr.at(worm[ind]).neighb.push_back(worm[nb]);
-                descr.at(worm[nb]).neighb.push_back(worm[ind]);
+                descr.at(worm[ind]).neighb.push_back(__FILE__, __LINE__,
+                                                     worm[nb]);
+                descr.at(worm[nb]).neighb.push_back(__FILE__, __LINE__,
+                                                    worm[ind]);
             }
         }
     }
@@ -4608,7 +4638,7 @@ void Game::placeDot(int x, int y, int who)
             Pattern3::isPatternPossible(pattern3_at[nb]))
         {
             pattern3_at[nb] = PATTERN3_IMPOSSIBLE;
-            recalculate_list.push_back(nb);
+            recalculate_list.push_back(__FILE__, __LINE__, nb);
         }
     }
     zobrist ^= coord.zobrist_dots[who - 1][ind];
@@ -4622,7 +4652,7 @@ void Game::show() const
               << std::endl;
 }
 
-void Game::show(const std::vector<pti> &moves) const
+void Game::show(const stdb::vector<pti> &moves) const
 {
     auto col_getter = [&](int x, int y)
     {
@@ -4650,7 +4680,7 @@ void Game::show(const std::vector<pti> &moves) const
 }
 
 void Game::showSvg(const std::string &filename,
-                   const std::vector<pti> &tab) const
+                   const stdb::vector<pti> &tab) const
 {
     Svg svg(coord.wlkx, coord.wlky);
     for (int i = coord.first; i <= coord.last; ++i)
@@ -4706,9 +4736,9 @@ void Game::showThreats2m()
     }
 }
 
-std::vector<pti> Game::getPatt3extraValues() const
+stdb::vector<pti> Game::getPatt3extraValues() const
 {
-    std::vector<pti> values(coord.getSize(), 0);
+    stdb::vector<pti> values(coord.getSize(), 0);
     for (int i = coord.first; i <= coord.last; ++i)
     {
         if (whoseDotMarginAt(i) == 0)
@@ -4724,7 +4754,7 @@ std::vector<pti> Game::getPatt3extraValues() const
 
 void Game::showPattern3extra()
 {
-    std::vector<pti> values = getPatt3extraValues();
+    stdb::vector<pti> values = getPatt3extraValues();
 #ifdef DEBUG_SGF
     {
         SgfProperty prop;
@@ -4733,8 +4763,9 @@ void Game::showPattern3extra()
         {
             if (values[i] > 0)
             {
-                prop.second.push_back(coord.indToSgf(i) + ":" +
-                                      std::to_string(values[i]));
+                prop.second.push_back(
+                    __FILE__, __LINE__,
+                    coord.indToSgf(i) + ":" + std::to_string(values[i]));
             }
         }
         if (not prop.second.empty()) sgf_tree.addProperty(prop);
@@ -4747,7 +4778,7 @@ Enclosure Game::findSimpleEnclosure(pti point, pti mask, pti value)
     return findSimpleEnclosure(worm, point, mask, value);
 }
 
-Enclosure Game::findSimpleEnclosure(std::vector<pti> &tab, pti point, pti mask,
+Enclosure Game::findSimpleEnclosure(stdb::vector<pti> &tab, pti point, pti mask,
                                     pti value) const
 // tries to enclose 'point' using dots given by (tab[...] & mask) == value,
 // check only size-1 or size-2 enclosures All points in 'tab' should have zero
@@ -4772,11 +4803,11 @@ Enclosure Game::findSimpleEnclosure(std::vector<pti> &tab, pti point, pti mask,
         }
         if (count == 4)
         {
-            std::vector<pti> border = {static_cast<pti>(point + coord.N),
-                                       static_cast<pti>(point + coord.W),
-                                       static_cast<pti>(point + coord.S),
-                                       static_cast<pti>(point + coord.E),
-                                       static_cast<pti>(point + coord.N)};
+            stdb::vector<pti> border = {static_cast<pti>(point + coord.N),
+                                        static_cast<pti>(point + coord.W),
+                                        static_cast<pti>(point + coord.S),
+                                        static_cast<pti>(point + coord.E),
+                                        static_cast<pti>(point + coord.N)};
             return Enclosure({point}, std::move(border));
         }
 
@@ -4806,7 +4837,7 @@ Enclosure Game::findSimpleEnclosure(std::vector<pti> &tab, pti point, pti mask,
                 assert(point < nb);
                 if (direction == 1)
                 {  // E
-                    std::vector<pti> border = {
+                    stdb::vector<pti> border = {
                         static_cast<pti>(point + coord.N),
                         static_cast<pti>(point + coord.W),
                         static_cast<pti>(point + coord.S),
@@ -4819,7 +4850,7 @@ Enclosure Game::findSimpleEnclosure(std::vector<pti> &tab, pti point, pti mask,
                 }
                 else
                 {  // S
-                    std::vector<pti> border = {
+                    stdb::vector<pti> border = {
                         static_cast<pti>(point + coord.N),
                         static_cast<pti>(point + coord.W),
                         static_cast<pti>(nb + coord.W),
@@ -4841,7 +4872,7 @@ Enclosure Game::findNonSimpleEnclosure(pti point, pti mask, pti value)
     return findNonSimpleEnclosure(worm, point, mask, value);
 }
 
-Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
+Enclosure Game::findNonSimpleEnclosure(stdb::vector<pti> &tab, pti point,
                                        pti mask, pti value) const
 // tries to enclose 'point' using dots given by (tab[...] & mask) == value
 // All points in 'tab' should have zero bits MASK_MARK and MASK_BORDER.
@@ -4852,11 +4883,11 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
     stack[0] = point;
     tab[point] |= MASK_MARK;
     int stackSize = 1;
-    // std::vector<uint8_t> tab(coord.getSize(), 0);
+    // stdb::vector<uint8_t> tab(coord.getSize(), 0);
     pti leftmost = Coord::maxSize;
     mask |= MASK_MARK;
-    //  Cleanup<std::vector<pti>&, pti> cleanup(tab, ~MASK_MARK);
-    CleanupUsingList<std::vector<pti> &, pti> cleanup(
+    //  Cleanup<stdb::vector<pti>&, pti> cleanup(tab, ~MASK_MARK);
+    CleanupUsingList<stdb::vector<pti> &, pti> cleanup(
         tab, ~(MASK_MARK | MASK_BORDER));
     cleanup.push(point);
     //  int border_count = 0;
@@ -4962,14 +4993,14 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
     // number of MARKed points is small
     //  (in such cases it'd be also possible to reserve optimal amount of
     //  memory)
-    std::vector<pti> interior;
+    stdb::vector<pti> interior;
     /*
     if (top == border_count) {
       int tt = cleanup.count - top;
       interior.reserve(cleanup.count - top);  // reserve exact memory for
     interior for (int i=0; i<cleanup.count; i++) if ((tab[cleanup.list[i]] &
     (MASK_MARK | MASK_BORDER)) != (MASK_MARK | MASK_BORDER)) {  // interior
-    point interior.push_back(cleanup.list[i]);
+    point interior.push_back(__FILE__, __LINE__, cleanup.list[i]);
         }
       assert(tt == interior.size());
       } else */
@@ -4982,7 +5013,7 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
             if ((tab[cleanup.list[i]] & (MASK_MARK | MASK_BORDER)) !=
                 (MASK_MARK | MASK_BORDER))
             {  // interior point
-                interior.push_back(cleanup.list[i]);
+                interior.push_back(__FILE__, __LINE__, cleanup.list[i]);
                 for (int j = 0; j < 4; j++)
                 {
                     pti nb = cleanup.list[i] + coord.nb4[j];
@@ -4996,7 +5027,7 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
     }
     // std::sort(interior.begin(), interior.end());
     return Enclosure(std::move(interior),
-                     std::move(std::vector<pti>(&stack[0], &stack[top + 1])));
+                     std::move(stdb::vector<pti>(&stack[0], &stack[top + 1])));
 }
 
 Enclosure Game::findEnclosure(pti point, pti mask, pti value)
@@ -5004,7 +5035,7 @@ Enclosure Game::findEnclosure(pti point, pti mask, pti value)
     return findEnclosure(worm, point, mask, value);
 }
 
-Enclosure Game::findEnclosure(std::vector<pti> &tab, pti point, pti mask,
+Enclosure Game::findEnclosure(stdb::vector<pti> &tab, pti point, pti mask,
                               pti value) const
 // tries to enclose 'point' using dots given by (tab[...] & mask) == value
 // All points in 'tab' should have zero bits MASK_MARK and MASK_BORDER.
@@ -5021,7 +5052,7 @@ Enclosure Game::findEnclosure_notOptimised(pti point, pti mask, pti value)
     return findEnclosure_notOptimised(worm, point, mask, value);
 }
 
-Enclosure Game::findEnclosure_notOptimised(std::vector<pti> &tab, pti point,
+Enclosure Game::findEnclosure_notOptimised(stdb::vector<pti> &tab, pti point,
                                            pti mask, pti value) const
 // tries to enclose 'point' using dots given by (tab[...] & mask) == value
 // All points in 'tab' should have zero bits MASK_MARK and MASK_BORDER.
@@ -5043,11 +5074,11 @@ Enclosure Game::findEnclosure_notOptimised(std::vector<pti> &tab, pti point,
         }
         if (count == 4)
         {
-            std::vector<pti> border = {static_cast<pti>(point + coord.N),
-                                       static_cast<pti>(point + coord.W),
-                                       static_cast<pti>(point + coord.S),
-                                       static_cast<pti>(point + coord.E),
-                                       static_cast<pti>(point + coord.N)};
+            stdb::vector<pti> border = {static_cast<pti>(point + coord.N),
+                                        static_cast<pti>(point + coord.W),
+                                        static_cast<pti>(point + coord.S),
+                                        static_cast<pti>(point + coord.E),
+                                        static_cast<pti>(point + coord.N)};
             return Enclosure({point}, border);
         }
         // TODO: it'd be possible to optimise also for count==3 (then remove
@@ -5057,11 +5088,11 @@ Enclosure Game::findEnclosure_notOptimised(std::vector<pti> &tab, pti point,
     stack[0] = point;
     tab[point] |= MASK_MARK;
     int stackSize = 1;
-    // std::vector<uint8_t> tab(coord.getSize(), 0);
+    // stdb::vector<uint8_t> tab(coord.getSize(), 0);
     pti leftmost = Coord::maxSize;
     mask |= MASK_MARK;
-    //  Cleanup<std::vector<pti>&, pti> cleanup(tab, ~MASK_MARK);
-    CleanupUsingList<std::vector<pti> &, pti> cleanup(
+    //  Cleanup<stdb::vector<pti>&, pti> cleanup(tab, ~MASK_MARK);
+    CleanupUsingList<stdb::vector<pti> &, pti> cleanup(
         tab, ~(MASK_MARK | MASK_BORDER));
     cleanup.push(point);
     do
@@ -5138,7 +5169,7 @@ Enclosure Game::findEnclosure_notOptimised(std::vector<pti> &tab, pti point,
     // number of MARKed points is small
     //  (in such cases it'd be also possible to reserve optimal amount of
     //  memory)
-    std::vector<pti> interior;
+    stdb::vector<pti> interior;
     interior.reserve(
         cleanup.count);  // reserve memory for interior found so far + border,
                          // which should be enough in most cases
@@ -5146,7 +5177,7 @@ Enclosure Game::findEnclosure_notOptimised(std::vector<pti> &tab, pti point,
         if ((tab[cleanup.list[i]] & (MASK_MARK | MASK_BORDER)) !=
             (MASK_MARK | MASK_BORDER))
         {  // interior point
-            interior.push_back(cleanup.list[i]);
+            interior.push_back(__FILE__, __LINE__, cleanup.list[i]);
             for (int j = 0; j < 4; j++)
             {
                 pti nb = cleanup.list[i] + coord.nb4[j];
@@ -5159,7 +5190,7 @@ Enclosure Game::findEnclosure_notOptimised(std::vector<pti> &tab, pti point,
         }
     // std::sort(interior.begin(), interior.end());
     return Enclosure(std::move(interior),
-                     std::vector<pti>(&stack[0], &stack[top + 1]));
+                     stdb::vector<pti>(&stack[0], &stack[top + 1]));
 }
 
 float Game::costOfPoint(pti p, int who) const
@@ -5177,7 +5208,7 @@ float Game::costOfPoint(pti p, int who) const
            global::patt3_cost.getValue(pattern3_at[p], 3 - who) * 0.001;
 }
 
-std::vector<pti> Game::findImportantMoves(pti who)
+stdb::vector<pti> Game::findImportantMoves(pti who)
 {
     struct PointValue
     {
@@ -5189,7 +5220,7 @@ std::vector<pti> Game::findImportantMoves(pti who)
             return value > other.value;
         }  // > to sort descending
     };
-    std::vector<PointValue> moves;
+    stdb::vector<PointValue> moves;
     moves.reserve(coord.wlkx * coord.wlky - history.size() + 2);
     for (int p = coord.first + 1; p < coord.last; p++)
     {
@@ -5229,10 +5260,11 @@ std::vector<pti> Game::findImportantMoves(pti who)
             }
             // std::cerr << coord.showPt(p) << ": " << our_value << ", opp: " <<
             // opp_value << ", opp2: " << opp_value2 <<std::endl;
-            moves.push_back(PointValue(p, our_value - opp_value + opp_value2));
+            moves.push_back(__FILE__, __LINE__,
+                            PointValue(p, our_value - opp_value + opp_value2));
         }
     }
-    std::vector<pti> list(coord.getSize(), 0);
+    stdb::vector<pti> list(coord.getSize(), 0);
     if (moves.size() <= 1) return list;
     std::sort(moves.begin(), moves.end());
     int ten = (moves.size() / 10);
@@ -5300,8 +5332,8 @@ float Game::floodFillCost(int who) const
     };
     std::priority_queue<PointCost> queue;
     std::priority_queue<PointCostHigh> all_points;
-    std::vector<float> costs(coord.getSize(), 0.0);
-    std::vector<pti> dad(coord.getSize(), 0);
+    stdb::vector<float> costs(coord.getSize(), 0.0);
+    stdb::vector<pti> dad(coord.getSize(), 0);
     // left and right edge
     {
         int lind = coord.ind(0, 0);
@@ -5379,13 +5411,13 @@ float Game::floodFillCost(int who) const
 
     // check value of points
     /*
-    std::vector<pti> tree_size(coord.getSize(), 0);
-    std::vector<float> tree_cost(coord.getSize(), 0.0);
-    //  std::vector<pti> interesting_moves;
-    //  std::vector<pti> debug_board(coord.getSize(), 0);    // show interesting
-    moves
-    //  std::vector<pti> debug_2(coord.getSize(), 0);
-    //  std::vector<pti> debug_tc(coord.getSize(), 0);
+    stdb::vector<pti> tree_size(coord.getSize(), 0);
+    stdb::vector<float> tree_cost(coord.getSize(), 0.0);
+    //  stdb::vector<pti> interesting_moves;
+    //  stdb::vector<pti> debug_board(coord.getSize(), 0);    // show
+    interesting moves
+    //  stdb::vector<pti> debug_2(coord.getSize(), 0);
+    //  stdb::vector<pti> debug_tc(coord.getSize(), 0);
     while (!all_points.empty()) {
       auto pc = all_points.top();    all_points.pop();
       tree_size[pc.point]++;
@@ -5402,7 +5434,7 @@ float Game::floodFillCost(int who) const
       //	tree_size[pc.point] >= 4 and
       //	(costs[pc.point] <= 0.05 || costs[dad[pc.point]] <= 0.05) and
       //	tree_cost[pc.point] >= 0.4) {
-      //      interesting_moves.push_back(pc.point);
+      //      interesting_moves.push_back(__FILE__, __LINE__, pc.point);
       //      debug_board[pc.point] = who;
       //    }
     }
@@ -5469,7 +5501,7 @@ float Game::floodFillCost(int who) const
     */
 }
 
-int Game::floodFillExterior(std::vector<pti> &tab, pti mark_by,
+int Game::floodFillExterior(stdb::vector<pti> &tab, pti mark_by,
                             pti stop_at) const
 // Marks points in tab by mark_by, flooding from exterior and stopping if
 // (tab[...] & stop_at). Returns number of marked points (inside the board).
@@ -5540,14 +5572,14 @@ int Game::floodFillExterior(std::vector<pti> &tab, pti mark_by,
     return count;
 }
 
-Enclosure Game::findInterior(std::vector<pti> border) const
+Enclosure Game::findInterior(stdb::vector<pti> border) const
 // in: list of border points (for example, from an sgf file -- therefore, the
 // function needs not be fast) out: Enclosure class with border and interior
 // v131: corrected, old version did not work for many types of borders (when
 // there's a hole between enclosures).
 {
-    std::vector<pti> dad(coord.getSize(), 0);
-    std::vector<pti> dad2(coord.getSize(), 0);
+    stdb::vector<pti> dad(coord.getSize(), 0);
+    stdb::vector<pti> dad2(coord.getSize(), 0);
     // mark border id dad
     for (unsigned i = 0; i < border.size() - 1; ++i)
     {
@@ -5556,7 +5588,7 @@ Enclosure Game::findInterior(std::vector<pti> border) const
         dad[b] = next;
         dad2[next] = b;
     }
-    std::vector<pti> interior;
+    stdb::vector<pti> interior;
     interior.reserve(border.size() < 12 ? 12
                                         : (coord.wlkx - 2) * (coord.wlky - 2));
     for (int i = 0; i < coord.wlkx; ++i)
@@ -5588,7 +5620,7 @@ Enclosure Game::findInterior(std::vector<pti> border) const
             }
             else if (intersections)
             {
-                interior.push_back(ind);
+                interior.push_back(__FILE__, __LINE__, ind);
             }
         }
     }
@@ -5633,6 +5665,7 @@ void Game::wormMergeSame(pti dst, pti src)
 {
     WormDescr &descr_src = descr.at(src);
     WormDescr &descr_dst = descr.at(dst);
+    descr_dst.neighb.reserve(descr_dst.neighb.size() + descr_src.neighb.size());
     for (auto n : descr_src.neighb)
     {
         if (n == dst ||  // remove (src) from (n)==(dst)'s neighbours, note: src
@@ -5650,7 +5683,7 @@ void Game::wormMergeSame(pti dst, pti src)
             // n's neighbour and add (n) as a new dst's neighbour
             std::replace(descr.at(n).neighb.begin(), descr.at(n).neighb.end(),
                          src, dst);
-            descr_dst.neighb.push_back(n);
+            descr_dst.neighb.push_back(__FILE__, __LINE__, n);
         }
     }
     // if (dst) and (src) were in different groups, merge them
@@ -5775,7 +5808,7 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
     int enemy_dots =
         0;  // number of enemy dots inside that have not been yet captured,
             // important only when (is_in_our_terr_or_encl == true)
-    std::vector<pti> gids_to_delete, stack;
+    stdb::vector<pti> gids_to_delete, stack;
     for (auto &p : encl.interior)
     {
         if (worm[p] == 0)
@@ -5803,7 +5836,8 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
                     if (std::find(gids_to_delete.begin(), gids_to_delete.end(),
                                   descr[worm[p]].group_id) ==
                         gids_to_delete.end())
-                        gids_to_delete.push_back(descr[worm[p]].group_id);
+                        gids_to_delete.push_back(__FILE__, __LINE__,
+                                                 descr[worm[p]].group_id);
                 }
                 wormMergeOther(worm_no, worm[p]);
             }
@@ -5845,7 +5879,7 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
             if (d.second.group_id == 0)
             {
                 pti id = d.first;
-                stack.push_back(d.first);
+                stack.push_back(__FILE__, __LINE__, d.first);
                 d.second.group_id = id;
                 while (!stack.empty())
                 {
@@ -5855,7 +5889,7 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
                         if (descr.at(n).group_id == 0)
                         {
                             descr.at(n).group_id = id;
-                            stack.push_back(n);
+                            stack.push_back(__FILE__, __LINE__, n);
                         }
                 }
             }
@@ -6084,7 +6118,7 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
                 and Pattern3::isPatternPossible(pattern3_at[nb]))
             {
                 pattern3_at[nb] = PATTERN3_IMPOSSIBLE;
-                recalculate_list.push_back(nb);
+                recalculate_list.push_back(__FILE__, __LINE__, nb);
             }
         }
     }
@@ -6138,7 +6172,7 @@ std::pair<int, int> Game::countTerritory(int now_moves) const
             (MASK_MARK | MASK_BORDER)) ==
            0);  // MASK_MARK and _BORDER should be different
     //
-    std::vector<pti> marks(coord.getSize(), 0);
+    stdb::vector<pti> marks(coord.getSize(), 0);
     for (int i = coord.first; i <= coord.last; i++) marks[i] = whoseDotAt(i);
     floodFillExterior(marks, ct_NOT_TERR_B, ct_B);
     floodFillExterior(marks, ct_NOT_TERR_W, ct_W);
@@ -6155,7 +6189,7 @@ std::pair<int, int> Game::countTerritory(int now_moves) const
     // for each point masked as possibly inside a territory, try to enclose it
     // std::cerr << coord.showBoard(marks) << std::endl;
 
-    std::vector<Enclosure> poolsB, poolsW;
+    stdb::vector<Enclosure> poolsB, poolsW;
     for (int i = coord.first; i <= coord.last; i++)
     {
         if ((marks[i] & (ct_B | ct_NOT_TERR_B)) == 0 and coord.dist[i] >= 0)
@@ -6165,7 +6199,7 @@ std::pair<int, int> Game::countTerritory(int now_moves) const
                                       ct_B | ct_NOT_TERR_W);
             if (!encl.isEmpty())
             {
-                poolsB.push_back(std::move(encl));
+                poolsB.push_back(__FILE__, __LINE__, std::move(encl));
             }
         }
         if ((marks[i] & (ct_W | ct_NOT_TERR_W)) == 0 and coord.dist[i] >= 0)
@@ -6175,7 +6209,7 @@ std::pair<int, int> Game::countTerritory(int now_moves) const
                                       ct_W | ct_NOT_TERR_B);
             if (!encl.isEmpty())
             {
-                poolsW.push_back(std::move(encl));
+                poolsW.push_back(__FILE__, __LINE__, std::move(encl));
             }
         }
     }
@@ -6372,7 +6406,7 @@ std::pair<int, int> Game::countTerritory_simple(int now_moves) const
         std::cerr << "small_score: " << small_score
                   << ", should be = " << ct_score.second << std::endl;
         //
-        std::vector<pti> th(coord.getSize(), 0);
+        stdb::vector<pti> th(coord.getSize(), 0);
         for (int ind = coord.first; ind <= coord.last; ++ind)
         {
             if (threats[0].is_in_terr[ind] > 0)
@@ -6432,8 +6466,8 @@ std::pair<int16_t, int16_t> Game::countDotsTerrInEncl(const Enclosure &encl,
 
 int sgf_move_no = 0;
 
-std::pair<Move, std::vector<std::string>> Game::extractSgfMove(std::string m,
-                                                               int who) const
+std::pair<Move, stdb::vector<std::string>> Game::extractSgfMove(std::string m,
+                                                                int who) const
 {
     // TODO: in must-surround, this must be done simultanously
     Move move;
@@ -6452,8 +6486,8 @@ std::pair<Move, std::vector<std::string>> Game::extractSgfMove(std::string m,
 #endif
 
     move.who = who;
-    std::vector<pti> border;
-    std::vector<std::string> points_to_enclose;
+    stdb::vector<pti> border;
+    stdb::vector<std::string> points_to_enclose;
     unsigned pos = 2;
     char mode = '.';
     while (pos <= m.length())
@@ -6466,8 +6500,10 @@ std::pair<Move, std::vector<std::string>> Game::extractSgfMove(std::string m,
             {
                 if (mode == '.')
                 {
-                    move.enclosures.push_back(std::make_shared<Enclosure>(
-                        findInterior(std::move(border))));
+                    move.enclosures.push_back(
+                        __FILE__, __LINE__,
+                        std::make_shared<Enclosure>(
+                            findInterior(std::move(border))));
                 }
                 border.clear();
             }
@@ -6481,12 +6517,14 @@ std::pair<Move, std::vector<std::string>> Game::extractSgfMove(std::string m,
         {
             if (mode == '.')
             {
-                border.push_back(coord.ind(coord.sgfCoordToInt(m[pos]),
+                border.push_back(__FILE__, __LINE__,
+                                 coord.ind(coord.sgfCoordToInt(m[pos]),
                                            coord.sgfCoordToInt(m.at(pos + 1))));
             }
             else
             {
-                points_to_enclose.push_back(m.substr(pos, 2));
+                points_to_enclose.push_back(__FILE__, __LINE__,
+                                            m.substr(pos, 2));
             }
             pos += 2;
         }
@@ -6543,17 +6581,18 @@ void Game::makeSgfMove(const std::string &m, int who)
         sgf_tree.finishPartialMove();
         if (1)
         {  // change to add marks for threats
-            std::vector<pti> list;
+            stdb::vector<pti> list;
             for (auto &t : threats[who - 1].threats2m)
             {
                 if (std::find(list.begin(), list.end(), t.where0) == list.end())
                 {
-                    list.push_back(t.where0);
+                    list.push_back(__FILE__, __LINE__, t.where0);
                 }
             }
             SgfProperty prop;
             prop.first = "SQ";
-            for (auto i : list) prop.second.push_back(coord.indToSgf(i));
+            for (auto i : list)
+                prop.second.push_back(__FILE__, __LINE__, coord.indToSgf(i));
             if (!prop.second.empty())
             {
                 sgf_tree.addProperty(prop);
@@ -6566,11 +6605,13 @@ void Game::makeSgfMove(const std::string &m, int who)
             {
                 if (threats[who - 1].is_in_2m_encl[i])
                 {
-                    prop.second.push_back(coord.indToSgf(i));
+                    prop.second.push_back(__FILE__, __LINE__,
+                                          coord.indToSgf(i));
                 }
                 if (threats[who - 1].is_in_2m_miai[i])
                 {
-                    miai.second.push_back(coord.indToSgf(i));
+                    miai.second.push_back(__FILE__, __LINE__,
+                                          coord.indToSgf(i));
                 }
             }
             if (!prop.second.empty())
@@ -6588,9 +6629,9 @@ void Game::makeSgfMove(const std::string &m, int who)
         showPattern3extra();
 
         /*
-        std::vector<pti> list_of_moves;
+        stdb::vector<pti> list_of_moves;
         for (int i=0; i<coord.maxSize; i++) {
-          list_of_moves.push_back(worm[i] & MASK_DOT);
+          list_of_moves.push_back(__FILE__, __LINE__, worm[i] & MASK_DOT);
           } */
         // generateListOfMoves(nullptr, who);
         // auto it = history.end();
@@ -6666,7 +6707,7 @@ void Game::makeMove(const Move &m)
 }
 
 void Game::makeMoveWithPointsToEnclose(
-    const Move &m, const std::vector<std::string> &to_enclose)
+    const Move &m, const stdb::vector<std::string> &to_enclose)
 {
     if (m.ind != 0)
     {
@@ -6895,9 +6936,9 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
     tn.parent = parent;
     tn.setDepth(depth);
     getSimplifyingEnclAndPriorities(who);
-    std::vector<std::shared_ptr<Enclosure>> neutral_encl_moves,
+    stdb::vector<std::shared_ptr<Enclosure>> neutral_encl_moves,
         neutral_opt_encl_moves;
-    std::vector<uint64_t> neutral_encl_zobrists;
+    stdb::vector<uint64_t> neutral_encl_zobrists;
     getEnclMoves(neutral_encl_moves, neutral_opt_encl_moves,
                  neutral_encl_zobrists, 0, who);
     tn.move.enclosures.reserve(ml_encl_moves.size() +
@@ -6905,14 +6946,14 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                                neutral_opt_encl_moves.size());
     // get list of good moves found by costs
     /*
-    std::vector<pti> cost_moves;
+    stdb::vector<pti> cost_moves;
     if (depth <= 2) {
       //std::cerr << "Depth: "  <<  depth << ", finding cost..." << std::endl;
       cost_moves = findImportantMoves(who);
     }
     */
     // get patt3extra boni
-    //  std::vector<pti> patt3extrav = getPatt3extraValues();
+    //  stdb::vector<pti> patt3extrav = getPatt3extraValues();
     // debug:
     encl_count += ml_encl_moves.size();
     opt_encl_count += ml_opt_encl_moves.size();
@@ -7077,7 +7118,8 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                                 {
                                     // simplifying enclosure: no territory
                                     // anyway
-                                    tn.move.enclosures.push_back(t.encl);
+                                    tn.move.enclosures.push_back(
+                                        __FILE__, __LINE__, t.encl);
                                     tn.move.zobrist_key ^= t.zobrist_key;
                                 }
                             }
@@ -7099,7 +7141,8 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                                 {
                                     // simplifying enclosure: no territory
                                     // anyway
-                                    tn.move.enclosures.push_back(t.encl);
+                                    tn.move.enclosures.push_back(
+                                        __FILE__, __LINE__, t.encl);
                                     tn.move.zobrist_key ^= t.zobrist_key;
                                 }
                             }
@@ -7133,7 +7176,7 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                 out.clear();
             }
 
-            // ml_list.push_back(tn);
+            // ml_list.push_back(__FILE__, __LINE__, tn);
             if (not tn.isInsideTerrNoAtariOrDame())
                 is_nondame_not_in_terr_move = true;
             *alloc.getNext() = tn;
@@ -7141,10 +7184,11 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                    neutral_encl_zobrists.size());
             for (unsigned opi = 0; opi < neutral_opt_encl_moves.size(); opi++)
             {
-                tn.move.enclosures.push_back(neutral_opt_encl_moves[opi]);
+                tn.move.enclosures.push_back(__FILE__, __LINE__,
+                                             neutral_opt_encl_moves[opi]);
                 tn.move.zobrist_key ^= neutral_encl_zobrists[opi + 1];
                 *alloc.getNext() = tn;
-                // ml_list.push_back(tn);
+                // ml_list.push_back(__FILE__, __LINE__, tn);
             }
         }
         else
@@ -7219,13 +7263,14 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
             if (not tn.isInsideTerrNoAtariOrDame())
                 is_nondame_not_in_terr_move = true;
             *alloc.getNext() = tn;
-            // ml_list.push_back(tn);
+            // ml_list.push_back(__FILE__, __LINE__, tn);
             assert(ml_opt_encl_moves.size() + 2 == ml_encl_zobrists.size());
             assert(ml_priority_vect.size() >=
                    ml_encl_moves.size() - em + ml_opt_encl_moves.size());
             for (unsigned opi = 0; opi < ml_opt_encl_moves.size(); opi++)
             {
-                tn.move.enclosures.push_back(ml_opt_encl_moves[opi]);
+                tn.move.enclosures.push_back(__FILE__, __LINE__,
+                                             ml_opt_encl_moves[opi]);
                 tn.move.zobrist_key ^= ml_encl_zobrists[opi + 2];
                 NonatomicMovestats this_priors = priors;
                 if (ml_priority_vect[ml_encl_moves.size() - em + opi]
@@ -7258,7 +7303,7 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                     out.str("");
                     out.clear();
                 }
-                // ml_list.push_back(tn);
+                // ml_list.push_back(__FILE__, __LINE__, tn);
                 this_priors.normaliseTo(max_prior);
                 tn.prior = this_priors;
                 tn.t = this_priors;
@@ -7539,7 +7584,7 @@ Move Game::chooseSoftSafetyContinuation(int who)
     return selectMoveRandomlyFrom(responses[who - 1], who);
 }
 
-Move Game::selectMoveRandomlyFrom(const std::vector<pti> &moves, int who)
+Move Game::selectMoveRandomlyFrom(const stdb::vector<pti> &moves, int who)
 {
     const int total = moves.size();
     Move m;
@@ -7549,7 +7594,7 @@ Move Game::selectMoveRandomlyFrom(const std::vector<pti> &moves, int who)
         m.ind = 0;
         return m;
     }
-    std::vector<pti> moves_not_in_atari;
+    stdb::vector<pti> moves_not_in_atari;
     moves_not_in_atari.reserve(total);
     for (auto move : moves)
     {
@@ -7557,7 +7602,7 @@ Move Game::selectMoveRandomlyFrom(const std::vector<pti> &moves, int who)
         if ((threats[2 - who].is_in_encl[move] == 0 and
              threats[2 - who].is_in_terr[move] == 0) or
             threats[who - 1].is_in_border[move])
-            moves_not_in_atari.push_back(move);
+            moves_not_in_atari.push_back(__FILE__, __LINE__, move);
     }
     const int total_not_in_atari = moves_not_in_atari.size();
     if (total_not_in_atari == 0)
@@ -7670,9 +7715,10 @@ Move Game::choosePattern3Move(pti move0, pti move1, int who)
     return move;
 }
 
-std::vector<pti> Game::getSafetyMoves(int /*who*/)
+stdb::vector<pti> Game::getSafetyMoves(int /*who*/)
 {
-    std::vector<pti> stack;
+    stdb::vector<pti> stack;
+    stack.reserve(16);
     std::set<pti> already_saved;
     using Tup = std::tuple<int, pti, pti>;
     const std::array<Tup, 4> p_vnorm_vside{
@@ -7775,8 +7821,8 @@ Move Game::chooseAnyMove(int who)
 {
     Move move;
     move.who = who;
-    std::vector<pti> stack;
-    std::vector<pti> bad_moves;
+    stdb::vector<pti> stack;
+    stdb::vector<pti> bad_moves;
     for (pti i = coord.first; i <= coord.last; i++)
     {
         if (whoseDotMarginAt(i) == 0)
@@ -7785,11 +7831,11 @@ Move Game::chooseAnyMove(int who)
                 (threats[who - 1].is_in_terr[i] > 0 ||
                  threats[2 - who].is_in_terr[i] > 0))
             {
-                bad_moves.push_back(i);
+                bad_moves.push_back(__FILE__, __LINE__, i);
             }
             else
             {
-                stack.push_back(i);
+                stack.push_back(__FILE__, __LINE__, i);
             }
         }
     }
@@ -7812,9 +7858,11 @@ Move Game::chooseAnyMove(int who)
 }
 
 /// Finds possibly good moves for who among TERRMoves.
-std::vector<pti> Game::getGoodTerrMoves(int who) const
+stdb::vector<pti> Game::getGoodTerrMoves(int who) const
 {
-    std::vector<pti> good_moves;
+    stdb::vector<pti> good_moves;
+    good_moves.reserve(
+        possible_moves.lists[PossibleMovesConsts::LIST_TERRM].size());
     for (unsigned i = 0;
          i < possible_moves.lists[PossibleMovesConsts::LIST_TERRM].size(); ++i)
     {
@@ -7832,7 +7880,7 @@ std::vector<pti> Game::getGoodTerrMoves(int who) const
         if (threats[who - 1].is_in_border[p] ||
             threats[2 - who].is_in_border[p])
         {
-            good_moves.push_back(p);
+            good_moves.push_back(__FILE__, __LINE__, p);
             continue;
         }
         // check if it can be closed fast
@@ -7863,7 +7911,7 @@ std::vector<pti> Game::getGoodTerrMoves(int who) const
         // here we could still check whether the move makes sense, for example,
         // if there's any chance of connecting something, but for now, we assume
         // p is a good move
-        good_moves.push_back(p);
+        good_moves.push_back(__FILE__, __LINE__, p);
     }
     return good_moves;
 }
@@ -7909,7 +7957,7 @@ Move Game::chooseAnyMove_pm(int who)
         }
     }
     // check TERRM moves
-    std::vector<pti> good_moves = getGoodTerrMoves(who);
+    stdb::vector<pti> good_moves = getGoodTerrMoves(who);
 
     // v138
     // check if there are no edge moves
@@ -8023,7 +8071,7 @@ Move Game::choosePatt3extraMove(int who)
 {
     Move move;
     move.who = who;
-    std::vector<pti> patt3extrav = getPatt3extraValues();
+    stdb::vector<pti> patt3extrav = getPatt3extraValues();
     int sum = 0;
     for (int i = coord.first; i <= coord.last; ++i)
         if (patt3extrav[i])
@@ -8210,7 +8258,8 @@ real_t Game::randomPlayout()
                 {
                     prop.first = "SQ";
                     for (auto m : interesting_moves.lists[which_list])
-                        prop.second.push_back(coord.indToSgf(m));
+                        prop.second.push_back(__FILE__, __LINE__,
+                                              coord.indToSgf(m));
                 }
 #endif
                 dame_moves_so_far = 0;
@@ -8561,7 +8610,7 @@ bool Game::checkMarginsCorrectness() const
 
 bool Game::checkWormCorrectness() const
 {
-    std::vector<pti> groups(coord.getSize(), 0);
+    stdb::vector<pti> groups(coord.getSize(), 0);
     std::map<pti, WormDescr> test_descr;
     for (int ind = coord.first; ind <= coord.last; ind++)
         if (isDotAt(ind) and groups[ind] == 0)
@@ -8569,8 +8618,8 @@ bool Game::checkWormCorrectness() const
             // visit this group
             WormDescr dsc;
             test_descr.insert({worm[ind], dsc});
-            std::vector<pti> stack;
-            stack.push_back(ind);
+            stdb::vector<pti> stack;
+            stack.push_back(__FILE__, __LINE__, ind);
             groups[ind] = ind;
             int who = (worm[ind] & MASK_DOT);
             do
@@ -8594,15 +8643,15 @@ bool Game::checkWormCorrectness() const
                                 test_descr[worm[nb]].neighb.end())
                             {
                                 test_descr.at(worm[nb]).neighb.push_back(
-                                    worm[p]);
+                                    __FILE__, __LINE__, worm[p]);
                                 test_descr.at(worm[p]).neighb.push_back(
-                                    worm[nb]);
+                                    __FILE__, __LINE__, worm[nb]);
                             }
                         }
                         if (groups[nb] == 0)
                         {
                             groups[nb] = ind;
-                            stack.push_back(nb);
+                            stack.push_back(__FILE__, __LINE__, nb);
                         }
                     }
                 }
@@ -8898,7 +8947,7 @@ bool Game::checkThreatCorrectness()
                     // only by our dots
                     {
                         bool is_boring = false;
-                        std::vector<int8_t> interior(coord.last + 1, 0);
+                        stdb::vector<int8_t> interior(coord.last + 1, 0);
                         for (auto i : thr.second.encl->interior)
                             interior[i] = 1;
                         for (auto &t : threats[pl].threats)
@@ -8921,7 +8970,7 @@ bool Game::checkThreatCorrectness()
                                 {
                                     // and vice versa, check if each point of a
                                     // new terr is a point in old one
-                                    std::vector<int8_t> interior_old(
+                                    stdb::vector<int8_t> interior_old(
                                         coord.last + 1, 0);
                                     for (auto i : t.encl->interior)
                                         interior_old[i] = 1;
@@ -8964,9 +9013,9 @@ bool Game::checkThreatCorrectness()
     // also check singular_dots and border_dots_in_danger
     for (int pl = 0; pl < 2; pl++)
     {
-        std::vector<pti> te(coord.getSize(), 0);
-        std::vector<pti> en(coord.getSize(), 0);
-        std::vector<pti> bo(coord.getSize(), 0);
+        stdb::vector<pti> te(coord.getSize(), 0);
+        stdb::vector<pti> en(coord.getSize(), 0);
+        stdb::vector<pti> bo(coord.getSize(), 0);
         for (Threat &thr : threats[pl].threats)
         {
             if (thr.type & ThreatConsts::TERR)
@@ -9014,7 +9063,7 @@ bool Game::checkThreatCorrectness()
                 return false;
             }
             // check border_dots_in_danger and opp_thr
-            std::vector<uint64_t> true_ot;
+            stdb::vector<uint64_t> true_ot;
             int in_danger = 0;
             for (auto it = thr.encl->border.begin() + 1;
                  it != thr.encl->border.end(); ++it)
@@ -9041,7 +9090,7 @@ bool Game::checkThreatCorrectness()
                 std::cerr << thr.show() << std::endl;
                 return false;
             }
-            std::vector<uint64_t> old_ot(thr.opp_thr);
+            stdb::vector<uint64_t> old_ot(thr.opp_thr);
             std::sort(true_ot.begin(), true_ot.end());
             std::sort(old_ot.begin(), old_ot.end());
             for (unsigned i = 0; i < std::min(true_ot.size(), old_ot.size());
@@ -9156,14 +9205,14 @@ bool Game::checkThreatCorrectness()
 bool Game::checkThreat2movesCorrectness()
 {
     std::set<std::array<pti, 2>> pairs;
-    std::vector<pti> is_in_2m_encl(coord.getSize(), 0);
-    std::vector<pti> is_in_2m_miai(coord.getSize(), 0);
+    stdb::vector<pti> is_in_2m_encl(coord.getSize(), 0);
+    stdb::vector<pti> is_in_2m_miai(coord.getSize(), 0);
     for (int who = 1; who <= 2; who++)
     {
         for (auto &thr2 : threats[who - 1].threats2m)
         {
             pti where0 = thr2.where0;
-            std::vector<pti> is_in_encl2(coord.getSize(), 0);
+            stdb::vector<pti> is_in_encl2(coord.getSize(), 0);
             int found_safe = ((thr2.flags & Threat2mconsts::FLAG_SAFE) != 0);
             int real_safe = (threats[2 - who].is_in_encl[where0] == 0 and
                              threats[2 - who].is_in_terr[where0] == 0);
@@ -9307,7 +9356,7 @@ bool Game::checkThreat2movesCorrectness()
 
 bool Game::checkConnectionsCorrectness()
 {
-    std::vector<OneConnection> tmp[2]{connects[0], connects[1]};
+    stdb::vector<OneConnection> tmp[2]{connects[0], connects[1]};
     findConnections();
     for (int ind = 0; ind < coord.getSize(); ind++)
     {
@@ -9384,7 +9433,7 @@ bool Game::checkPattern3valuesCorrectness() const
         }
     }
     // check list of moves
-    std::vector<pti> listm[3];
+    stdb::vector<pti> listm[3];
     for (pti ind = coord.first; ind <= coord.last; ind++)
     {
         if (whoseDotMarginAt(ind) == 0)
@@ -9395,13 +9444,16 @@ bool Game::checkPattern3valuesCorrectness() const
                 threats[1].is_in_terr[ind] == 0)
             {
                 if (isDame_directCheck_symm(ind))
-                    listm[PossibleMovesConsts::LIST_DAME].push_back(ind);
+                    listm[PossibleMovesConsts::LIST_DAME].push_back(
+                        __FILE__, __LINE__, ind);
                 else
-                    listm[PossibleMovesConsts::LIST_NEUTRAL].push_back(ind);
+                    listm[PossibleMovesConsts::LIST_NEUTRAL].push_back(
+                        __FILE__, __LINE__, ind);
             }
             else
             {
-                listm[PossibleMovesConsts::LIST_TERRM].push_back(ind);
+                listm[PossibleMovesConsts::LIST_TERRM].push_back(__FILE__,
+                                                                 __LINE__, ind);
             }
         }
     }
@@ -9409,7 +9461,7 @@ bool Game::checkPattern3valuesCorrectness() const
     bool status = true;
     for (int j = 0; j < 3; j++)
     {
-        std::vector<pti> possm = possible_moves.lists[j];
+        stdb::vector<pti> possm = possible_moves.lists[j];
         if (possm.size() != listm[j].size())
         {
             std::cerr << "Size of possible_moves (" << names[j]
@@ -9419,7 +9471,7 @@ bool Game::checkPattern3valuesCorrectness() const
         }
         std::sort(listm[j].begin(), listm[j].end());
         std::sort(possm.begin(), possm.end());
-        std::vector<pti> diff;
+        stdb::vector<pti> diff;
         std::set_difference(listm[j].begin(), listm[j].end(), possm.begin(),
                             possm.end(), back_inserter(diff));
         if (!diff.empty())

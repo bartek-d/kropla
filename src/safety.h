@@ -26,9 +26,9 @@
 
 #include <array>
 #include <tuple>
-#include <vector>
 
 #include "board.h"
+#include "bvector.hpp"
 
 class Game;
 
@@ -36,7 +36,7 @@ class Safety
 {
    public:
     using ValueForBoth = std::array<pti, 2>;
-    using GoodMoves = std::array<std::vector<pti>, 2>;
+    using GoodMoves = std::array<stdb::vector<pti>, 2>;
     Safety();
     struct Info
     {
@@ -54,7 +54,7 @@ class Safety
     void updateAfterMoveWithoutAnyChangeToSafety();
     const GoodMoves& getCurrentlyAddedSugg() const;
     const GoodMoves& getPreviouslyAddedSugg() const;
-    const std::vector<ValueForBoth>& getMoveValues() const;
+    const stdb::vector<ValueForBoth>& getMoveValues() const;
     bool isDameFor(int who, pti where) const;
     int getUpdateValueForAllMargins() const;
     int getUpdateValueForMarginsContaining(pti p) const;
@@ -72,8 +72,8 @@ class Safety
     void findMoveValuesForMargin(Game* game, pti p, pti last_p, pti v, pti n,
                                  int v_is_clockwise);
     bool areThereNoFreePointsAtTheEdgeNearPoint(Game* game, pti p) const;
-    std::vector<Info> safety{};
-    std::vector<ValueForBoth> move_value{};
+    stdb::vector<Info> safety{};
+    stdb::vector<ValueForBoth> move_value{};
     GoodMoves justAddedMoveSugg{};
     GoodMoves prevAddedMoveSugg{};
 };

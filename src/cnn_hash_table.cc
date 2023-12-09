@@ -31,7 +31,7 @@ reading NN. Copyright (C) 2023 Bartek Dyda, email: bartekdyda (at) protonmail
 
 namespace
 {
-using CnnInfo = std::vector<float>;
+using CnnInfo = stdb::vector<float>;
 
 std::map<Position, CnnInfo> table;
 std::mutex table_mutex;
@@ -40,7 +40,7 @@ uint64_t ht_queries = 0;
 uint64_t ht_answers = 0;
 }  // namespace
 
-std::pair<bool, std::vector<float>> getCnnInfoFromHT(const Position pos)
+std::pair<bool, stdb::vector<float>> getCnnInfoFromHT(const Position pos)
 {
     std::lock_guard<std::mutex> l(table_mutex);
     ++ht_queries;
@@ -50,7 +50,7 @@ std::pair<bool, std::vector<float>> getCnnInfoFromHT(const Position pos)
     return {true, it->second};
 }
 
-void saveCnnInfo(const Position pos, const std::vector<float>& info)
+void saveCnnInfo(const Position pos, const stdb::vector<float>& info)
 {
     std::lock_guard<std::mutex> l(table_mutex);
     table.try_emplace(pos, info);

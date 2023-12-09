@@ -24,15 +24,14 @@
 
 #pragma once
 
-#include <vector>
-
 #include "board.h"
+#include "bvector.hpp"
 
 void clearLastGoodReplies();
 
 class History
 {
-    std::vector<pti> history;
+    stdb::vector<pti> history;
 
     static const pti HISTORY_TERR =
         0x4000;  // this is OR-ed with history[...] to denote that someone

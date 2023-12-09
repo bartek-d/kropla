@@ -66,7 +66,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
   
-add_executable(kropla src/game.cc src/game.h  src/history.cc src/history.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/kropla_main.cc src/safety.cc src/safety.h ${CNN_src})
+add_executable(kropla src/game.cc src/bvector.cpp src/game.h  src/history.cc src/history.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/kropla_main.cc src/safety.cc src/safety.h ${CNN_src})
 target_link_libraries(kropla Threads::Threads ${CNN_lib})
 target_include_directories(kropla PRIVATE src)
 #if (USE_CNN)

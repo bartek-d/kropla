@@ -261,7 +261,7 @@ void MonteCarlo::saveMCstats(int n, int max_moves, bool saveCnnStats) const
                      << "  cnn: " << montec::root.children[i].cnn_prob << "\n";
             }
             using MoveCnnProb = std::pair<pti, float>;
-            std::vector<MoveCnnProb> moves_cnn(n, MoveCnnProb{0, -1.0f});
+            stdb::vector<MoveCnnProb> moves_cnn(n, MoveCnnProb{0, -1.0f});
             std::transform(montec::root.children.load(),
                            montec::root.children.load() + n, moves_cnn.begin(),
                            [](const auto &node) {
@@ -518,8 +518,8 @@ std::string MonteCarlo::findBestMoveUsingCNNonly(Game &pos, float exponent)
     const auto [is_cnn_available, probs] = getCnnInfo(pos);
     if (not is_cnn_available)
         throw std::runtime_error("No CNN available and asking to use CNN");
-    std::vector<float> weights;
-    std::vector<pti> moves;
+    stdb::vector<float> weights;
+    stdb::vector<pti> moves;
     for (int y = 0; y < coord.wlky; ++y)
     {
         for (int x = 0; x < coord.wlkx; ++x)
@@ -527,8 +527,9 @@ std::string MonteCarlo::findBestMoveUsingCNNonly(Game &pos, float exponent)
             auto ind = coord.ind(x, y);
             if (pos.whoseDotMarginAt(ind) == 0)
             {
-                weights.push_back(std::pow(probs[ind], exponent));
-                moves.push_back(ind);
+                weights.push_back(__FILE__, __LINE__,
+                                  std::pow(probs[ind], exponent));
+                moves.push_back(__FILE__, __LINE__, ind);
             }
         }
     }
@@ -583,11 +584,12 @@ std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
     montec::threads_to_be_finished = threads;
     montec::time_seed =
         std::chrono::system_clock::now().time_since_epoch().count();
-    std::vector<std::future<int>> concurrent;
+    stdb::vector<std::future<int>> concurrent;
     concurrent.reserve(threads);
     for (int t = 0; t < threads; t++)
     {
         concurrent.push_back(
+            __FILE__, __LINE__,
             std::async(std::launch::async,
                        [=] { return runSimulations(iter_count, t, threads); }));
     }
@@ -898,6 +900,7 @@ void findAndPrintBestMove(Game &game, int threads_count, int iter_count)
               << ", large singular: " << debug_sing_larget2m
               << ", found before: " << debug_foundt2m << ". n= " << debug_n
               << ", N=" << debug_N << std::endl;
+    stdb::printStats();
 }
 
 void playInteractively(Game &game, int threads_count, int iter_count)

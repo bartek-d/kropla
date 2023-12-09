@@ -81,13 +81,13 @@ void initialiseCnn()
     }
 }
 
-std::vector<float> getInputForCnn(Game& game, int planes)
+stdb::vector<float> getInputForCnn(Game& game, int planes)
 {
     if (coord.wlkx != coord.wlky)
     {
         return {};
     }
-    std::vector<float> res(planes * coord.wlkx * coord.wlky);
+    stdb::vector<float> res(planes * coord.wlkx * coord.wlky);
     Array3dimRef data{res.data(),
                       boost::extents[planes][coord.wlkx][coord.wlky]};
     for (int x = 0; x < coord.wlkx; ++x)
@@ -163,9 +163,9 @@ std::vector<float> getInputForCnn(Game& game, int planes)
     return res;
 }
 
-std::vector<float> convertToBoard(const std::vector<float>& res)
+stdb::vector<float> convertToBoard(const stdb::vector<float>& res)
 {
-    std::vector<float> probs(coord.getSize(), 0.0f);
+    stdb::vector<float> probs(coord.getSize(), 0.0f);
     for (int x = 0; x < coord.wlkx; ++x)
     {
         for (int y = 0; y < coord.wlky; ++y)
@@ -176,10 +176,10 @@ std::vector<float> convertToBoard(const std::vector<float>& res)
     return probs;
 }
 
-std::pair<bool, std::vector<float>> getCnnInfo(Game& game,
-                                               bool use_secondary_cnn)
+std::pair<bool, stdb::vector<float>> getCnnInfo(Game& game,
+                                                bool use_secondary_cnn)
 {
-    std::pair<bool, std::vector<float>> fromHT{false, {}};
+    std::pair<bool, stdb::vector<float>> fromHT{false, {}};
     if (not use_secondary_cnn)
     {
         auto pos = Position{game.getHistorySize(), game.getZobrist()};

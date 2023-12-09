@@ -53,6 +53,11 @@ void* create_shared_memory(size_t size)
 }
 
 template <typename T>
+std::size_t sizeOfVec(const stdb::vector<T>& v)
+{
+    return v.size() * sizeof(T);
+}
+template <typename T>
 std::size_t sizeOfVec(const std::vector<T>& v)
 {
     return v.size() * sizeof(T);
@@ -156,8 +161,8 @@ class WorkersPool : public WorkersPoolBase
                 size_t si);
     int getCount() const { return count; }
     int getPlanes() const override { return planes; }
-    std::pair<bool, std::vector<float>> getCnnInfo(std::vector<float>& input,
-                                                   uint32_t wlkx) override;
+    std::pair<bool, stdb::vector<float>> getCnnInfo(stdb::vector<float>& input,
+                                                    uint32_t wlkx) override;
 
    private:
     void child_worker(void* data);
@@ -170,11 +175,11 @@ class WorkersPool : public WorkersPoolBase
     std::mutex jobs_mutex;
     std::condition_variable cv;
 
-    std::vector<int> is_free;
+    stdb::vector<int> is_free;
     int how_many_free;
     int count{0};
-    std::vector<pid_t> pids;
-    std::vector<SharedMemWithSemaphores> mems;
+    stdb::vector<pid_t> pids;
+    stdb::vector<SharedMemWithSemaphores> mems;
 
     std::unique_ptr<CnnProxy> cnn{nullptr};
     bool use_this_thread{false};
@@ -397,8 +402,8 @@ WorkersPool::WorkersPool(const std::string& config_file, int wlkx,
     }
 }
 
-std::pair<bool, std::vector<float>> WorkersPool::getCnnInfo(
-    std::vector<float>& input, uint32_t wlkx)
+std::pair<bool, stdb::vector<float>> WorkersPool::getCnnInfo(
+    stdb::vector<float>& input, uint32_t wlkx)
 try
 {
     if (input.empty())
@@ -431,10 +436,10 @@ try
                          std::chrono::high_resolution_clock::now() - debug_time)
                          .count()
                   << "  config: " << config_file << std::endl;
-        return {true, res};
+        return {true, stdb::vector<float>{res.begin(), res.end()}};
     }
     // use worker
-    std::vector<float> res(wlkx * wlkx, 0.0f);
+    stdb::vector<float> res(wlkx * wlkx, 0.0f);
     doWork(wlkx, static_cast<void*>(input.data()), sizeOfVec(input),
            static_cast<void*>(res.data()), sizeOfVec(res));
     return {true, res};

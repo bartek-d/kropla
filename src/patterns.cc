@@ -30,8 +30,8 @@ class WildcardReplacer
 {
     std::string orig_str, replaced;
     bool end;
-    std::vector<unsigned> current;
-    std::vector<std::string> possibilities;
+    stdb::vector<unsigned> current;
+    stdb::vector<std::string> possibilities;
 
    public:
     WildcardReplacer(std::string s, int length, bool with_atari);
@@ -262,7 +262,7 @@ pattern3_val Pattern3::getValue(pattern3_t p, int who) const
         return values[reverseColour(p)];
 }
 
-void Pattern3::generate(const std::vector<std::string> &vs, int type)
+void Pattern3::generate(const stdb::vector<std::string> &vs, int type)
 {
     add_type = type;
     for (unsigned i = 0; i < vs.size() - 1; i += 2)
@@ -383,7 +383,7 @@ std::string Pattern3extra::show() const
     return out.str();
 }
 
-bool Pattern3extra::checkConditions(const std::vector<pti> &w, pti ind) const
+bool Pattern3extra::checkConditions(const stdb::vector<pti> &w, pti ind) const
 {
     for (unsigned i = 0; i < conditions.size(); ++i)
     {
@@ -634,7 +634,7 @@ void Pattern3extra_array::generateFromStr(const std::string &sarg,
     }
 }
 
-void Pattern3extra_array::generate(const std::vector<std::string> &vs)
+void Pattern3extra_array::generate(const stdb::vector<std::string> &vs)
 {
     for (unsigned i = 0; i < vs.size() - 1; i += 2)
     {
@@ -642,8 +642,8 @@ void Pattern3extra_array::generate(const std::vector<std::string> &vs)
     }
 }
 
-void Pattern3extra_array::setValues(std::vector<pti> &val,
-                                    const std::vector<pti> &w,
+void Pattern3extra_array::setValues(stdb::vector<pti> &val,
+                                    const stdb::vector<pti> &w,
                                     pattern3_t patt3_at, pti ind, int who) const
 {
     for (int k = 0; k < PATT_COUNT; ++k)
@@ -749,7 +749,7 @@ real_t Pattern52::getValue(pattern52_t p, int who) const
         return values[reverseColour(p)];
 }
 
-void Pattern52::generate(const std::vector<std::string> &vs)
+void Pattern52::generate(const stdb::vector<std::string> &vs)
 {
     for (unsigned i = 0; i < vs.size() - 1; i += 2)
     {

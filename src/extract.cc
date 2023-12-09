@@ -155,7 +155,7 @@ void DataCollector::dump()
         // gzip config
         HighFive::DataSetCreateProps dsprops;
         dsprops.add(HighFive::Chunking(
-            std::vector<hsize_t>{1, PLANES, BSIZEX, BSIZEY}));
+            stdb::vector<hsize_t>{1, PLANES, BSIZEX, BSIZEY}));
         dsprops.add(HighFive::Deflate(9));
         // Create the dataset
         const std::string DATASET_NAME("bdata");
@@ -286,7 +286,7 @@ int applyIsometry(int p, unsigned isometry)
     return coord.ind(x, y);
 }
 
-void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
+void gatherDataFromPosition(Game& game, const stdb::vector<Move>& moves)
 {
     /*
     std::cerr << "Gather data from position: " << std::endl;
@@ -394,8 +394,8 @@ void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
     }
 }
 
-std::pair<Move, std::vector<std::string>> getMoveFromSgfNode(const Game& game,
-                                                             SgfNode node)
+std::pair<Move, stdb::vector<std::string>> getMoveFromSgfNode(const Game& game,
+                                                              SgfNode node)
 {
     if (node.findProp("B") != node.props.end())
     {
@@ -458,7 +458,7 @@ void gatherDataFromSgfSequence(SgfSequence& seq,
     {
         if (whichSide.at(game.whoNowMoves()))
         {
-            std::vector<Move> subsequentMoves;
+            stdb::vector<Move> subsequentMoves;
             for (int j = 0; j < MOVES_USED; ++j)
             {
                 auto [move, points_to_enclose] =
