@@ -39,7 +39,6 @@
 #include <string>
 #include <vector>
 //#include <exception>
-#include <boost/container/small_vector.hpp>
 #include <cctype>  // iswhite()
 #include <chrono>  // chrono::high_resolution_clock, only to measure elapsed time
 #include <stdexcept>
@@ -1654,7 +1653,8 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
     // check our enclosures containing [ind]
     if (threats[who - 1].is_in_encl[ind] || threats[who - 1].is_in_border[ind])
     {
-        std::vector<Threat *> this_encl;
+        SmallVector<Threat*, 32>::allocator_type::arena_type arena_this_encl;
+        SmallVector<Threat*, 32> this_encl{arena_this_encl};
         for (auto &thr : threats[who - 1].threats)
         {
             if (thr.type & ThreatConsts::ENCL)
@@ -3057,8 +3057,8 @@ void Game::pointNowInDanger2moves(pti ind, int who)
 
 void Game::addThreat(Threat &&t, int who)
 {
-    boost::container::small_vector<pti, 8>
-        counted_worms;  // list of counted worms for singular_dots
+    SmallVector<pti, 8>::allocator_type::arena_type arena_counted_worms;
+    SmallVector<pti, 8> counted_worms{arena_counted_worms};  // list of counted worms for singular_dots
     for (auto i : t.encl->interior)
     {
         if (t.type & ThreatConsts::TERR)
@@ -3156,8 +3156,8 @@ void Game::addThreat(Threat &&t, int who)
 
 void Game::subtractThreat(const Threat &t, int who)
 {
-    boost::container::small_vector<pti, 8>
-        counted_worms;       // list of counted worms for singular_dots
+    SmallVector<pti, 8>::allocator_type::arena_type arena_counted_worms;
+    SmallVector<pti, 8> counted_worms{arena_counted_worms};  // list of counted worms for singular_dots
     bool threatens = false;  // if t threatend some opp's threat
     for (auto i : t.encl->interior)
     {
@@ -4461,13 +4461,14 @@ void Game::placeDot(int x, int y, int who)
         assert(descr.find(c) == descr.end());
         worm[ind] = c;
         nextDot[ind] = ind;
-        WormDescr dsc;
+	auto& dsc = descr[c];
+        //WormDescr dsc;
         dsc.dots[0] = (who == 1);
         dsc.dots[1] = (who == 2);
         dsc.leftmost = ind;
         dsc.group_id = c;
         dsc.safety = 0;
-        descr.insert({c, std::move(dsc)});
+        //descr.insert({c, std::move(dsc)});
     }
     // update safety info
     {
@@ -5775,7 +5776,10 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
     int enemy_dots =
         0;  // number of enemy dots inside that have not been yet captured,
             // important only when (is_in_our_terr_or_encl == true)
-    std::vector<pti> gids_to_delete, stack;
+    SmallVector<pti, 32>::allocator_type::arena_type arena_gids_to_delete;
+    SmallVector<pti, 32> gids_to_delete{arena_gids_to_delete};
+    SmallVector<pti, 256>::allocator_type::arena_type arena_stack;
+    SmallVector<pti, 256> stack{arena_stack};
     for (auto &p : encl.interior)
     {
         if (worm[p] == 0)
@@ -7314,7 +7318,8 @@ Move Game::getRandomEncl(Move &m)
 /// This function selects enclosures using Game:::chooseRandomEncl().
 Move Game::chooseAtariMove(int who)
 {
-    boost::container::small_vector<pti, 16> urgent;  //, non_urgent;
+    SmallVector<pti, 16>::allocator_type::arena_type arena_urgent;
+    SmallVector<pti, 16> urgent{arena_urgent};  //, non_urgent;
     for (auto &t : threats[who - 1].threats)
     {
         if (t.type & ThreatConsts::ENCL)
@@ -7428,7 +7433,8 @@ Move Game::chooseAtariMove(int who)
 /// This function selects enclosures using Game:::chooseRandomEncl().
 Move Game::chooseAtariResponse(pti lastMove, int who)
 {
-    boost::container::small_vector<pti, 16> urgent;
+    SmallVector<pti, 16>::allocator_type::arena_type arena_urgent;
+    SmallVector<pti, 16> urgent{arena_urgent};
     for (auto &t : threats[2 - who].threats)
     {
         if (t.singular_dots and (t.type & ThreatConsts::ENCL) and
@@ -7578,7 +7584,8 @@ Move Game::choosePattern3Move(pti move0, pti move1, int who)
     Move move;
     move.who = who;
     typedef std::pair<pti, pattern3_val> MoveValue;
-    boost::container::small_vector<MoveValue, 24> stack;
+    SmallVector<MoveValue, 24>::allocator_type::arena_type arena_stack;
+    SmallVector<MoveValue, 24> stack{arena_stack};
     int total = 0;
     for (pti m : {move0, move1})
     {
