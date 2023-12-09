@@ -35,6 +35,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../3rdparty/short_alloc.h"
 #include "board.h"
 #include "enclosure.h"
 #include "game_utils.h"
@@ -42,11 +43,11 @@
 #include "patterns.h"
 #include "safety.h"
 #include "threats.h"
-#include "../3rdparty/short_alloc.h"
 
 typedef std::set<pti, std::greater<pti>> PointsSet;
 template <class T, std::size_t ElemSize = 200>
-using SmallVector = std::vector<T, short_alloc<T, ElemSize * sizeof(T), alignof(T)>>;
+using SmallVector =
+    std::vector<T, short_alloc<T, ElemSize * sizeof(T), alignof(T)>>;
 
 /********************************************************************************************************
   Worm description class
@@ -65,7 +66,8 @@ struct WormDescr
         20000;  // safety := SAFE_VALUE when the worm touches the edge
     const static int32_t SAFE_THRESHOLD = 10000;
     SmallVector<pti, 6>::allocator_type::arena_type arena_neighb;
-    SmallVector<pti, 6> neighb{arena_neighb};  // numbers of other worms that touch this one
+    SmallVector<pti, 6> neighb{
+        arena_neighb};  // numbers of other worms that touch this one
     std::string show() const;
     WormDescr(const WormDescr& other)
         : leftmost{other.leftmost},

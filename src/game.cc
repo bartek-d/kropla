@@ -1653,8 +1653,8 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
     // check our enclosures containing [ind]
     if (threats[who - 1].is_in_encl[ind] || threats[who - 1].is_in_border[ind])
     {
-        SmallVector<Threat*, 32>::allocator_type::arena_type arena_this_encl;
-        SmallVector<Threat*, 32> this_encl{arena_this_encl};
+        SmallVector<Threat *, 32>::allocator_type::arena_type arena_this_encl;
+        SmallVector<Threat *, 32> this_encl{arena_this_encl};
         for (auto &thr : threats[who - 1].threats)
         {
             if (thr.type & ThreatConsts::ENCL)
@@ -3058,7 +3058,8 @@ void Game::pointNowInDanger2moves(pti ind, int who)
 void Game::addThreat(Threat &&t, int who)
 {
     SmallVector<pti, 8>::allocator_type::arena_type arena_counted_worms;
-    SmallVector<pti, 8> counted_worms{arena_counted_worms};  // list of counted worms for singular_dots
+    SmallVector<pti, 8> counted_worms{
+        arena_counted_worms};  // list of counted worms for singular_dots
     for (auto i : t.encl->interior)
     {
         if (t.type & ThreatConsts::TERR)
@@ -3157,8 +3158,9 @@ void Game::addThreat(Threat &&t, int who)
 void Game::subtractThreat(const Threat &t, int who)
 {
     SmallVector<pti, 8>::allocator_type::arena_type arena_counted_worms;
-    SmallVector<pti, 8> counted_worms{arena_counted_worms};  // list of counted worms for singular_dots
-    bool threatens = false;  // if t threatend some opp's threat
+    SmallVector<pti, 8> counted_worms{
+        arena_counted_worms};  // list of counted worms for singular_dots
+    bool threatens = false;    // if t threatend some opp's threat
     for (auto i : t.encl->interior)
     {
         assert(i >= coord.first and i <= coord.last);
@@ -4462,14 +4464,14 @@ void Game::placeDot(int x, int y, int who)
         assert(descr.find(c) == descr.end());
         worm[ind] = c;
         nextDot[ind] = ind;
-	auto& dsc = descr[c];
-        //WormDescr dsc;
+        auto &dsc = descr[c];
+        // WormDescr dsc;
         dsc.dots[0] = (who == 1);
         dsc.dots[1] = (who == 2);
         dsc.leftmost = ind;
         dsc.group_id = c;
         dsc.safety = 0;
-        //descr.insert({c, std::move(dsc)});
+        // descr.insert({c, std::move(dsc)});
     }
     // update safety info
     {
@@ -7916,49 +7918,34 @@ Move Game::chooseAnyMove_pm(int who)
             return getRandomEncl(move);  // TODO: do we have to set zobrist?
         }
     }
-    // check TERRM moves
-    std::vector<pti> good_moves = getGoodTerrMoves(who);
 
-    // v138
-    // check if there are no edge moves
-    /*
-    if (possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].empty() and
-        possible_moves.lists[PossibleMovesConsts::LIST_DAME].empty()) {
-      for (int i=coord.first; i<=coord.last; i++)
-        if (coord.dist[i] == 0 and whoseDotMarginAt(i) == 0) {
-          show();
-          std::cerr << "neutral moves: " <<
-    possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size() << std::endl;
-          std::cerr << "good_moves = ";
-          for (auto p : good_moves) {
-            std::cerr << coord.showPt(p) << " ";
-          }
-          std::cerr << std::endl << "bad moves = ";
-          for (auto p : bad_moves) {
-            std::cerr << coord.showPt(p) << " ";
-          }
-          assert(0);
-        }
-    }
-    */
-
-    // try neutral or good
-    int n_or_g =
-        possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size() +
-        good_moves.size();
-    if (n_or_g > 0)
+    // try early exit -- maybe one of neutral moves?
+    if (possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size())
     {
-        std::uniform_int_distribution<unsigned> di(0, n_or_g - 1);
+        const int guessed_g = 3;
+        const int n_or_guessed_g =
+            possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size() +
+            guessed_g;
+        std::uniform_int_distribution<unsigned> di(0, n_or_guessed_g - 1);
         unsigned number = di(engine);
         if (number <
             possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL].size())
+        {
             move.ind =
                 possible_moves.lists[PossibleMovesConsts::LIST_NEUTRAL][number];
-        else
-            move.ind = good_moves[number -
-                                  possible_moves
-                                      .lists[PossibleMovesConsts::LIST_NEUTRAL]
-                                      .size()];
+            dame_moves_so_far = 0;
+            return getRandomEncl(move);  // TODO: do we have to set zobrist?
+        }
+    }
+
+    // check TERRM moves
+    std::vector<pti> good_moves = getGoodTerrMoves(who);
+    const auto n_good_moves = good_moves.size();
+    if (n_good_moves > 0)
+    {
+        std::uniform_int_distribution<unsigned> di(0, n_good_moves - 1);
+        unsigned number = di(engine);
+        move.ind = good_moves[number];
         dame_moves_so_far = 0;
         return getRandomEncl(move);  // TODO: do we have to set zobrist?
     }
