@@ -74,10 +74,16 @@ std::string SgfNode::toString(bool mainVar) const
     }
 }
 
+std::vector<SgfProperty>::const_iterator SgfNode::findProp(const std::string &pr) const
+{
+    return std::find_if(props.begin(), props.end(),
+                        [&pr](const SgfProperty &p) { return p.first == pr; });
+}
+
 std::vector<SgfProperty>::iterator SgfNode::findProp(const std::string &pr)
 {
     return std::find_if(props.begin(), props.end(),
-                        [&pr](SgfProperty &p) { return p.first == pr; });
+                        [&pr](const SgfProperty &p) { return p.first == pr; });
 }
 
 int SgfParser::eatChar()
