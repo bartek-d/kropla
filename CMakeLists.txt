@@ -117,6 +117,9 @@ enable_testing()
 
 if(USE_CNN)
     set(MCAFFE_src "src/mcnn.h" "src/caffe/mcaffe.h" "src/caffe/mcaffe.cc") # "src/caffe/mtorch.cc")
+#    list(APPEND CMAKE_PREFIX_PATH "/home/b/kropki/libtorch/libtorch")
+#    find_package(Torch REQUIRED)
+#    add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0)
 else()
     set(MCAFFE_src "")
 endif()
@@ -129,12 +132,14 @@ add_executable(runUnitTests
   unittest/string-utils-test.cc
   unittest/safety-test.cc
   unittest/patt-test.cc
+  unittest/extractutils-test.cc
  unittest/utils.cc
  unittest/utils.h
  src/group_neighbours.h
  src/group_neighbours.cc
  src/game.cc
  src/game.h
+ src/gzip.cpp
  src/history.cc
  src/history.h 
  src/game_utils.h
@@ -164,7 +169,7 @@ add_executable(runUnitTests
  )
   
 
-target_link_libraries(runUnitTests gtest gmock gtest_main Threads::Threads ${CNN_lib})
+target_link_libraries(runUnitTests gtest gmock gtest_main Threads::Threads ${CNN_lib}  ${ZLIB_LIBRARIES}  ${Boost_LIBRARIES})
 target_include_directories(runUnitTests  PRIVATE ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 target_include_directories(runUnitTests PRIVATE src)
 #if (USE_CNN)

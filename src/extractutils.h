@@ -1,7 +1,7 @@
 /********************************************************************************************************
  kropla -- a program to play Kropki; file extractutils.h -- utils for
-extracting trainign data for NN. Copyright (C) 2021, 2022, 2023, 2024 Bartek Dyda,
-email: bartekdyda (at) protonmail (dot) com
+extracting trainign data for NN. Copyright (C) 2021, 2022, 2023, 2024 Bartek
+Dyda, email: bartekdyda (at) protonmail (dot) com
 
     Some parts are inspired by Pachi http://pachi.or.cz/
       by Petr Baudis and Jean-loup Gailly
@@ -21,8 +21,6 @@ email: bartekdyda (at) protonmail (dot) com
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
-
-#include <torch/torch.h>
 
 #include <algorithm>
 #include <array>
@@ -96,15 +94,21 @@ void unserialise_to(BoardsArr board_arr, LabelsSaver saver,
 
 class DataCollector
 {
+   public:
+    using DataSaver =
+        std::function<void(float*, const std::string&, int, int, int, int)>;
+
+   private:
     using Array4dim = boost::multi_array<float, 4>;
     using Array1dim = boost::multi_array<int, 1>;
     Array4dim data{boost::extents[TAB_SIZE][PLANES][BSIZEX][BSIZEY]};
     std::array<Array1dim, MOVES_USED> data_labels;
     int curr_size = 0;
     int file_no = 1;
+    DataSaver dataSaver;
 
    public:
-    DataCollector()
+    DataCollector(DataSaver dataSaver) : dataSaver{std::move(dataSaver)}
     {
         for (auto& a : data_labels) a.resize(boost::extents[TAB_SIZE]);
     }
@@ -152,9 +156,13 @@ void DataCollector::dump()
     try
     {
         std::string filename{"board_" + std::to_string(file_no) + ".pt"};
+        dataSaver(data.origin(), filename, curr_size, PLANES, BSIZEX, BSIZEY);
+        /*
         torch::Tensor output_tensor =
             torch::from_blob(data.origin(), {curr_size, PLANES, BSIZEX, BSIZEY})
                 .clone();
+        */
+
         /*
         torch::Tensor output_tensor = torch::zeros({curr_size, PLANES, BSIZEX,
         BSIZEY}); for (int i=0; i<curr_size; ++i)
@@ -166,8 +174,11 @@ void DataCollector::dump()
                   output_tensor[i][j][k][l] = data[i][j][k][l];
           }
         */
+
+        /*
         torch::save(output_tensor, filename);
         std::cout << " data saved.\n";
+        */
 
         /*
         auto test_Tens = torch::from_blob(data.origin(), {curr_size, PLANES,
@@ -179,8 +190,17 @@ void DataCollector::dump()
         test_Tens[i][j][k][l] << std::endl;
         */
 
+        Array4dim labels{boost::extents[curr_size][MOVES_USED][BSIZEX][BSIZEY]};
+        for (auto el = labels.origin();
+             el < (labels.origin() + labels.num_elements()); ++el)
+        {
+            *el = 0.0;
+        }
+
+        /*
         torch::Tensor labels_tensor =
             torch::zeros({curr_size, MOVES_USED, BSIZEX, BSIZEY});
+        */
         for (int i = 0; i < curr_size; ++i)
         {
             if (i % 100 == 0) std::cout << "." << std::flush;
@@ -188,11 +208,16 @@ void DataCollector::dump()
             {
                 const unsigned x = data_labels[move_no][i] / BSIZEY;
                 const unsigned y = data_labels[move_no][i] % BSIZEY;
-                labels_tensor[i][move_no][x][y] = 1.0f;
+                labels[i][move_no][x][y] = 1.0f;
             }
         }
+        dataSaver(data.origin(), filename + ".labels", curr_size, MOVES_USED,
+                  BSIZEX, BSIZEY);
+
+        /*
         torch::save(labels_tensor, filename + ".labels");
         std::cout << " labels saved." << std::endl;
+        */
     }
     catch (...)
     {
@@ -217,21 +242,22 @@ class CompressedData
     std::deque<std::string> cont;
     std::default_random_engine dre{};
     std::uniform_int_distribution<uint64_t> di;
-    DataCollector collector{};
+    DataCollector collector;
     void permute_last();
     void save_last();
     int64_t count = 0;
 
    public:
-    CompressedData()
+    CompressedData(DataCollector::DataSaver dataSaver)
         : di{std::numeric_limits<uint64_t>::min(),
-             std::numeric_limits<uint64_t>::max()}
+             std::numeric_limits<uint64_t>::max()},
+          collector{std::move(dataSaver)}
     {
     }
     void save(std::string s);
     void dump();
     ~CompressedData();
-} compressed_data;
+};
 
 void CompressedData::permute_last()
 {
@@ -317,7 +343,8 @@ int applyIsometryInverse(int p, unsigned isometry)
     return coord.ind(x, y);
 }
 
-void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
+void gatherDataFromPosition(CompressedData& compressed_data, Game& game,
+                            const std::vector<Move>& moves)
 {
     /*
     std::cerr << "Gather data from position: " << std::endl;
@@ -427,8 +454,9 @@ void gatherDataFromPosition(Game& game, const std::vector<Move>& moves)
     }
 }
 
-std::vector<std::pair<Move, float>> getMovesFromSgfNodePropertyLB(const Game& game,
-								  const SgfNode& node)
+/*
+std::vector<std::pair<Move, float>> getMovesFromSgfNodePropertyLB(const Game&
+game, const SgfNode& node)
 {
     int who = -1;
     if (node.findProp("B") != node.props.end())
@@ -445,18 +473,19 @@ std::vector<std::pair<Move, float>> getMovesFromSgfNodePropertyLB(const Game& ga
     float total_sims = 0.0f;
     for (const auto& moveStr : values)
     {
-	constexpr auto index_of_sims = 3u;
-	const int sims = atoi(moveStr.c_str() + index_of_sims);
-	total_sims += sims;
-	Move move;
-	move.who = who;
-	move.ind = coord.sgfToPti(moveStr);
-	result.push_back({move, sims});
+        constexpr auto index_of_sims = 3u;
+        const int sims = atoi(moveStr.c_str() + index_of_sims);
+        total_sims += sims;
+        Move move;
+        move.who = who;
+        move.ind = coord.sgfToPti(moveStr);
+        result.push_back({move, sims});
     }
 }
+*/
 
-std::pair<Move, std::vector<std::string>> getMoveFromSgfNode(const Game& game,
-                                                             const SgfNode& node)
+std::pair<Move, std::vector<std::string>> getMoveFromSgfNode(
+    const Game& game, const SgfNode& node)
 {
     if (node.findProp("B") != node.props.end())
     {
@@ -499,7 +528,8 @@ std::pair<unsigned, unsigned> getSize(SgfNode& node)
     return {0, 0};
 }
 
-void gatherDataFromSgfSequence(SgfSequence& seq,
+void gatherDataFromSgfSequence(CompressedData& compressed_data,
+                               SgfSequence& seq,
                                const std::map<int, bool>& whichSide,
                                bool must_surround)
 {
@@ -536,7 +566,7 @@ void gatherDataFromSgfSequence(SgfSequence& seq,
             }
             if (moves_are_correct)
             {
-                gatherDataFromPosition(game, subsequentMoves);
+                gatherDataFromPosition(compressed_data, game, subsequentMoves);
             }
         }
         // std::cerr << "Trying to play at: " << seq[i].toString() << std::endl;

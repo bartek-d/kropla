@@ -1,5 +1,6 @@
 file(GLOB ALL_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/src/*.cc
+  ${PROJECT_SOURCE_DIR}/src/*.cpp
   ${PROJECT_SOURCE_DIR}/src/*.h
   ${PROJECT_SOURCE_DIR}/src/caffe/*.cc
   ${PROJECT_SOURCE_DIR}/src/caffe/*.h

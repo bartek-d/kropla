@@ -44,10 +44,13 @@
 #include "safety.h"
 #include "threats.h"
 
+namespace krb
+{
 typedef std::set<pti, std::greater<pti>> PointsSet;
 template <class T, std::size_t ElemSize = 200>
 using SmallVector =
     std::vector<T, short_alloc<T, ElemSize * sizeof(T), alignof(T)>>;
+}  // namespace krb
 
 /********************************************************************************************************
   Worm description class
@@ -65,8 +68,8 @@ struct WormDescr
     const static int32_t SAFE_VALUE =
         20000;  // safety := SAFE_VALUE when the worm touches the edge
     const static int32_t SAFE_THRESHOLD = 10000;
-    SmallVector<pti, 6>::allocator_type::arena_type arena_neighb;
-    SmallVector<pti, 6> neighb{
+    krb::SmallVector<pti, 6>::allocator_type::arena_type arena_neighb;
+    krb::SmallVector<pti, 6> neighb{
         arena_neighb};  // numbers of other worms that touch this one
     std::string show() const;
     WormDescr(const WormDescr& other)
@@ -410,7 +413,7 @@ class Game
     void showPattern52Values(int who) const;
     void pattern3recalculatePoint(pti ind);
     void recalculatePatt3Values();
-    int checkLadderStep(pti x, PointsSet& ladder_breakers, pti v1, pti v2,
+    int checkLadderStep(pti x, krb::PointsSet& ladder_breakers, pti v1, pti v2,
                         pti escaping_group, bool ladder_ext, int escapes,
                         int iteration = 0);
     void getEnclMoves(std::vector<std::shared_ptr<Enclosure>>& encl_moves,

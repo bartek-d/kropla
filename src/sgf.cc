@@ -74,7 +74,8 @@ std::string SgfNode::toString(bool mainVar) const
     }
 }
 
-std::vector<SgfProperty>::const_iterator SgfNode::findProp(const std::string &pr) const
+std::vector<SgfProperty>::const_iterator SgfNode::findProp(
+    const std::string &pr) const
 {
     return std::find_if(props.begin(), props.end(),
                         [&pr](const SgfProperty &p) { return p.first == pr; });

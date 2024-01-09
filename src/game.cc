@@ -1653,8 +1653,9 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
     // check our enclosures containing [ind]
     if (threats[who - 1].is_in_encl[ind] || threats[who - 1].is_in_border[ind])
     {
-        SmallVector<Threat *, 32>::allocator_type::arena_type arena_this_encl;
-        SmallVector<Threat *, 32> this_encl{arena_this_encl};
+        krb::SmallVector<Threat *, 32>::allocator_type::arena_type
+            arena_this_encl;
+        krb::SmallVector<Threat *, 32> this_encl{arena_this_encl};
         for (auto &thr : threats[who - 1].threats)
         {
             if (thr.type & ThreatConsts::ENCL)
@@ -3057,8 +3058,8 @@ void Game::pointNowInDanger2moves(pti ind, int who)
 
 void Game::addThreat(Threat &&t, int who)
 {
-    SmallVector<pti, 8>::allocator_type::arena_type arena_counted_worms;
-    SmallVector<pti, 8> counted_worms{
+    krb::SmallVector<pti, 8>::allocator_type::arena_type arena_counted_worms;
+    krb::SmallVector<pti, 8> counted_worms{
         arena_counted_worms};  // list of counted worms for singular_dots
     for (auto i : t.encl->interior)
     {
@@ -3157,8 +3158,8 @@ void Game::addThreat(Threat &&t, int who)
 
 void Game::subtractThreat(const Threat &t, int who)
 {
-    SmallVector<pti, 8>::allocator_type::arena_type arena_counted_worms;
-    SmallVector<pti, 8> counted_worms{
+    krb::SmallVector<pti, 8>::allocator_type::arena_type arena_counted_worms;
+    krb::SmallVector<pti, 8> counted_worms{
         arena_counted_worms};  // list of counted worms for singular_dots
     bool threatens = false;    // if t threatend some opp's threat
     for (auto i : t.encl->interior)
@@ -3651,9 +3652,9 @@ void Game::showPattern52Values(int who) const
  *    . .
  *  a=x+v1, b=x+v1+v2
  */
-int Game::checkLadderStep(pti x, PointsSet &ladder_breakers, pti v1, pti v2,
-                          pti escaping_group, bool ladder_ext, int escapes,
-                          int iteration)
+int Game::checkLadderStep(pti x, krb::PointsSet &ladder_breakers, pti v1,
+                          pti v2, pti escaping_group, bool ladder_ext,
+                          int escapes, int iteration)
 {
     const static int ESC_WINS = -1, ATT_WINS = 1;
     pti nx = x + v1;
@@ -5779,8 +5780,8 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
     int enemy_dots =
         0;  // number of enemy dots inside that have not been yet captured,
             // important only when (is_in_our_terr_or_encl == true)
-    SmallVector<pti, 32>::allocator_type::arena_type arena_gids_to_delete;
-    SmallVector<pti, 32> gids_to_delete{arena_gids_to_delete};
+    krb::SmallVector<pti, 32>::allocator_type::arena_type arena_gids_to_delete;
+    krb::SmallVector<pti, 32> gids_to_delete{arena_gids_to_delete};
     std::vector<pti> stack;
     stack.reserve(coord.last + 1);
     for (auto &p : encl.interior)
@@ -7321,8 +7322,8 @@ Move Game::getRandomEncl(Move &m)
 /// This function selects enclosures using Game:::chooseRandomEncl().
 Move Game::chooseAtariMove(int who)
 {
-    SmallVector<pti, 16>::allocator_type::arena_type arena_urgent;
-    SmallVector<pti, 16> urgent{arena_urgent};  //, non_urgent;
+    krb::SmallVector<pti, 16>::allocator_type::arena_type arena_urgent;
+    krb::SmallVector<pti, 16> urgent{arena_urgent};  //, non_urgent;
     for (auto &t : threats[who - 1].threats)
     {
         if (t.type & ThreatConsts::ENCL)
@@ -7436,8 +7437,8 @@ Move Game::chooseAtariMove(int who)
 /// This function selects enclosures using Game:::chooseRandomEncl().
 Move Game::chooseAtariResponse(pti lastMove, int who)
 {
-    SmallVector<pti, 16>::allocator_type::arena_type arena_urgent;
-    SmallVector<pti, 16> urgent{arena_urgent};
+    krb::SmallVector<pti, 16>::allocator_type::arena_type arena_urgent;
+    krb::SmallVector<pti, 16> urgent{arena_urgent};
     for (auto &t : threats[2 - who].threats)
     {
         if (t.singular_dots and (t.type & ThreatConsts::ENCL) and
@@ -7587,8 +7588,8 @@ Move Game::choosePattern3Move(pti move0, pti move1, int who)
     Move move;
     move.who = who;
     typedef std::pair<pti, pattern3_val> MoveValue;
-    SmallVector<MoveValue, 24>::allocator_type::arena_type arena_stack;
-    SmallVector<MoveValue, 24> stack{arena_stack};
+    krb::SmallVector<MoveValue, 24>::allocator_type::arena_type arena_stack;
+    krb::SmallVector<MoveValue, 24> stack{arena_stack};
     int total = 0;
     for (pti m : {move0, move1})
     {

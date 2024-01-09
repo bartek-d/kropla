@@ -22,6 +22,8 @@ email: bartekdyda (at) protonmail (dot) com
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
 
+#include <torch/torch.h>
+
 #include "extractutils.h"
 
 std::set<std::string> readLines(const std::string& filename)
@@ -34,6 +36,15 @@ std::set<std::string> readLines(const std::string& filename)
     }
     return output;
 }
+
+void tensorSaver(float* ptr, const std::string& filename, int a, int b, int c,
+                 int d)
+{
+    torch::Tensor output_tensor = torch::from_blob(ptr, {a, b, c, d}).clone();
+    torch::save(output_tensor, filename);
+}
+
+CompressedData compressed_data{tensorSaver};
 
 int main(int argc, char* argv[])
 {
@@ -116,8 +127,8 @@ int main(int argc, char* argv[])
         }
         if (blueOk and redOk)
         {
-            gatherDataFromSgfSequence(seq, {{1, blueOk}, {2, redOk}},
-                                      must_surround);
+            gatherDataFromSgfSequence(compressed_data, seq,
+                                      {{1, blueOk}, {2, redOk}}, must_surround);
         }
         else
         {
