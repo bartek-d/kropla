@@ -39,6 +39,7 @@ Dyda, email: bartekdyda (at) protonmail (dot) com
 #include "sgf.h"
 #include "string_utils.h"
 
+/*
 constexpr int MOVES_USED = 3;
 constexpr int PLANES = 20;
 constexpr int BSIZEX = 20;
@@ -59,18 +60,24 @@ constexpr int getTabSize()
 
 constexpr int TAB_SIZE = getTabSize();
 constexpr int THRESHOLD = TAB_SIZE * 200;
+*/
 
 // using Board = float[PLANES][BSIZE][BSIZE];
 
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
 struct Datum
 {
+    constexpr static std::size_t size_of_boards =
+        std::size_t(PLANES) * BSIZEX * BSIZEY * sizeof(float);
+    constexpr static std::size_t size_of_labels = MOVES_USED * sizeof(int);
     using Array3dim = boost::multi_array<float, 3>;
     Array3dim boards{boost::extents[PLANES][BSIZEX][BSIZEY]};
     std::array<int, MOVES_USED> labels;
     std::string serialise() const;
 };
 
-std::string Datum::serialise() const
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
+std::string Datum<MOVES_USED, PLANES, BSIZEX, BSIZEY>::serialise() const
 {
     std::string res(static_cast<std::size_t>(size_of_boards + size_of_labels),
                     '\0');
@@ -79,24 +86,43 @@ std::string Datum::serialise() const
     return zip(res);
 }
 
-template <typename BoardsArr, typename LabelsSaver>
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY,
+          typename BoardsArr, typename LabelsSaver>
 void unserialise_to(BoardsArr board_arr, LabelsSaver saver,
                     const std::string& what)
 {
-    memcpy(board_arr.origin(), &what[0], size_of_boards);
+    memcpy(board_arr.origin(), &what[0],
+           Datum<MOVES_USED, PLANES, BSIZEX, BSIZEY>::size_of_boards);
     for (int i = 0; i < MOVES_USED; ++i)
     {
         int value;
-        memcpy(&value, &what[size_of_boards + sizeof(int) * i], sizeof(int));
+        memcpy(&value,
+               &what[Datum<MOVES_USED, PLANES, BSIZEX, BSIZEY>::size_of_boards +
+                     sizeof(int) * i],
+               sizeof(int));
         saver(i, value);
     }
 }
 
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
 class DataCollector
 {
    public:
     using DataSaver =
         std::function<void(float*, const std::string&, int, int, int, int)>;
+    constexpr static int MAX_FILE_SIZE = 2'100'000'000;
+    static constexpr int getTabSize()
+    {
+        int approximation =
+            MAX_FILE_SIZE /
+            (Datum<MOVES_USED, PLANES, BSIZEX, BSIZEY>::size_of_boards +
+             Datum<MOVES_USED, PLANES, BSIZEX, BSIZEY>::size_of_labels);
+        constexpr int block_size = 4096;
+        return (approximation / block_size) * block_size;
+    }
+
+    constexpr static int TAB_SIZE = getTabSize();
+    constexpr static int THRESHOLD = TAB_SIZE * 200;
 
    private:
     using Array4dim = boost::multi_array<float, 4>;
@@ -119,9 +145,15 @@ class DataCollector
     ~DataCollector();
 };
 
-auto DataCollector::getCurrentArray() { return data[curr_size]; }
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
+auto DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::getCurrentArray()
+{
+    return data[curr_size];
+}
 
-void DataCollector::save(int move, int label)
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
+void DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::save(int move,
+                                                             int label)
 {
     if (label < 0 or label >= BSIZEX * BSIZEY)
         throw std::runtime_error("Niepoprawny label = " +
@@ -134,7 +166,9 @@ void DataCollector::save(int move, int label)
     }
 }
 
-auto DataCollector::convertLabelsToArray(int move_no) const
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
+auto DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::convertLabelsToArray(
+    int move_no) const
 {
     using Array3dim = boost::multi_array<float, 3>;
     Array3dim data{boost::extents[curr_size][BSIZEX][BSIZEY]};
@@ -150,9 +184,9 @@ auto DataCollector::convertLabelsToArray(int move_no) const
     return data;
 }
 
-void DataCollector::dump()
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
+void DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::dump()
 {
-    std::cout << "dump()\n";
     try
     {
         std::string filename{"board_" + std::to_string(file_no) + ".pt"};
@@ -211,7 +245,7 @@ void DataCollector::dump()
                 labels[i][move_no][x][y] = 1.0f;
             }
         }
-        dataSaver(data.origin(), filename + ".labels", curr_size, MOVES_USED,
+        dataSaver(labels.origin(), filename + ".labels", curr_size, MOVES_USED,
                   BSIZEX, BSIZEY);
 
         /*
@@ -228,7 +262,8 @@ void DataCollector::dump()
     ++file_no;
 }
 
-DataCollector::~DataCollector()
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
+DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::~DataCollector()
 {
     if (curr_size == 0) return;
     data.resize(boost::extents[curr_size][PLANES][BSIZEX][BSIZEY]);
@@ -237,18 +272,24 @@ DataCollector::~DataCollector()
     dump();
 }
 
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
 class CompressedData
 {
     std::deque<std::string> cont;
     std::default_random_engine dre{};
     std::uniform_int_distribution<uint64_t> di;
-    DataCollector collector;
+    DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY> collector;
     void permute_last();
     void save_last();
     int64_t count = 0;
 
    public:
-    CompressedData(DataCollector::DataSaver dataSaver)
+    constexpr static int moves_used_v = MOVES_USED;
+    constexpr static int planes_v = PLANES;
+    constexpr static int bsizex_v = BSIZEX;
+    constexpr static int bsizey_v = BSIZEY;
+    CompressedData(typename DataCollector<MOVES_USED, PLANES, BSIZEX,
+                                          BSIZEY>::DataSaver dataSaver)
         : di{std::numeric_limits<uint64_t>::min(),
              std::numeric_limits<uint64_t>::max()},
           collector{std::move(dataSaver)}
@@ -259,10 +300,14 @@ class CompressedData
     ~CompressedData();
 };
 
-void CompressedData::permute_last()
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
+void CompressedData<MOVES_USED, PLANES, BSIZEX, BSIZEY>::permute_last()
 {
-    int low =
-        std::max(0, static_cast<int>(cont.size()) - static_cast<int>(TAB_SIZE));
+    int low = std::max(
+        0,
+        static_cast<int>(cont.size()) -
+            static_cast<int>(
+                DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::TAB_SIZE));
     for (int i = cont.size() - 1; i >= low; --i)
     {
         int swap_with = di(dre) % (i + 1);
@@ -273,15 +318,18 @@ void CompressedData::permute_last()
     }
 }
 
-void CompressedData::save_last()
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
+void CompressedData<MOVES_USED, PLANES, BSIZEX, BSIZEY>::save_last()
 {
-    int count = std::min<int>(cont.size(), TAB_SIZE);
+    int count = std::min<int>(
+        cont.size(),
+        DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::TAB_SIZE);
 
     for (int i = 0; i < count; ++i)
     {
         auto u = unzip(cont.back());
         auto curr_array = collector.getCurrentArray();
-        unserialise_to(
+        unserialise_to<MOVES_USED, PLANES, BSIZEX, BSIZEY>(
             curr_array,
             [&](int move, int label) { collector.save(move, label); },
             std::move(u));
@@ -289,20 +337,27 @@ void CompressedData::save_last()
     }
 }
 
-void CompressedData::save(std::string s)
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
+void CompressedData<MOVES_USED, PLANES, BSIZEX, BSIZEY>::save(std::string s)
 {
     if (++count % 10000 != 0) std::cout << "..." << count << "  " << s.size();
     cont.emplace_back(std::move(s));
-    if (cont.size() >= THRESHOLD)
+    if (cont.size() >=
+        DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::THRESHOLD)
     {
         permute_last();
         save_last();
     }
 }
 
-CompressedData::~CompressedData() { dump(); }
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
+CompressedData<MOVES_USED, PLANES, BSIZEX, BSIZEY>::~CompressedData()
+{
+    dump();
+}
 
-void CompressedData::dump()
+template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
+void CompressedData<MOVES_USED, PLANES, BSIZEX, BSIZEY>::dump()
 {
     while (not cont.empty())
     {
@@ -343,7 +398,8 @@ int applyIsometryInverse(int p, unsigned isometry)
     return coord.ind(x, y);
 }
 
-void gatherDataFromPosition(CompressedData& compressed_data, Game& game,
+template <typename CompressedDataCont>
+void gatherDataFromPosition(CompressedDataCont& compressed_data, Game& game,
                             const std::vector<Move>& moves)
 {
     /*
@@ -354,10 +410,12 @@ void gatherDataFromPosition(CompressedData& compressed_data, Game& game,
     const unsigned max_isometry = 1;  // do not apply isometries for tensors!
     for (unsigned isometry = 0; isometry < max_isometry; ++isometry)
     {
-        Datum datum;
+        Datum<compressed_data.moves_used_v, compressed_data.planes_v,
+              compressed_data.bsizex_v, compressed_data.bsizey_v>
+            datum;
         auto& data = datum.boards;  // collector.getCurrentArray();
-        for (int x = 0; x < BSIZEX; ++x)
-            for (int y = 0; y < BSIZEY; ++y)
+        for (int x = 0; x < compressed_data.bsizex_v; ++x)
+            for (int y = 0; y < compressed_data.bsizey_v; ++y)
             {
                 int p_orig = coord.ind(x, y);
                 int p = applyIsometryInverse(p_orig, isometry);
@@ -372,7 +430,7 @@ void gatherDataFromPosition(CompressedData& compressed_data, Game& game,
                 data[4][x][y] = game.isInTerr(p, opponent) > 0 ? 1.0f : 0.0f;
                 data[5][x][y] = std::min(game.isInEncl(p, on_move), 2) * 0.5f;
                 data[6][x][y] = std::min(game.isInEncl(p, opponent), 2) * 0.5f;
-                if (PLANES > 7)
+                if (compressed_data.planes_v > 7)
                 {
                     data[7][x][y] =
                         std::min(game.isInBorder(p, on_move), 2) * 0.5f;
@@ -380,7 +438,7 @@ void gatherDataFromPosition(CompressedData& compressed_data, Game& game,
                         std::min(game.isInBorder(p, opponent), 2) * 0.5f;
                     data[9][x][y] =
                         std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
-                    if (PLANES > 10)
+                    if (compressed_data.planes_v > 10)
                     {
                         data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;
                         //	data[11][x][y] = (coord.dist[p] == 4) ? 1 : 0;
@@ -415,7 +473,7 @@ void gatherDataFromPosition(CompressedData& compressed_data, Game& game,
         for (int player = 0; player < 2; ++player)
         {
             int which2 = (player + 1 == game.whoNowMoves()) ? 14 : 15;
-            if (which2 < PLANES)
+            if (which2 < compressed_data.planes_v)
             {
                 for (auto& t : game.threats[player].threats2m)
                 {
@@ -427,7 +485,7 @@ void gatherDataFromPosition(CompressedData& compressed_data, Game& game,
                 }
             }
             int which = (player + 1 == game.whoNowMoves()) ? 12 : 13;
-            if (which < PLANES)
+            if (which < compressed_data.planes_v)
             {
                 for (auto& t : game.threats[player].threats)
                 {
@@ -439,11 +497,14 @@ void gatherDataFromPosition(CompressedData& compressed_data, Game& game,
                 }
             }
         }
-        for (int m = 0; m < MOVES_USED; ++m)
+
+        for (int m = 0; m < compressed_data.moves_used_v; ++m)
         {
             int move_isom = applyIsometry(moves.at(m).ind, isometry);
-            int label = coord.x[move_isom] * BSIZEY + coord.y[move_isom];
-            if (label < 0 or label >= BSIZEX * BSIZEY)
+            int label = coord.x[move_isom] * compressed_data.bsizey_v +
+                        coord.y[move_isom];
+            if (label < 0 or
+                label >= compressed_data.bsizex_v * compressed_data.bsizey_v)
                 throw std::runtime_error("label");
             // collector.save(m, label);
             datum.labels[m] = label;
@@ -528,13 +589,14 @@ std::pair<unsigned, unsigned> getSize(SgfNode& node)
     return {0, 0};
 }
 
-void gatherDataFromSgfSequence(CompressedData& compressed_data,
+template <typename CompressedDataCont>
+void gatherDataFromSgfSequence(CompressedDataCont& compressed_data,
                                SgfSequence& seq,
                                const std::map<int, bool>& whichSide,
                                bool must_surround)
 {
     const auto [x, y] = getSize(seq[0]);
-    if (x != BSIZEX or y != BSIZEY)
+    if (x != compressed_data.bsizex_v or y != compressed_data.bsizey_v)
     {
         std::cout << "  ... size: " << x << "x" << y << std::endl;
         return;
@@ -542,7 +604,7 @@ void gatherDataFromSgfSequence(CompressedData& compressed_data,
     const unsigned start_from = 5;
     const unsigned go_to = std::min<unsigned>(
         (x * y * 3) / 5,  // use moves until 60% of board is full
-        seq.size() - MOVES_USED);
+        seq.size() - compressed_data.moves_used_v);
     Game game(SgfSequence(seq.begin(), seq.begin() + start_from), go_to,
               must_surround);
     for (unsigned i = start_from; i < go_to; ++i)
@@ -551,7 +613,7 @@ void gatherDataFromSgfSequence(CompressedData& compressed_data,
         {
             std::vector<Move> subsequentMoves;
             bool moves_are_correct = true;
-            for (int j = 0; j < MOVES_USED; ++j)
+            for (int j = 0; j < compressed_data.moves_used_v; ++j)
             {
                 auto [move, points_to_enclose] =
                     getMoveFromSgfNode(game, seq[i + j]);

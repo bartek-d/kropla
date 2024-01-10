@@ -44,12 +44,14 @@ void tensorSaver(float* ptr, const std::string& filename, int a, int b, int c,
     torch::save(output_tensor, filename);
 }
 
-CompressedData compressed_data{tensorSaver};
+constexpr int MOVES_USED = 3;
+constexpr int PLANES = 20;
+constexpr int BSIZEX = 6;
+constexpr int BSIZEY = 6;
+CompressedData<MOVES_USED, PLANES, BSIZEX, BSIZEY> compressed_data{tensorSaver};
 
 int main(int argc, char* argv[])
 {
-    std::cout << "TAB_SIZE = " << TAB_SIZE << ", THRESHOLD = " << THRESHOLD
-              << std::endl;
     if (argc < 3)
     {
         std::cerr << "at least 3 parameters needed, players_file sgf_file(s)"
