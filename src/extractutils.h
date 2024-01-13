@@ -515,9 +515,8 @@ void gatherDataFromPosition(CompressedDataCont& compressed_data, Game& game,
     }
 }
 
-/*
-std::vector<std::pair<Move, float>> getMovesFromSgfNodePropertyLB(const Game&
-game, const SgfNode& node)
+std::vector<std::pair<Move, float>> getMovesFromSgfNodePropertyLB(
+    /*const Game& game,*/ const SgfNode& node)
 {
     int who = -1;
     if (node.findProp("B") != node.props.end())
@@ -527,10 +526,10 @@ game, const SgfNode& node)
     else
         return {{Move{}, {}}};
     const auto iter = node.findProp("LB");
-    if (iter == node.props.end())
-        return {{Move{}, {}}};
-    const auto &values = iter->second;
+    if (iter == node.props.end()) return {{Move{}, {}}};
+    const auto& values = iter->second;
     std::vector<std::pair<Move, float>> result;
+    if (values.empty()) return result;
     float total_sims = 0.0f;
     for (const auto& moveStr : values)
     {
@@ -542,8 +541,24 @@ game, const SgfNode& node)
         move.ind = coord.sgfToPti(moveStr);
         result.push_back({move, sims});
     }
+    std::sort(result.begin(), result.end(),
+              [](auto p, auto q) { return p.second > q.second; });
+    const int threshold_N = 15;
+    const float threshold = 0.05 * total_sims;
+    const int to = std::min<int>(threshold_N, result.size());
+    const auto stop_at =
+        std::find_if(std::next(result.begin()), result.begin() + to,
+                     [threshold](auto p) { return p.second < threshold; });
+    result.erase(stop_at, result.end());
+    const float sum_of_elems_left =
+        std::accumulate(result.begin(), result.end(), 0.0f,
+                        [](float sum, auto p) { return sum + p.second; });
+    for (auto& el : result)
+    {
+        el.second /= sum_of_elems_left;
+    }
+    return result;
 }
-*/
 
 std::pair<Move, std::vector<std::string>> getMoveFromSgfNode(
     const Game& game, const SgfNode& node)
