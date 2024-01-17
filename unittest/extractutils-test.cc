@@ -11,7 +11,7 @@ namespace
 TEST(ExtractUtilsTest, extractsMove)
 {
     const std::string s{
-        "(;SZ[6];B[bc];W[ab];B[df];W[ac];B[ee];W[ff];B[ad];W[ce];B[ed])"};
+        "(;SZ[6];B[bc];W[ab];B[df];W[ac];B[ee];W[fc];B[ad];W[ce];B[ed])"};
     const std::string expected_data{
         ".22..."
         "..1..."
@@ -25,7 +25,7 @@ TEST(ExtractUtilsTest, extractsMove)
         "......"
         ".....2"
         "....2."
-        ".....*"};
+        "..*..."};
     constexpr int MOVES_USED = 3;
     constexpr int PLANES = 20;
     constexpr int BSIZEX = 6;
