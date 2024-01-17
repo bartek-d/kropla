@@ -64,15 +64,18 @@ constexpr int THRESHOLD = TAB_SIZE * 200;
 
 // using Board = float[PLANES][BSIZE][BSIZE];
 
+using MoveValue = std::pair<Move, float>;
+
 template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
 struct Datum
 {
     constexpr static std::size_t size_of_boards =
         std::size_t(PLANES) * BSIZEX * BSIZEY * sizeof(float);
-    constexpr static std::size_t size_of_labels = MOVES_USED * sizeof(int);
+    constexpr static std::size_t size_of_labels =
+        MOVES_USED * BSIZEX * BSIZEY * sizeof(float);
     using Array3dim = boost::multi_array<float, 3>;
     Array3dim boards{boost::extents[PLANES][BSIZEX][BSIZEY]};
-    std::array<int, MOVES_USED> labels;
+    Array3dim labels{boost::extents[MOVES_USED][BSIZEX][BSIZEY]};
     std::string serialise() const;
 };
 
@@ -82,26 +85,20 @@ std::string Datum<MOVES_USED, PLANES, BSIZEX, BSIZEY>::serialise() const
     std::string res(static_cast<std::size_t>(size_of_boards + size_of_labels),
                     '\0');
     memcpy(&res[0], boards.origin(), size_of_boards);
-    memcpy(&res[size_of_boards], &labels[0], size_of_labels);
+    memcpy(&res[size_of_boards], labels.origin(), size_of_labels);
     return zip(res);
 }
 
 template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY,
-          typename BoardsArr, typename LabelsSaver>
-void unserialise_to(BoardsArr board_arr, LabelsSaver saver,
+          typename BoardsArr, typename LabelsArr>
+void unserialise_to(BoardsArr board_arr, LabelsArr labels_arr,
                     const std::string& what)
 {
     memcpy(board_arr.origin(), &what[0],
            Datum<MOVES_USED, PLANES, BSIZEX, BSIZEY>::size_of_boards);
-    for (int i = 0; i < MOVES_USED; ++i)
-    {
-        int value;
-        memcpy(&value,
-               &what[Datum<MOVES_USED, PLANES, BSIZEX, BSIZEY>::size_of_boards +
-                     sizeof(int) * i],
-               sizeof(int));
-        saver(i, value);
-    }
+    memcpy(labels_arr.origin(),
+           &what[Datum<MOVES_USED, PLANES, BSIZEX, BSIZEY>::size_of_boards],
+           Datum<MOVES_USED, PLANES, BSIZEX, BSIZEY>::size_of_labels);
 }
 
 template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
@@ -128,19 +125,16 @@ class DataCollector
     using Array4dim = boost::multi_array<float, 4>;
     using Array1dim = boost::multi_array<int, 1>;
     Array4dim data{boost::extents[TAB_SIZE][PLANES][BSIZEX][BSIZEY]};
-    std::array<Array1dim, MOVES_USED> data_labels;
+    Array4dim data_labels{boost::extents[TAB_SIZE][MOVES_USED][BSIZEX][BSIZEY]};
     int curr_size = 0;
     int file_no = 1;
     DataSaver dataSaver;
 
    public:
-    DataCollector(DataSaver dataSaver) : dataSaver{std::move(dataSaver)}
-    {
-        for (auto& a : data_labels) a.resize(boost::extents[TAB_SIZE]);
-    }
+    DataCollector(DataSaver dataSaver) : dataSaver{std::move(dataSaver)} {}
     auto getCurrentArray();
-    void save(int move, int label);
-    auto convertLabelsToArray(int move_no) const;
+    auto getCurrentLabelsArray();
+    void registerSavedPosition();
     void dump();
     ~DataCollector();
 };
@@ -152,36 +146,16 @@ auto DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::getCurrentArray()
 }
 
 template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
-void DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::save(int move,
-                                                             int label)
+auto DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::getCurrentLabelsArray()
 {
-    if (label < 0 or label >= BSIZEX * BSIZEY)
-        throw std::runtime_error("Niepoprawny label = " +
-                                 std::to_string(label));
-    data_labels[move][curr_size] = label;
-    if (move == MOVES_USED - 1)
-    {
-        ++curr_size;
-        if (curr_size == TAB_SIZE) dump();
-    }
+    return data_labels[curr_size];
 }
 
 template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
-auto DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::convertLabelsToArray(
-    int move_no) const
+void DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::registerSavedPosition()
 {
-    using Array3dim = boost::multi_array<float, 3>;
-    Array3dim data{boost::extents[curr_size][BSIZEX][BSIZEY]};
-    for (int i = 0; i < curr_size; ++i)
-        for (int x = 0; x < BSIZEX; ++x)
-            for (int y = 0; y < BSIZEY; ++y) data[i][x][y] = 0.0f;
-    for (int i = 0; i < curr_size; ++i)
-    {
-        const unsigned x = data_labels[move_no][i] / BSIZEY;
-        const unsigned y = data_labels[move_no][i] % BSIZEY;
-        data[i][x][y] = 1.0f;
-    }
-    return data;
+    ++curr_size;
+    if (curr_size == TAB_SIZE) dump();
 }
 
 template <int MOVES_USED, int PLANES, int BSIZEX, int BSIZEY>
@@ -224,6 +198,7 @@ void DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::dump()
         test_Tens[i][j][k][l] << std::endl;
         */
 
+        /*
         Array4dim labels{boost::extents[curr_size][MOVES_USED][BSIZEX][BSIZEY]};
         for (auto el = labels.origin();
              el < (labels.origin() + labels.num_elements()); ++el)
@@ -231,10 +206,6 @@ void DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::dump()
             *el = 0.0;
         }
 
-        /*
-        torch::Tensor labels_tensor =
-            torch::zeros({curr_size, MOVES_USED, BSIZEX, BSIZEY});
-        */
         for (int i = 0; i < curr_size; ++i)
         {
             if (i % 100 == 0) std::cout << "." << std::flush;
@@ -245,8 +216,9 @@ void DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::dump()
                 labels[i][move_no][x][y] = 1.0f;
             }
         }
-        dataSaver(labels.origin(), filename + ".labels", curr_size, MOVES_USED,
-                  BSIZEX, BSIZEY);
+        */
+        dataSaver(data_labels.origin(), filename + ".labels", curr_size,
+                  MOVES_USED, BSIZEX, BSIZEY);
 
         /*
         torch::save(labels_tensor, filename + ".labels");
@@ -267,8 +239,7 @@ DataCollector<MOVES_USED, PLANES, BSIZEX, BSIZEY>::~DataCollector()
 {
     if (curr_size == 0) return;
     data.resize(boost::extents[curr_size][PLANES][BSIZEX][BSIZEY]);
-    for (int m = 0; m < MOVES_USED; ++m)
-        data_labels[m].resize(boost::extents[curr_size]);
+    data_labels.resize(boost::extents[curr_size][MOVES_USED][BSIZEX][BSIZEY]);
     dump();
 }
 
@@ -329,10 +300,10 @@ void CompressedData<MOVES_USED, PLANES, BSIZEX, BSIZEY>::save_last()
     {
         auto u = unzip(cont.back());
         auto curr_array = collector.getCurrentArray();
+        auto curr_labels_array = collector.getCurrentLabelsArray();
         unserialise_to<MOVES_USED, PLANES, BSIZEX, BSIZEY>(
-            curr_array,
-            [&](int move, int label) { collector.save(move, label); },
-            std::move(u));
+            curr_array, curr_labels_array, std::move(u));
+        collector.registerSavedPosition();
         cont.pop_back();
     }
 }
@@ -400,7 +371,7 @@ int applyIsometryInverse(int p, unsigned isometry)
 
 template <typename CompressedDataCont>
 void gatherDataFromPosition(CompressedDataCont& compressed_data, Game& game,
-                            const std::vector<Move>& moves)
+                            const std::vector<std::vector<MoveValue>>& moves)
 {
     /*
     std::cerr << "Gather data from position: " << std::endl;
@@ -500,6 +471,15 @@ void gatherDataFromPosition(CompressedDataCont& compressed_data, Game& game,
 
         for (int m = 0; m < compressed_data.moves_used_v; ++m)
         {
+            for (int x = 0; x < compressed_data.bsizex_v; ++x)
+                for (int y = 0; y < compressed_data.bsizey_v; ++y)
+                    datum.labels[m][x][y] = 0.0f;
+            for (auto& [move, value] : moves.at(m))
+            {
+                int move_isom = applyIsometry(move.ind, isometry);
+                datum.labels[m][coord.x[move_isom]][coord.y[move_isom]] = value;
+            }
+            /*
             int move_isom = applyIsometry(moves.at(m).ind, isometry);
             int label = coord.x[move_isom] * compressed_data.bsizey_v +
                         coord.y[move_isom];
@@ -508,6 +488,7 @@ void gatherDataFromPosition(CompressedDataCont& compressed_data, Game& game,
                 throw std::runtime_error("label");
             // collector.save(m, label);
             datum.labels[m] = label;
+            */
         }
 
         auto s = datum.serialise();
@@ -515,8 +496,7 @@ void gatherDataFromPosition(CompressedDataCont& compressed_data, Game& game,
     }
 }
 
-std::vector<std::pair<Move, float>> getMovesFromSgfNodePropertyLB(
-    /*const Game& game,*/ const SgfNode& node)
+std::vector<MoveValue> getMovesFromSgfNodePropertyLB(const SgfNode& node)
 {
     int who = -1;
     if (node.findProp("B") != node.props.end())
@@ -524,11 +504,11 @@ std::vector<std::pair<Move, float>> getMovesFromSgfNodePropertyLB(
     else if (node.findProp("W") != node.props.end())
         who = 2;
     else
-        return {{Move{}, {}}};
+        return {};
     const auto iter = node.findProp("LB");
-    if (iter == node.props.end()) return {{Move{}, {}}};
+    if (iter == node.props.end()) return {};
     const auto& values = iter->second;
-    std::vector<std::pair<Move, float>> result;
+    std::vector<MoveValue> result;
     if (values.empty()) return result;
     float total_sims = 0.0f;
     for (const auto& moveStr : values)
@@ -582,6 +562,17 @@ std::pair<Move, std::vector<std::string>> getMoveFromSgfNode(
     return {Move{}, {}};
 }
 
+std::vector<MoveValue> getMovesFromSgfNodeUsingBW_or_LB(const Game& game,
+                                                        const SgfNode& node)
+{
+    std::vector<MoveValue> res = getMovesFromSgfNodePropertyLB(node);
+    if (not res.empty()) return res;
+    auto [move, points_to_enclose] = getMoveFromSgfNode(game, node);
+    if (move.ind == 0) return {};
+    res.push_back(MoveValue{move, 1.0f});
+    return res;
+}
+
 std::pair<unsigned, unsigned> getSize(SgfNode& node)
 {
     auto sz_pos = node.findProp("SZ");
@@ -626,20 +617,22 @@ void gatherDataFromSgfSequence(CompressedDataCont& compressed_data,
     {
         if (whichSide.at(game.whoNowMoves()))
         {
-            std::vector<Move> subsequentMoves;
+            std::vector<std::vector<MoveValue>> subsequentMoves;
             bool moves_are_correct = true;
             for (int j = 0; j < compressed_data.moves_used_v; ++j)
             {
-                auto [move, points_to_enclose] =
-                    getMoveFromSgfNode(game, seq[i + j]);
-                if (move.ind == 0 or
-                    move.who != (j % 2 == 0 ? game.whoNowMoves()
-                                            : 3 - game.whoNowMoves()))
+                auto moves_with_values =
+                    getMovesFromSgfNodeUsingBW_or_LB(game, seq[i + j]);
+                if (moves_with_values.empty() or
+                    moves_with_values[0].first.ind == 0 or
+                    moves_with_values[0].first.who !=
+                        (j % 2 == 0 ? game.whoNowMoves()
+                                    : 3 - game.whoNowMoves()))
                 {
                     moves_are_correct = false;
                     break;
                 }
-                subsequentMoves.push_back(move);
+                subsequentMoves.push_back(std::move(moves_with_values));
             }
             if (moves_are_correct)
             {

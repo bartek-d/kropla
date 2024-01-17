@@ -11,7 +11,8 @@ include(clang-format.cmake)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT supported OUTPUT error)
 
-set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Wpedantic -O3 -msse3 -march=native")
+add_compile_options(-g -Wall -Wextra -Wpedantic -O3 -msse3 -march=native)
+#set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Wpedantic -O3 -msse3 -march=native")
 add_definitions(-DNDEBUG)  # -DSPEED_TEST -DDEBUG_SGF
 
 #set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc -Wall -std=c++17 -O3 -DNDEBUG -march=sandybridge")
@@ -167,7 +168,9 @@ add_executable(runUnitTests
 # ${MCAFFE_src}
  ${CNN_src}
  )
-  
+
+target_compile_options(runUnitTests PUBLIC -g -O0)
+
 
 target_link_libraries(runUnitTests gtest gmock gtest_main Threads::Threads ${CNN_lib}  ${ZLIB_LIBRARIES}  ${Boost_LIBRARIES})
 target_include_directories(runUnitTests  PRIVATE ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
