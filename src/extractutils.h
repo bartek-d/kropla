@@ -376,7 +376,7 @@ void gatherDataFromPosition(CompressedDataCont& compressed_data, Game& game,
     /*
     std::cerr << "Gather data from position: " << std::endl;
     game.show();
-    std::cerr << "Move " << move.show() << " was about to play." << std::endl;
+    std::cerr << "Move " << moves[0][0].first.show() << " was one of the moves considered." << std::endl;
     */
     const unsigned max_isometry = 1;  // do not apply isometries for tensors!
     for (unsigned isometry = 0; isometry < max_isometry; ++isometry)
@@ -642,4 +642,21 @@ void gatherDataFromSgfSequence(CompressedDataCont& compressed_data,
         // std::cerr << "Trying to play at: " << seq[i].toString() << std::endl;
         game.replaySgfSequence({seq[i]}, 1);
     }
+}
+
+std::vector<std::string> split(const std::string& buf, const std::string& key)
+{
+    std::vector<std::string> res;
+    std::size_t pos1 = 0;
+    for (;;)
+    {
+      std::size_t pos2 = buf.find(key, pos1);
+      auto subs = buf.substr(pos1, pos2 - pos1);
+      if (not subs.empty())
+	res.push_back(std::move(subs));
+      pos1 = pos2 + key.size();
+      if (pos2 == std::string::npos)
+	break;
+    }
+    return res;
 }
