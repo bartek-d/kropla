@@ -404,7 +404,6 @@ class Game
     void connectionsRecalculatePoint(pti ind, int who);
     void connectionsRecalculateNeighb(pti ind, int who);
     void connectionsRenameGroup(pti dst, pti src);
-    pattern3_t getPattern3_at(pti ind) const;
     bool isEmptyInDirection(pti ind, int direction) const;
     bool isEmptyInNeighbourhood(pti ind) const;
     pattern3_val getPattern3Value(pti ind, int who) const;
@@ -486,6 +485,7 @@ class Game
                    : 0.0f;
     }
     pattern3_t readPattern3_at(pti ind) const { return pattern3_at[ind]; }
+    pattern3_t getPattern3_at(pti ind) const;
     uint64_t getZobrist() const { return zobrist; }
     uint64_t getHistorySize() const { return history.size(); }
     NonatomicMovestats priorsAndDameForPattern3(bool& is_dame, bool is_root,

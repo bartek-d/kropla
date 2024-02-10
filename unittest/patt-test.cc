@@ -6,6 +6,7 @@
 
 #include "allpattgen.h"
 #include "patterns.h"
+#include "utils.h"
 
 namespace
 {
@@ -38,6 +39,29 @@ TEST(CheckCommonFate, worksCorrectly)
     //  std::cout << "pattern:\n" << Pattern3::show(q) << " --> " <<
     //  getPattStr(q) <<std::endl;
     EXPECT_FALSE(checkCommonFate(getPattStr(q)));
+}
+
+TEST(PatternTest, isZeroWhenNoDotsInNeighb_andReadEqualsGet)
+{
+    const unsigned isometry = 0;
+    auto sgf = constructSgfFromGameBoard(
+        ".x....."
+        "xo.o..."
+        "....x.."
+        "x......"
+        "......."
+        "xo.o..."
+        ".x.....");
+    Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    std::set<std::string> pointsWithZeroPatt;
+    for (pti i = coord.first; i<=coord.last; ++i)
+      if (coord.dist[i] >= 0 and game.whoseDotMarginAt(i) == 0) {
+	EXPECT_EQ(game.readPattern3_at(i), game.getPattern3_at(i));
+	if (game.getPattern3_at(i) == 0)
+	  pointsWithZeroPatt.insert(coord.indToSgf(i));
+      }
+    std::set<std::string> expectedPoints{ "cd", "fe", "ff"};
+    EXPECT_EQ(expectedPoints, pointsWithZeroPatt);
 }
 
 }  // namespace

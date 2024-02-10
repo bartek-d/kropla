@@ -595,6 +595,18 @@ std::pair<unsigned, unsigned> getSize(SgfNode& node)
     return {0, 0};
 }
 
+bool isNumberOfEmpty3x3SquaresAtLeast(const Game& game, int threshold)
+{
+    int count = 0;
+    for (pti i = coord.first; i<=coord.last; ++i)
+       if (coord.dist[i] >= 1 and game.whoseDotMarginAt(i) == 0 and
+	   game.getPattern3_at(i) == 0) {
+	 count++;
+	 if (count >= threshold) return true;
+       }
+    return false;
+}
+
 template <typename CompressedDataCont>
 void gatherDataFromSgfSequence(CompressedDataCont& compressed_data,
                                SgfSequence& seq,
@@ -639,6 +651,8 @@ void gatherDataFromSgfSequence(CompressedDataCont& compressed_data,
                 gatherDataFromPosition(compressed_data, game, subsequentMoves);
             }
         }
+	if (not isNumberOfEmpty3x3SquaresAtLeast(game, 2))   // is board almost full?
+	    break;
         // std::cerr << "Trying to play at: " << seq[i].toString() << std::endl;
         game.replaySgfSequence({seq[i]}, 1);
     }
