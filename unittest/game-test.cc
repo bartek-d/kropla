@@ -405,6 +405,36 @@ TEST_P(
 INSTANTIATE_TEST_CASE_P(Par, IsometryFixture7,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
+class IsometryFixture7b : public ::testing::TestWithParam<unsigned>
+{
+};
+
+TEST_P(IsometryFixture7b, weFindThreat2mWhenThereWasThreatIn1m)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        ".ooo..."
+        "ox..o.."
+        "oxxooo."
+        "oxxooo."
+        "....o.."
+        "......."
+        "..xx...");
+    Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    game.makeSgfMove(applyIsometry("be", isometry, coord), 1);
+    game.makeSgfMove(applyIsometry("ce", isometry, coord), 2);
+    const auto& thr = game.getAllThreatsForPlayer(0);
+    EXPECT_TRUE(containsThreat2m(
+        thr, coord.sgfToPti(applyIsometry("cf", isometry, coord)),
+        coord.sgfToPti(applyIsometry("de", isometry, coord))));
+    EXPECT_TRUE(containsThreat2m(
+        thr, coord.sgfToPti(applyIsometry("cf", isometry, coord)),
+        coord.sgfToPti(applyIsometry("df", isometry, coord))));
+}
+
+INSTANTIATE_TEST_CASE_P(Par, IsometryFixture7b,
+                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
+
 TEST(Threats2mTest,
      miaiIsFoundWhenTwoSecondMovesAreInsideTerr_zagram355111_after_move107)
 {

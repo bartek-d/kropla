@@ -211,12 +211,12 @@ TEST(ExtractUtilsTest, getMovesFromSgfNodePropertyLB)
 
 TEST(ExtractUtilsTest, split)
 {
-  const std::string s{"___\n\n ###\n____\n\nAAAA\n\n"};
-  const auto res = split(s, "\n\n");
-  ASSERT_EQ(3, res.size());
-  EXPECT_EQ("___", res[0]);
-  EXPECT_EQ(" ###\n____", res[1]);
-  EXPECT_EQ("AAAA", res[2]);
+    const std::string s{"___\n\n ###\n____\n\nAAAA\n\n"};
+    const auto res = split(s, "\n\n");
+    ASSERT_EQ(3, res.size());
+    EXPECT_EQ("___", res[0]);
+    EXPECT_EQ(" ###\n____", res[1]);
+    EXPECT_EQ("AAAA", res[2]);
 }
 
 }  // namespace

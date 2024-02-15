@@ -376,7 +376,8 @@ void gatherDataFromPosition(CompressedDataCont& compressed_data, Game& game,
     /*
     std::cerr << "Gather data from position: " << std::endl;
     game.show();
-    std::cerr << "Move " << moves[0][0].first.show() << " was one of the moves considered." << std::endl;
+    std::cerr << "Move " << moves[0][0].first.show() << " was one of the moves
+    considered." << std::endl;
     */
     const unsigned max_isometry = 1;  // do not apply isometries for tensors!
     for (unsigned isometry = 0; isometry < max_isometry; ++isometry)
@@ -598,12 +599,13 @@ std::pair<unsigned, unsigned> getSize(SgfNode& node)
 bool isNumberOfEmpty3x3SquaresAtLeast(const Game& game, int threshold)
 {
     int count = 0;
-    for (pti i = coord.first; i<=coord.last; ++i)
-       if (coord.dist[i] >= 1 and game.whoseDotMarginAt(i) == 0 and
-	   game.getPattern3_at(i) == 0) {
-	 count++;
-	 if (count >= threshold) return true;
-       }
+    for (pti i = coord.first; i <= coord.last; ++i)
+        if (coord.dist[i] >= 1 and game.whoseDotMarginAt(i) == 0 and
+            game.getPattern3_at(i) == 0)
+        {
+            count++;
+            if (count >= threshold) return true;
+        }
     return false;
 }
 
@@ -651,8 +653,9 @@ void gatherDataFromSgfSequence(CompressedDataCont& compressed_data,
                 gatherDataFromPosition(compressed_data, game, subsequentMoves);
             }
         }
-	if (not isNumberOfEmpty3x3SquaresAtLeast(game, 2))   // is board almost full?
-	    break;
+        if (not isNumberOfEmpty3x3SquaresAtLeast(game,
+                                                 2))  // is board almost full?
+            break;
         // std::cerr << "Trying to play at: " << seq[i].toString() << std::endl;
         game.replaySgfSequence({seq[i]}, 1);
     }
@@ -664,13 +667,11 @@ std::vector<std::string> split(const std::string& buf, const std::string& key)
     std::size_t pos1 = 0;
     for (;;)
     {
-      std::size_t pos2 = buf.find(key, pos1);
-      auto subs = buf.substr(pos1, pos2 - pos1);
-      if (not subs.empty())
-	res.push_back(std::move(subs));
-      pos1 = pos2 + key.size();
-      if (pos2 == std::string::npos)
-	break;
+        std::size_t pos2 = buf.find(key, pos1);
+        auto subs = buf.substr(pos1, pos2 - pos1);
+        if (not subs.empty()) res.push_back(std::move(subs));
+        pos1 = pos2 + key.size();
+        if (pos2 == std::string::npos) break;
     }
     return res;
 }
