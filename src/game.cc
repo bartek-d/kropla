@@ -7442,8 +7442,7 @@ Move Game::chooseAtariResponse(pti lastMove, int who)
     for (auto &t : threats[2 - who].threats)
     {
         if (t.singular_dots and (t.type & ThreatConsts::ENCL) and
-            std::find(t.encl->border.begin(), t.encl->border.end(), lastMove) !=
-                t.encl->border.end())
+            t.encl->isInBorder(lastMove))
         {
             // TODO: check also the ladder
             if (threats[2 - who].is_in_encl[t.where] == 0 and
@@ -7490,12 +7489,7 @@ Move Game::chooseAtariResponse(pti lastMove, int who)
             (coord.distBetweenPts_infty(t.where0, lastMove) <= 1 or
              std::any_of(t.thr_list.begin(), t.thr_list.end(),
                          [lastMove](const Threat &thr)
-                         {
-                             return std::find(thr.encl->border.begin(),
-                                              thr.encl->border.end(),
-                                              lastMove) !=
-                                    thr.encl->border.end();
-                         })))
+                         { return thr.encl->isInBorder(lastMove); })))
         {
             urgent.push_back(t.where0);
             int count = t.min_win2;
@@ -8772,10 +8766,7 @@ bool Game::checkThreatCorrectness()
                         {
                             t.encl = std::make_shared<Enclosure>(
                                 findEnclosure_notOptimised(nb, MASK_DOT, who));
-                            if (!t.encl->isEmpty() and
-                                std::find(t.encl->border.begin(),
-                                          t.encl->border.end(),
-                                          ind) != t.encl->border.end())
+                            if (!t.encl->isEmpty() and t.encl->isInBorder(ind))
                             {
                                 t.type = ThreatConsts::ENCL;
                                 t.where = ind;
