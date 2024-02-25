@@ -370,7 +370,7 @@ int applyIsometryInverse(int p, unsigned isometry)
 }
 
 template <typename CompressedDataCont>
-void gatherDataFromPosition(CompressedDataCont& compressed_data, Game& game,
+void gatherDataFromPosition(CompressedDataCont& compressed_data, const Game& game,
                             const std::vector<std::vector<MoveValue>>& moves)
 {
     /*
@@ -400,14 +400,14 @@ void gatherDataFromPosition(CompressedDataCont& compressed_data, Game& game,
                     (game.whoseDotMarginAt(p) == opponent) ? 1.0f : 0.0f;
                 data[3][x][y] = game.isInTerr(p, on_move) > 0 ? 1.0f : 0.0f;
                 data[4][x][y] = game.isInTerr(p, opponent) > 0 ? 1.0f : 0.0f;
-                data[5][x][y] = std::min(game.isInEncl(p, on_move), 2) * 0.5f;
-                data[6][x][y] = std::min(game.isInEncl(p, opponent), 2) * 0.5f;
+                data[5][x][y] = std::min<pti>(game.isInEncl(p, on_move), 2) * 0.5f;
+                data[6][x][y] = std::min<pti>(game.isInEncl(p, opponent), 2) * 0.5f;
                 if (compressed_data.planes_v > 7)
                 {
                     data[7][x][y] =
-                        std::min(game.isInBorder(p, on_move), 2) * 0.5f;
+                        std::min<pti>(game.isInBorder(p, on_move), 2) * 0.5f;
                     data[8][x][y] =
-                        std::min(game.isInBorder(p, opponent), 2) * 0.5f;
+                        std::min<pti>(game.isInBorder(p, opponent), 2) * 0.5f;
                     data[9][x][y] =
                         std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
                     if (compressed_data.planes_v > 10)

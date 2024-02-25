@@ -433,7 +433,7 @@ class Game
    public:
     Game() = delete;
     Game(SgfSequence seq, int max_moves, bool must_surround = false);
-    int whoNowMoves() { return nowMoves; };
+    int whoNowMoves() const { return nowMoves; };
     void replaySgfSequence(SgfSequence seq, int max_moves);
     void placeDot(int x, int y, int who);
     Enclosure findNonSimpleEnclosure(std::vector<pti>& tab, pti point, pti mask,
@@ -473,9 +473,14 @@ class Game
         int v[4] = {0, 1, 2, 0};
         return v[worm[ind] & MASK_DOT];
     }
-    int isInTerr(pti ind, int who) const;
-    int isInEncl(pti ind, int who) const;
-    int isInBorder(pti ind, int who) const;
+    pti isInTerr(pti ind, int who) const;
+    pti isInEncl(pti ind, int who) const;
+    pti isInBorder(pti ind, int who) const;
+private:
+    pti& isInTerr(pti ind, int who);
+    pti& isInEncl(pti ind, int who);
+    pti& isInBorder(pti ind, int who);
+public:
     bool isDameOnEdge(pti i, int who) const;
     int getSafetyOf(pti ind) const { return descr.at(worm[ind]).safety; }
     float getTotalSafetyOf(pti ind) const

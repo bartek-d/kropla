@@ -81,7 +81,7 @@ void initialiseCnn()
     }
 }
 
-std::vector<float> getInputForCnn(Game& game, int planes)
+std::vector<float> getInputForCnn(const Game& game, int planes)
 {
     if (coord.wlkx != coord.wlky)
     {
@@ -102,11 +102,11 @@ std::vector<float> getInputForCnn(Game& game, int planes)
                 (game.whoseDotMarginAt(p) == opponent) ? 1.0f : 0.0f;
             data[3][x][y] = game.isInTerr(p, on_move) > 0 ? 1.0f : 0.0f;
             data[4][x][y] = game.isInTerr(p, opponent) > 0 ? 1.0f : 0.0f;
-            data[5][x][y] = std::min(game.isInEncl(p, on_move), 2) * 0.5f;
-            data[6][x][y] = std::min(game.isInEncl(p, opponent), 2) * 0.5f;
+            data[5][x][y] = std::min<pti>(game.isInEncl(p, on_move), 2) * 0.5f;
+            data[6][x][y] = std::min<pti>(game.isInEncl(p, opponent), 2) * 0.5f;
             if (planes == 7) continue;
-            data[7][x][y] = std::min(game.isInBorder(p, on_move), 2) * 0.5f;
-            data[8][x][y] = std::min(game.isInBorder(p, opponent), 2) * 0.5f;
+            data[7][x][y] = std::min<pti>(game.isInBorder(p, on_move), 2) * 0.5f;
+            data[8][x][y] = std::min<pti>(game.isInBorder(p, opponent), 2) * 0.5f;
             data[9][x][y] = std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
             if (planes == 10) continue;
             //	data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;

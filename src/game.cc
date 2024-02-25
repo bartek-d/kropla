@@ -1553,9 +1553,9 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
     // find smallest territory that [ind] is (if any), return immediately if we
     // are inside an 1-point-territory pool (so we cannot check for
     // ind==thr.where here, because of this side-effect!)
-    if (threats[who - 1].is_in_terr[ind])
+    if (isInTerr(ind, who))
     {
-        int nthr = threats[who - 1].is_in_terr[ind];
+        int nthr = isInTerr(ind, who);
         for (auto &thr : threats[who - 1].threats)
         {
             if (thr.type & ThreatConsts::TERR)
@@ -1651,7 +1651,7 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
         }
     }
     // check our enclosures containing [ind]
-    if (threats[who - 1].is_in_encl[ind] || threats[who - 1].is_in_border[ind])
+    if (isInEncl(ind, who) || isInBorder(ind, who))
     {
         krb::SmallVector<Threat *, 32>::allocator_type::arena_type
             arena_this_encl;
@@ -2454,7 +2454,7 @@ void Game::checkThreat_encl(Threat *thr, int who)
 bool Game::checkIfThreat_encl_isUnnecessary(Threat *thr, pti ind, int who) const
 {
     if (coord.distBetweenPts_1(thr->where, ind) != 1) return false;
-    if (not threats[who - 1].is_in_terr[thr->where]) return false;
+    if (not isInTerr(thr->where, who)) return false;
     for (const auto &t : threats[who - 1].threats)
         if (t.type == ThreatConsts::TERR and t.encl->isInBorder(ind) and
             t.encl->isInInterior(thr->where))
@@ -2576,7 +2576,7 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
     // in placeDot, or )) are marked as to be removed
     removeMarked(3 - who);
     // recalculate number of dots in opponent threats, if needed
-    if (threats[2 - who].is_in_encl[ind] || threats[2 - who].is_in_terr[ind])
+    if (isInEncl(ind, 3 - who) || isInTerr(ind, 3 - who))
     {
         for (auto &t : threats[2 - who].threats)
         {
@@ -2592,7 +2592,7 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
         }
     }
     // recalculate terr points in our threats, if needed
-    if (threats[who - 1].is_in_encl[ind] || threats[who - 1].is_in_terr[ind])
+    if (isInEncl(ind, who) || isInTerr(ind, who))
     {
         for (auto &t : threats[who - 1].threats)
         {
@@ -2881,12 +2881,12 @@ void Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind,
             newthr.pop_back();
             // we do not want threats2m such that one move is a usual threat,
             // and the other lies inside terr or encl
-            if ((threats[who - 1].is_in_border[ind0] > 0 and
-                 (threats[who - 1].is_in_encl[ind1] > 0 ||
-                  threats[who - 1].is_in_terr[ind1] > 0)) ||
-                (threats[who - 1].is_in_border[ind1] > 0 and
-                 (threats[who - 1].is_in_encl[ind0] > 0 ||
-                  threats[who - 1].is_in_terr[ind0] > 0)))
+            if ((isInBorder(ind0, who) > 0 and
+                 (isInEncl(ind1, who) > 0 ||
+                  isInTerr(ind1, who) > 0)) ||
+                (isInBorder(ind1, who) > 0 and
+                 (isInEncl(ind0, who) > 0 ||
+                  isInTerr(ind0, who) > 0)))
             {
                 newthr.resize(newthr.size() - count);
                 debug_skippedt2m++;
@@ -2895,8 +2895,8 @@ void Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind,
 
             // bool debug_probably_1_encl = (threats[who-1].is_in_terr[ind0]==0
             // and threats[who-1].is_in_terr[ind1]==0);
-            if (threats[who - 1].is_in_terr[ind0] == 0 and
-                threats[who - 1].is_in_terr[ind1] == 0)
+            if (isInTerr(ind0, who) == 0 and
+                isInTerr(ind1, who) == 0)
             {
                 // (threats[who-1].is_in_encl[ind0]==0 ||
                 // threats[who-1].is_in_border[ind1]==0) and   // this is now
@@ -3067,16 +3067,16 @@ void Game::addThreat(Threat &&t, int who)
         {
             assert(i >= coord.first and i <= coord.last and
                    i < threats[who - 1].is_in_terr.size());
-            ++threats[who - 1].is_in_terr[i];
+            ++isInTerr(i, who);
         }
         else
         {
             assert(t.type & ThreatConsts::ENCL);
             assert(i >= coord.first and i <= coord.last and
                    i < threats[who - 1].is_in_encl.size());
-            ++threats[who - 1].is_in_encl[i];
+            ++isInEncl(i, who);
         }
-        switch (threats[who - 1].is_in_terr[i] + threats[who - 1].is_in_encl[i])
+        switch (isInTerr(i, who) + isInEncl(i, who))
         {
             case 1:
                 pointNowInDanger2moves(i, 3 - who);
@@ -3088,7 +3088,7 @@ void Game::addThreat(Threat &&t, int who)
                     t.singular_dots += descr.at(worm[i]).dots[2 - who];
                     counted_worms.push_back(descr.at(worm[i]).leftmost);
                 }
-                if (threats[2 - who].is_in_border[i] >= 1)
+                if (isInBorder(i, 3 - who) >= 1)
                 {  // note: it may be an empty place, but still in_border (play
                    // here for ENCL)
                     for (auto &ot : threats[2 - who].threats)
@@ -3114,7 +3114,7 @@ void Game::addThreat(Threat &&t, int who)
                 }
                 [[fallthrough]];
             default:
-                if (threats[2 - who].is_in_border[i] >= 1)
+                if (isInBorder(i, 3 - who) >= 1)
                 {  // note: it may be an empty place, but still in_border (play
                    // here for ENCL)
                     for (auto &ot : threats[2 - who].threats)
@@ -3132,8 +3132,8 @@ void Game::addThreat(Threat &&t, int who)
         pti i = *it;
         assert(i >= coord.first and i <= coord.last and
                i < threats[who - 1].is_in_border.size());
-        ++threats[who - 1].is_in_border[i];
-        if (threats[2 - who].is_in_encl[i] || threats[2 - who].is_in_terr[i])
+        ++isInBorder(i, who);
+        if (isInEncl(i, 3 - who) || isInTerr(i, 3 - who))
         {
             t.border_dots_in_danger++;
             for (auto &ot : threats[2 - who].threats)
@@ -3167,15 +3167,15 @@ void Game::subtractThreat(const Threat &t, int who)
         assert(i >= coord.first and i <= coord.last);
         if (t.type & ThreatConsts::TERR)
         {
-            --threats[who - 1].is_in_terr[i];
+            --isInTerr(i, who);
         }
         else
         {
             assert(t.type & ThreatConsts::ENCL);
-            --threats[who - 1].is_in_encl[i];
+            --isInEncl(i, who);
         }
         if (whoseDotMarginAt(i) == 3 - who and
-            threats[who - 1].is_in_terr[i] + threats[who - 1].is_in_encl[i] ==
+            isInTerr(i, who) + isInEncl(i, who) ==
                 1 and
             std::find(counted_worms.begin(), counted_worms.end(),
                       descr.at(worm[i]).leftmost) == counted_worms.end())
@@ -3192,10 +3192,10 @@ void Game::subtractThreat(const Threat &t, int who)
             }
             counted_worms.push_back(descr.at(worm[i]).leftmost);
         }
-        if (threats[2 - who].is_in_border[i] >= 1)
+        if (isInBorder(i, 3 - who) >= 1)
         {
-            if (threats[who - 1].is_in_terr[i] == 0 and
-                threats[who - 1].is_in_encl[i] == 0)
+            if (isInTerr(i, who) == 0 and
+                isInEncl(i, who) == 0)
             {
                 for (auto &thr : threats[2 - who].threats)
                 {
@@ -3208,8 +3208,8 @@ void Game::subtractThreat(const Threat &t, int who)
             }
             threatens = true;
         }
-        if (threats[who - 1].is_in_terr[i] == 0 and
-            threats[who - 1].is_in_encl[i] == 0)
+        if (isInTerr(i, who) == 0 and
+            isInEncl(i, who) == 0)
         {
             // point is now safe, recalculate pattern3 values and check moves
             // list
@@ -3223,8 +3223,8 @@ void Game::subtractThreat(const Threat &t, int who)
                     recalculate_list.push_back(nb);
                 }
             }
-            if (threats[2 - who].is_in_terr[i] == 0 and
-                threats[2 - who].is_in_encl[i] == 0 and
+            if (isInTerr(i, 3 - who) == 0 and
+                isInEncl(i, 3 - who) == 0 and
                 whoseDotMarginAt(i) == 0)
             {
                 // [i] is not anymore in danger and should be removed from TERRM
@@ -3242,7 +3242,7 @@ void Game::subtractThreat(const Threat &t, int who)
     {
         pti i = *it;
         assert(i >= coord.first and i <= coord.last);
-        --threats[who - 1].is_in_border[i];
+        --isInBorder(i, who);
     }
     if (threatens)
     {
@@ -3282,7 +3282,7 @@ bool Game::removeAtPoint(pti ind, int who)
 {
     bool removed = false;
     bool touch = false;
-    if (threats[who - 1].is_in_border[ind] > 0)
+    if (isInBorder(ind, who) > 0)
     {
         for (auto &t : threats[who - 1].threats)
             if (t.where == ind)
@@ -3361,8 +3361,8 @@ void Game::pointNowSafe2moves(pti ind, int who)
 /// threat-in-2-moves starting with a move at ind is indeed a threat.
 bool Game::isSafeFor(pti ind, int who) const
 {
-    return (threats[2 - who].is_in_terr[ind] == 0 and
-            threats[2 - who].is_in_encl[ind] == 0);
+    return (isInTerr(ind, 3 - who) == 0 and
+            isInEncl(ind, 3 - who) == 0);
 }
 
 void Game::connectionsRenameGroup(pti dst, pti src)
@@ -4234,7 +4234,7 @@ void Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure>> &encl_moves,
             assert(thr != nullptr);
             */
             if (it != ml_priority_vect.begin() and
-                threats[who - 1].is_in_terr[move])
+                isInTerr(move, who))
             {
                 // eido_u0O9GbZR problem, we played inside terr and now may have
                 // overlapping threats, ignore those that contain prev threats
@@ -4344,12 +4344,12 @@ void Game::placeDot(int x, int y, int who)
     pti ind = coord.ind(x, y);
     assert(worm[ind] == 0);
     recalculate_list.clear();
-    if (threats[who - 1].is_in_terr[ind] == 0 and
-        threats[who - 1].is_in_encl[ind] == 0)
+    if (isInTerr(ind, who) == 0 and
+        isInEncl(ind, who) == 0)
     {
         const bool is_in_terr_with_atari = false;
         history.push_back(ind, is_in_terr_with_atari,
-                          threats[who - 1].is_in_border[ind] != 0);
+                          isInBorder(ind, who) != 0);
     }
     else
     {
@@ -4399,7 +4399,7 @@ void Game::placeDot(int x, int y, int who)
     // singular_dot becomes complicated.
     // TODO: we could probably just mark them as TO_REMOVE
     removeAtPoint(ind, 3 - who);
-    if (threats[2 - who].is_in_encl[ind] + threats[2 - who].is_in_terr[ind] ==
+    if (isInEncl(ind, 3 - who) + isInTerr(ind, 3 - who) ==
         1)
     {
         // if the new dot is 'singular', we must add it here, because descr
@@ -5171,10 +5171,10 @@ float Game::costOfPoint(pti p, int who) const
 {
     assert(p >= coord.first and p <= coord.last);
     assert(coord.dist[p] >= 0);
-    if (threats[who - 1].is_in_terr[p] > 0) return COST_INFTY;
-    if (threats[2 - who].is_in_terr[p] > 0) return 0.00001;
-    if (threats[who - 1].is_in_encl[p] > 0) return COST_INFTY;
-    if (threats[2 - who].is_in_encl[p] > 0) return 0.0001;
+    if (isInTerr(p, who) > 0) return COST_INFTY;
+    if (isInTerr(p, 3 - who) > 0) return 0.00001;
+    if (isInEncl(p, who) > 0) return COST_INFTY;
+    if (isInEncl(p, 3 - who) > 0) return 0.0001;
     if (whoseDotMarginAt(p) == who) return COST_INFTY;
     if (whoseDotMarginAt(p) == 3 - who) return 0.00001;
     // here it should depend on the pattern...
@@ -5418,8 +5418,8 @@ float Game::floodFillCost(int who) const
         if ((whoseDotMarginAt(p) == 0 || whoseDotMarginAt(p) == (who ^ 3)) and
             coord.dist[p] >= 1)
         {
-            if (threats[who - 1].is_in_terr[p] > 0 ||
-                threats[who - 1].is_in_encl[p] > 0)
+            if (isInTerr(p, who) > 0 ||
+                isInEncl(p, who) > 0)
             {
                 if (whoseDotMarginAt(p) == 0)
                     value += 0.5;
@@ -5434,8 +5434,8 @@ float Game::floodFillCost(int who) const
                 {
                     int nb = p + coord.nb4[i];
                     if (whoseDotMarginAt(nb) == who || costs[nb] >= 0.01 ||
-                        threats[who - 1].is_in_terr[nb] > 0 ||
-                        threats[who - 1].is_in_encl[nb] > 0)
+                        isInTerr(nb, who) > 0 ||
+                        isInEncl(nb, who) > 0)
                     {
                         // ok
                     }
@@ -5716,8 +5716,8 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
     bool some_worms_were_not_singular = false;
     auto updateSingInfo = [&](pti leftmost)
     {
-        if (threats[2 - who].is_in_encl[leftmost] +
-                threats[2 - who].is_in_terr[leftmost] ==
+        if (isInEncl(leftmost, 3 - who) +
+                isInTerr(leftmost, 3 - who) ==
             1)
         {
             // this worm was singular
@@ -5750,15 +5750,15 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
             }
             wormMergeSame(worm_no, worm[p]);
         }
-        if (threats[2 - who].is_in_terr[p] == 0)
+        if (isInTerr(p, 3 - who) == 0)
         {
             is_inside_terr = false;
-            if (threats[2 - who].is_in_encl[p] == 0)
+            if (isInEncl(p, 3 - who) == 0)
                 is_inside_terr_or_encl = false;
         }
-        if (threats[2 - who].is_in_encl[p]) is_inside_some_encl = true;
-        if (threats[who - 1].is_in_encl[p] == 0 and
-            threats[who - 1].is_in_terr[p] == 0)
+        if (isInEncl(p, 3 - who)) is_inside_some_encl = true;
+        if (isInEncl(p, who) == 0 and
+            isInTerr(p, who) == 0)
             is_in_our_terr_or_encl = false;
     }
     // if some worms were singular, and some not, it means that the enclosure
@@ -5827,8 +5827,8 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
         nextDot[last] = next;
         if (is_inside_terr_or_encl)
         {
-            assert(threats[2 - who].is_in_terr[first] > 0 ||
-                   threats[2 - who].is_in_encl[first] > 0);
+            assert(isInTerr(first, 3 - who) > 0 ||
+                   isInEncl(first, 3 - who) > 0);
             for (auto &t : threats[2 - who].threats)
             {
                 if (t.encl->isInInterior(first))
@@ -6700,20 +6700,36 @@ void Game::makeMoveWithPointsToEnclose(
     }
 }
 
-int Game::isInTerr(pti ind, int who) const
+pti Game::isInTerr(pti ind, int who) const
 {
     return threats[who - 1].is_in_terr[ind];
 }
 
-int Game::isInEncl(pti ind, int who) const
+pti Game::isInEncl(pti ind, int who) const
 {
     return threats[who - 1].is_in_encl[ind];
 }
 
-int Game::isInBorder(pti ind, int who) const
+pti Game::isInBorder(pti ind, int who) const
 {
     return threats[who - 1].is_in_border[ind];
 }
+
+pti& Game::isInTerr(pti ind, int who)
+{
+    return threats[who - 1].is_in_terr[ind];
+}
+
+pti& Game::isInEncl(pti ind, int who)
+{
+    return threats[who - 1].is_in_encl[ind];
+}
+
+pti& Game::isInBorder(pti ind, int who)
+{
+    return threats[who - 1].is_in_border[ind];
+}
+
 
 bool Game::isDameOnEdge(pti i, int who) const
 {
@@ -6833,7 +6849,7 @@ NonatomicMovestats Game::priorsForThreats(bool is_root, bool is_in_opp_te,
 {
     // add prior values because of threats2m (v118+)
     NonatomicMovestats value{};
-    if (threats[who - 1].is_in_terr[i] == 0 and !is_in_opp_te)
+    if (isInTerr(i, who) == 0 and !is_in_opp_te)
     {
         const int i_can_enclose =
             threats[who - 1].numberOfDotsToBeEnclosedIn2mAfterPlayingAt(i);
@@ -6858,7 +6874,7 @@ NonatomicMovestats Game::priorsForThreats(bool is_root, bool is_in_opp_te,
         // miai/encl2 (v127+)
         if ((threats[2 - who].is_in_2m_encl[i] > 0 or
              threats[2 - who].is_in_2m_miai[i] > 0) and
-            threats[who - 1].is_in_border[i] == 0 and
+            isInBorder(i, who) == 0 and
             not threats[who - 1].isInBorder2m(i))
         {
             value += lostSimulations(15);
@@ -6953,11 +6969,11 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
         tn.flags = 0;
         tn.setDepth(depth);
         NonatomicMovestats priors = defaultInitialPriors();
-        bool is_in_our_te = (threats[who - 1].is_in_encl[i] > 0 ||
-                             threats[who - 1].is_in_terr[i] >
+        bool is_in_our_te = (isInEncl(i, who) > 0 ||
+                             isInTerr(i, who) >
                                  0);  // te = territory or enclosure
-        bool is_in_opp_te = (threats[2 - who].is_in_encl[i] > 0 ||
-                             threats[2 - who].is_in_terr[i] > 0);
+        bool is_in_opp_te = (isInEncl(i, 3 - who) > 0 ||
+                             isInTerr(i, 3 - who) > 0);
 
         priors += priorsAndDameForPattern3(is_dame, is_root, is_in_our_te,
                                            is_in_opp_te, i, who);
@@ -7031,7 +7047,7 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
             }
             else
             {  // not in opp terr
-                if (threats[2 - who].is_in_border[i] > 0)
+                if (isInBorder(i, 3 - who) > 0)
                 {
                     // check the value of opp's threat
                     int value = 0, terr_value = 0;
@@ -7061,7 +7077,7 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                     {
                         // inside our enclosure, add lost simulations
                         tn.markAsInsideTerrNoAtari();
-                        if (threats[who - 1].is_in_border[i] == 0)
+                        if (isInBorder(i, who) == 0)
                         {
                             priors += lostSimulations(25);
                             if (is_root) out << "notborder=-25 ";
@@ -7093,7 +7109,7 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                         priors += lostSimulations(20);
                         if (is_root) out << "insidee=-20 ";
                     }
-                    else if (threats[who - 1].is_in_border[i] > 0)
+                    else if (isInBorder(i, who) > 0)
                     {
                         // check the value of our threat
                         int value = 0, terr_value = 0;
@@ -7161,14 +7177,14 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
             // enclosure
             int em = ml_encl_moves.size();
             int dots = 0, captured_dots = 0;
-            if (threats[who - 1].is_in_border[i])
+            if (isInBorder(i, who))
             {
                 for (auto &t : threats[who - 1].threats)
                 {
                     if (t.where == i) captured_dots += t.opp_dots;
                 }
             }
-            if (threats[2 - who].is_in_border[i])
+            if (isInBorder(i, 3 - who))
             {
                 for (auto &t : threats[2 - who].threats)
                 {
@@ -7347,7 +7363,7 @@ Move Game::chooseAtariMove(int who)
         if (t.singular_dots and (t.type & ThreatConsts::ENCL))
         {
             // TODO: check also the ladder
-            if (threats[2 - who].is_in_encl[t.where] == 0 and
+            if (isInEncl(t.where, 3 - who) == 0 and
                 threats[2 - who].is_in_2m_miai[t.where] == 0 and
                 threats[2 - who].is_in_2m_miai[t.where] == 0)
             {
@@ -7382,8 +7398,8 @@ Move Game::chooseAtariMove(int who)
     for (auto &t : threats[2 - who].threats2m)
     {
         if (t.min_win2 and t.isSafe() and
-            threats[2 - who].is_in_terr[t.where0] == 0 and
-            threats[2 - who].is_in_encl[t.where0] == 0)
+            isInTerr(t.where0, 3 - who) == 0 and
+            isInEncl(t.where0, 3 - who) == 0)
         {
             urgent.push_back(t.where0);
             int count = t.min_win2;
@@ -7445,7 +7461,7 @@ Move Game::chooseAtariResponse(pti lastMove, int who)
             t.encl->isInBorder(lastMove))
         {
             // TODO: check also the ladder
-            if (threats[2 - who].is_in_encl[t.where] == 0 and
+            if (isInEncl(t.where, 3 - who) == 0 and
                 threats[2 - who].is_in_2m_miai[t.where] == 0 and
                 threats[2 - who].is_in_2m_miai[t.where] == 0)
             {
@@ -7482,10 +7498,10 @@ Move Game::chooseAtariResponse(pti lastMove, int who)
     for (auto &t : threats[2 - who].threats2m)
     {
         if (t.min_win2 and t.isSafe() and
-            threats[2 - who].is_in_terr[t.where0] == 0 and
-            threats[2 - who].is_in_encl[t.where0] == 0 and
-            threats[who - 1].is_in_terr[t.where0] == 0 and
-            threats[who - 1].is_in_encl[t.where0] == 0 and
+            isInTerr(t.where0, 3 - who) == 0 and
+            isInEncl(t.where0, 3 - who) == 0 and
+            isInTerr(t.where0, who) == 0 and
+            isInEncl(t.where0, who) == 0 and
             (coord.distBetweenPts_infty(t.where0, lastMove) <= 1 or
              std::any_of(t.thr_list.begin(), t.thr_list.end(),
                          [lastMove](const Threat &thr)
@@ -7558,9 +7574,9 @@ Move Game::selectMoveRandomlyFrom(const std::vector<pti> &moves, int who)
     for (auto move : moves)
     {
         if (safety_soft.isDameFor(who, move)) continue;
-        if ((threats[2 - who].is_in_encl[move] == 0 and
-             threats[2 - who].is_in_terr[move] == 0) or
-            threats[who - 1].is_in_border[move])
+        if ((isInEncl(move, 3 - who) == 0 and
+             isInTerr(move, 3 - who) == 0) or
+            isInBorder(move, who))
             moves_not_in_atari.push_back(move);
     }
     const int total_not_in_atari = moves_not_in_atari.size();
@@ -7594,9 +7610,9 @@ Move Game::choosePattern3Move(pti move0, pti move1, int who)
                 pti nb = m + coord.nb8[i];
                 auto v = pattern3_value[who - 1][nb];
                 assert(v == getPattern3Value(nb, who));
-                if (v > 0 and ((threats[2 - who].is_in_encl[nb] == 0 and
-                                threats[2 - who].is_in_terr[nb] == 0) ||
-                               threats[who - 1].is_in_border[nb]))
+                if (v > 0 and ((isInEncl(nb, 3 - who) == 0 and
+                                isInTerr(nb, 3 - who) == 0) ||
+                               isInBorder(nb, who)))
                 {
                     stack.push_back(std::make_pair(nb, v));
                     total += v;
@@ -7621,9 +7637,9 @@ Move Game::choosePattern3Move(pti move0, pti move1, int who)
                         assert(v == getPattern3Value(nb, who));
 
                         if (v >= 0 and  // here non-dame (>=0) is enough
-                            ((threats[2 - who].is_in_encl[nb] == 0 and
-                              threats[2 - who].is_in_terr[nb] == 0) ||
-                             threats[who - 1].is_in_border[nb]))
+                            ((isInEncl(nb, 3 - who) == 0 and
+                              isInTerr(nb, 3 - who) == 0) ||
+                             isInBorder(nb, who)))
                         {
                             //	      v = std::min(80.0f, v+30);  // v will be
                             // in [50, 80]     // TODO! change type of
@@ -7787,8 +7803,8 @@ Move Game::chooseAnyMove(int who)
         if (whoseDotMarginAt(i) == 0)
         {
             if ((connects[who - 1][i].groups_id[0] == 0) and
-                (threats[who - 1].is_in_terr[i] > 0 ||
-                 threats[2 - who].is_in_terr[i] > 0))
+                (isInTerr(i, who) > 0 ||
+                 isInTerr(i, 3 - who) > 0))
             {
                 bad_moves.push_back(i);
             }
@@ -7825,17 +7841,17 @@ std::vector<pti> Game::getGoodTerrMoves(int who) const
     {
         auto p = possible_moves.lists[PossibleMovesConsts::LIST_TERRM][i];
         if ((connects[who - 1][p].groups_id[0] == 0 and
-             (threats[2 - who].is_in_terr[p] > 0 ||
-              threats[2 - who].is_in_encl[p] > 0)) ||
+             (isInTerr(p, 3 - who) > 0 ||
+              isInEncl(p, 3 - who) > 0)) ||
             (connects[2 - who][p].groups_id[0] == 0 and
-             (threats[who - 1].is_in_terr[p] > 0 ||
-              threats[who - 1].is_in_encl[p] > 0)))
+             (isInTerr(p, who) > 0 ||
+              isInEncl(p, who) > 0)))
         {
             continue;
         }
         // check if it closes something
-        if (threats[who - 1].is_in_border[p] ||
-            threats[2 - who].is_in_border[p])
+        if (isInBorder(p, who) ||
+            isInBorder(p, 3 - who))
         {
             good_moves.push_back(p);
             continue;
@@ -9152,14 +9168,14 @@ bool Game::checkThreat2movesCorrectness()
             pti where0 = thr2.where0;
             std::vector<pti> is_in_encl2(coord.getSize(), 0);
             int found_safe = ((thr2.flags & Threat2mconsts::FLAG_SAFE) != 0);
-            int real_safe = (threats[2 - who].is_in_encl[where0] == 0 and
-                             threats[2 - who].is_in_terr[where0] == 0);
+            int real_safe = (isInEncl(where0, 3 - who) == 0 and
+                             isInTerr(where0, 3 - who) == 0);
             if (found_safe != real_safe)
             {
                 std::cerr << "flag = " << thr2.flags << "; is_in_encl[where0]=="
-                          << threats[2 - who].is_in_encl[where0]
+                          << isInEncl(where0, 3 - who)
                           << ", is_in_terr[where0]=="
-                          << threats[2 - who].is_in_terr[where0] << std::endl;
+                          << isInTerr(where0, 3 - who) << std::endl;
                 show();
                 std::cerr << "where0 = " << coord.showPt(where0) << std::endl;
                 std::cerr << "Threats: " << std::endl;
