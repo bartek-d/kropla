@@ -312,8 +312,10 @@ void gatherDataFromPosition(const Game& game, const std::vector<Move>& moves)
                     (game.whoseDotMarginAt(p) == opponent) ? 1.0f : 0.0f;
                 data[3][x][y] = game.isInTerr(p, on_move) > 0 ? 1.0f : 0.0f;
                 data[4][x][y] = game.isInTerr(p, opponent) > 0 ? 1.0f : 0.0f;
-                data[5][x][y] = std::min<pti>(game.isInEncl(p, on_move), 2) * 0.5f;
-                data[6][x][y] = std::min<pti>(game.isInEncl(p, opponent), 2) * 0.5f;
+                data[5][x][y] =
+                    std::min<pti>(game.isInEncl(p, on_move), 2) * 0.5f;
+                data[6][x][y] =
+                    std::min<pti>(game.isInEncl(p, opponent), 2) * 0.5f;
                 if (PLANES > 7)
                 {
                     data[7][x][y] =

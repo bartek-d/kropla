@@ -105,8 +105,10 @@ std::vector<float> getInputForCnn(const Game& game, int planes)
             data[5][x][y] = std::min<pti>(game.isInEncl(p, on_move), 2) * 0.5f;
             data[6][x][y] = std::min<pti>(game.isInEncl(p, opponent), 2) * 0.5f;
             if (planes == 7) continue;
-            data[7][x][y] = std::min<pti>(game.isInBorder(p, on_move), 2) * 0.5f;
-            data[8][x][y] = std::min<pti>(game.isInBorder(p, opponent), 2) * 0.5f;
+            data[7][x][y] =
+                std::min<pti>(game.isInBorder(p, on_move), 2) * 0.5f;
+            data[8][x][y] =
+                std::min<pti>(game.isInBorder(p, opponent), 2) * 0.5f;
             data[9][x][y] = std::min(game.getTotalSafetyOf(p), 2.0f) * 0.5f;
             if (planes == 10) continue;
             //	data[10][x][y] = (coord.dist[p] == 1) ? 1 : 0;

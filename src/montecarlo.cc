@@ -714,7 +714,7 @@ std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
         {
             std::cerr << it->second << std::endl;
         }
-        if (i == 0)
+        if (true)  // i == 0)
         {
             // std::sort(montec::root.children[i].children.rbegin(),
             // montec::root.children[i].children.rend());  // note: reverse
@@ -730,7 +730,8 @@ std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
                           { return t1.t.playouts > t2.t.playouts; });
                 montec::root.children[i].children[nn - 1].markAsLast();
             }
-            for (int j = 0; j < max_moves && j < nn; j++)
+            const int max_moves2 = std::min(std::min(max_moves, nn), 2);
+            for (int j = 0; j < max_moves2; j++)
             {
                 std::cerr << "   "
                           << montec::root.children[i].children[j].show()
