@@ -81,8 +81,8 @@ std::string program_path;
 /********************************************************************************************************
   Monte Carlo constants.
 *********************************************************************************************************/
-const constexpr real_t MC_SIMS_EQUIV_RECIPR = 1.0 / 100.0;  // originally 2500!
-const constexpr real_t MC_SIMS_ENCL_EQUIV_RECIPR = 1.0 / 10.0;
+const constexpr real_t MC_SIMS_EQUIV_RECIPR = 1.0 / 256.0;  // originally 2500!
+const constexpr real_t MC_SIMS_ENCL_EQUIV_RECIPR = 1.0 / 16.0;
 
 /********************************************************************************************************
   Worm description class
@@ -298,7 +298,7 @@ real_t Treenode::getValue() const
         uint32_t N = parent->t.playouts - parent->prior.playouts;
         uint32_t n = t.playouts - prior.playouts;
         const bool is_root = parent == this;
-        const real_t C = is_root ? 1.4 : 0.14;
+        const real_t C = is_root ? 1.0 : 0.14;
         ucb_term = C * std::sqrt(std::log(N + 1) / (n + 0.1));
     }
     if (t.playouts > 0 and amaf.playouts > 0)
