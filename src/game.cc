@@ -303,9 +303,10 @@ real_t Treenode::getValue() const
     }
     if (t.playouts > 0 and amaf.playouts > 0)
     {
-        const real_t mc_sims_equiv = move.enclosures.empty()
-                                         ? MC_SIMS_EQUIV_RECIPR
-                                         : MC_SIMS_ENCL_EQUIV_RECIPR;
+        const real_t factor = getDepth() <= 2 ? (3.0f - getDepth()) : 1.0f;
+        const real_t mc_sims_equiv = factor * (move.enclosures.empty()
+					       ? MC_SIMS_EQUIV_RECIPR
+					       : MC_SIMS_ENCL_EQUIV_RECIPR);
         real_t beta =
             amaf.playouts / (amaf.playouts + t.playouts +
                              t.playouts * mc_sims_equiv * amaf.playouts);
