@@ -304,9 +304,9 @@ real_t Treenode::getValue() const
     if (t.playouts > 0 and amaf.playouts > 0)
     {
         const real_t factor = getDepth() <= 2 ? (3.0f - getDepth()) : 1.0f;
-        const real_t mc_sims_equiv = factor * (move.enclosures.empty()
-					       ? MC_SIMS_EQUIV_RECIPR
-					       : MC_SIMS_ENCL_EQUIV_RECIPR);
+        const real_t mc_sims_equiv =
+            factor * (move.enclosures.empty() ? MC_SIMS_EQUIV_RECIPR
+                                              : MC_SIMS_ENCL_EQUIV_RECIPR);
         real_t beta =
             amaf.playouts / (amaf.playouts + t.playouts +
                              t.playouts * mc_sims_equiv * amaf.playouts);
@@ -3648,36 +3648,41 @@ void Game::showPattern52Values(int who) const
  */
 int Game::checkLadderStep(pti x, krb::PointsSet &ladder_breakers, pti v1,
                           pti v2, pti escaping_group, bool ladder_ext,
-                          int escapes, int iteration)
+                          int escapes, int iteration) const
 {
-    const static int ESC_WINS = -1, ATT_WINS = 1;
+    const int ESC_WINS = -1, ATT_WINS = 1;
     pti nx = x + v1;
     ladder_breakers.insert(nx);
     int attacks = 3 - escapes;
     bool curr_ext = false;
-    if ((worm[nx] & MASK_DOT) == escapes and !ladder_ext)
+    if (whoseDotMarginAt(nx) == escapes and !ladder_ext)
     {
         ladder_breakers.insert(nx + v1);
-        if ((worm[nx + v1] & MASK_DOT) != attacks)
+        if (whoseDotMarginAt(nx + v1) != attacks)
         {
             return ESC_WINS;
         }
         curr_ext = true;
     }
-    if ((worm[nx] & MASK_DOT) == 0 || ladder_ext || curr_ext)
+    auto getGroupId = [&](pti x) -> pti
+    {
+        if (whoseDotAt(x) == 0) return 0;
+        return descr.at(worm[x]).group_id;
+    };
+    if (whoseDotMarginAt(nx) == 0 || ladder_ext || curr_ext)
     {
         // if we're on the edge, then we escaped
         if (coord.dist[nx] == 0) return ESC_WINS;
         // if attacker is already connected, then he captured
         ladder_breakers.insert({(pti)(nx + v1), (pti)(nx + v2)});
-        if ((worm[nx + v1] & MASK_DOT) == attacks and
-            (worm[nx + v2] & MASK_DOT) == attacks)
+        if (whoseDotMarginAt(nx + v1) == attacks and
+            whoseDotMarginAt(nx + v2) == attacks)
             return ATT_WINS;
         // escaping player connects and encloses attacking group
         ladder_breakers.insert({(pti)(nx + v1 + v2), (pti)(nx + v1 - v2)});
-        if (descr.at(worm[nx + v1]).group_id == escaping_group ||
-            descr.at(worm[nx + v1 + v2]).group_id == escaping_group ||
-            descr.at(worm[nx + v1 - v2]).group_id == escaping_group)
+        if (getGroupId(nx + v1) == escaping_group ||
+            getGroupId(nx + v1 + v2) == escaping_group ||
+            getGroupId(nx + v1 - v2) == escaping_group)
             return ESC_WINS;
         // attacking player has an atari thanks to a dot on the way of the
         // ladder
@@ -3696,14 +3701,11 @@ int Game::checkLadderStep(pti x, krb::PointsSet &ladder_breakers, pti v1,
                     {(pti)(nx + 2 * v1), (pti)(nx + 2 * v1 - w),
                      (pti)(nx + 2 * v1 - 2 * w), (pti)(nx + v1 - 2 * w),
                      (pti)(nx - 2 * w)});
-                if (descr.at(worm[nx + 2 * v1]).group_id == escaping_group ||
-                    descr.at(worm[nx + 2 * v1 - w]).group_id ==
-                        escaping_group ||
-                    descr.at(worm[nx + 2 * v1 - 2 * w]).group_id ==
-                        escaping_group ||
-                    descr.at(worm[nx + v1 - 2 * w]).group_id ==
-                        escaping_group ||
-                    descr.at(worm[nx - 2 * w]).group_id == escaping_group)
+                if (getGroupId(nx + 2 * v1) == escaping_group ||
+                    getGroupId(nx + 2 * v1 - w) == escaping_group ||
+                    getGroupId(nx + 2 * v1 - 2 * w) == escaping_group ||
+                    getGroupId(nx + v1 - 2 * w) == escaping_group ||
+                    getGroupId(nx - 2 * w) == escaping_group)
                 {
                     return ESC_WINS;
                 }
@@ -3732,6 +3734,47 @@ int Game::checkLadderStep(pti x, krb::PointsSet &ladder_breakers, pti v1,
     }
     // should we ever get here?
     return ATT_WINS;
+}
+
+int Game::checkLadder(int who_defends, pti where) const
+{
+    const int who_attacks = 3 - who_defends;
+    if (coord.dist[where] <= 0) return 0;
+    if (isInBorder(where, who_attacks) == 0) return 0;  // even no atari
+    if (whoseDotMarginAt(where) != 0) return 0;
+    pti attackers_neighb = 0;
+    pti defenders_neighb = 0;
+    ;
+    for (int i = 0; i < 4; ++i)
+    {
+        pti nind = where + coord.nb4[i];
+        if (whoseDotMarginAt(nind) == who_attacks)
+        {
+            if (attackers_neighb != 0) return 0;  // more than 2 attacker's dots
+            attackers_neighb = nind;
+        }
+        if (whoseDotMarginAt(nind) == who_defends)
+        {
+            if (defenders_neighb != 0) return 0;  // more than 2 defender's dots
+            defenders_neighb = nind;
+        }
+    }
+    if (attackers_neighb == 0 or attackers_neighb == 0) return 0;
+    if (attackers_neighb + defenders_neighb == where + where)
+        return 0;  // attacker and defender have dots at opposite sides of
+                   // where, it's not ladder
+    const pti another_att = defenders_neighb + where - attackers_neighb;
+    if (whoseDotMarginAt(another_att) != who_attacks) return 0;
+    krb::PointsSet ladder_breakers;
+    const pti x = defenders_neighb;
+    const pti v1 = where - x;
+    const pti v2 = where - attackers_neighb;
+    const pti escaping_group = descr.at(worm[defenders_neighb]).group_id;
+    const bool ladder_ext = false;
+    const int escapes = who_defends;
+    const int iteration = 0;
+    return checkLadderStep(x, ladder_breakers, v1, v2, escaping_group,
+                           ladder_ext, escapes, iteration);
 }
 
 /// Finds simplifying enclosures (=those that have 0 territory).

@@ -769,4 +769,174 @@ TEST_P(IsometryFixture10, deleteUnnecessaryThreats2)
 INSTANTIATE_TEST_CASE_P(Par, IsometryFixture10,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
+class IsometryFixture11 : public ::testing::TestWithParam<unsigned>
+{
+};
+
+TEST_P(IsometryFixture11, threatsIn1move)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "...x..."
+        "..xox.."
+        ".oo...."
+        "ox....."
+        "oxo...."
+        ".ox...."
+        "..oo...");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    EXPECT_EQ(1, game.isInBorder(
+                     coord.sgfToPti(applyIsometry("cd", isometry, coord)), 1));
+    EXPECT_EQ(1, game.isInBorder(
+                     coord.sgfToPti(applyIsometry("dd", isometry, coord)), 1));
+    EXPECT_EQ(1, game.isInBorder(
+                     coord.sgfToPti(applyIsometry("df", isometry, coord)), 1));
+    EXPECT_EQ(1, game.isInBorder(
+                     coord.sgfToPti(applyIsometry("dc", isometry, coord)), 2));
+
+    EXPECT_EQ(3, game.isInBorder(
+                     coord.sgfToPti(applyIsometry("bf", isometry, coord)), 1));
+}
+
+INSTANTIATE_TEST_CASE_P(Par, IsometryFixture11,
+                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
+
+class IsometryFixture12 : public ::testing::TestWithParam<unsigned>
+{
+};
+
+TEST_P(IsometryFixture12, ladderEscape)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "...x..."
+        "..xox.."
+        "......."
+        "......."
+        "..o...."
+        ".ox...."
+        "..oo...");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const int ESC_WINS = -1;
+    EXPECT_EQ(ESC_WINS, game.checkLadder(2, coord.sgfToPti(applyIsometry(
+                                                "df", isometry, coord))));
+    EXPECT_EQ(0, game.checkLadder(
+                     1, coord.sgfToPti(applyIsometry("dc", isometry, coord))));
+    EXPECT_EQ(0, game.checkLadder(
+                     1, coord.sgfToPti(applyIsometry("ee", isometry, coord))));
+}
+
+TEST_P(IsometryFixture12, ladderWorks)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "...x..."
+        "..xo..."
+        "..x...."
+        "......."
+        "..o..o."
+        ".ox...."
+        "..oo...");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const int ATT_WINS = 1;
+    EXPECT_EQ(ATT_WINS, game.checkLadder(2, coord.sgfToPti(applyIsometry(
+                                                "df", isometry, coord))));
+}
+
+TEST_P(IsometryFixture12, complicatedLadderEscape)
+{
+    const unsigned isometry = GetParam();
+    std::vector<std::string> positions{
+        "......."
+        "......."
+        "......."
+        "......."
+        ".xo...."
+        ".ox...."
+        "..oo...",
+
+        "......."
+        "......."
+        "......."
+        "..x...."
+        "..o...."
+        ".ox...."
+        "..oo...",
+
+        "......."
+        "......."
+        "..xx..."
+        ".xo...o"
+        ".xo...."
+        ".ox...."
+        "..oo...",
+
+        "......."
+        "......."
+        "......."
+        "......."
+        "..o.xo."
+        ".ox...."
+        "..oo...",
+
+        "......."
+        "......."
+        ".....x."
+        "......o"
+        "..o...."
+        ".ox...."
+        "..oo..."};
+    const int ESC_WINS = -1;
+    for (const auto& pos : positions)
+    {
+        auto sgf = constructSgfFromGameBoard(pos);
+        const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+        EXPECT_EQ(ESC_WINS, game.checkLadder(2, coord.sgfToPti(applyIsometry(
+                                                    "df", isometry, coord))));
+    }
+}
+
+TEST_P(IsometryFixture12, complicatedLadderCapture)
+{
+    const unsigned isometry = GetParam();
+    std::vector<std::string> positions{
+        "......."
+        "......."
+        "......."
+        "..o...o"
+        ".xo...."
+        ".ox...."
+        "..oo...",
+
+        "......."
+        "......."
+        "......."
+        "......o"
+        "..o.xo."
+        ".ox...."
+        "..oo...",
+
+        "......."
+        "......."
+        "......."
+        ".....x."
+        "..o..o."
+        ".ox..x."
+        "..oo..."};
+    const int ATT_WINS = 1;
+    int nr = 0;
+    for (const auto& pos : positions)
+    {
+        auto sgf = constructSgfFromGameBoard(pos);
+        const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+        EXPECT_EQ(ATT_WINS, game.checkLadder(2, coord.sgfToPti(applyIsometry(
+                                                    "df", isometry, coord))))
+            << "Position number " << nr;
+        ++nr;
+    }
+}
+
+INSTANTIATE_TEST_CASE_P(Par, IsometryFixture12,
+                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
+
 }  // namespace

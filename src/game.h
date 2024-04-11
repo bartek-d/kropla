@@ -414,7 +414,7 @@ class Game
     void recalculatePatt3Values();
     int checkLadderStep(pti x, krb::PointsSet& ladder_breakers, pti v1, pti v2,
                         pti escaping_group, bool ladder_ext, int escapes,
-                        int iteration = 0);
+                        int iteration = 0) const;
     void getEnclMoves(std::vector<std::shared_ptr<Enclosure>>& encl_moves,
                       std::vector<std::shared_ptr<Enclosure>>& opt_encl_moves,
                       std::vector<uint64_t>& encl_zobrists, pti move, int who);
@@ -476,6 +476,7 @@ class Game
     pti isInTerr(pti ind, int who) const;
     pti isInEncl(pti ind, int who) const;
     pti isInBorder(pti ind, int who) const;
+    int checkLadder(int who_defends, pti where) const;
 
    private:
     pti& isInTerr(pti ind, int who);
