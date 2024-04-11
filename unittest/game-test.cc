@@ -36,14 +36,7 @@ TEST_P(IsometryFixture, chooseSafetyMove)
     EXPECT_EQ(expectedMoves, seenMoves);
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixture,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixtureSR : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixtureSR, chooseSafetyResponse_doesNotGiveMovesInAtari)
+TEST_P(IsometryFixture, chooseSafetyResponse_doesNotGiveMovesInAtari)
 {
     std::string sgf{
         "(;FF[4]GM[40]CA[UTF-8]AP[board.cc:SgfTree]RU[Punish=0,Holes=1,AddTurn="
@@ -63,14 +56,7 @@ TEST_P(IsometryFixtureSR, chooseSafetyResponse_doesNotGiveMovesInAtari)
     EXPECT_EQ(0, move.ind);
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureSR,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixture2 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixture2, chooseSafetyMoveReturnsNoMoveBecauseEverythingIsSafe)
+TEST_P(IsometryFixture, chooseSafetyMoveReturnsNoMoveBecauseEverythingIsSafe)
 {
     unsigned isometry = GetParam();
     //  http://eidokropki.reaktywni.pl/#33vc3yXjZ:0,0
@@ -81,14 +67,7 @@ TEST_P(IsometryFixture2, chooseSafetyMoveReturnsNoMoveBecauseEverythingIsSafe)
     EXPECT_EQ(0, move.ind);
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixture2,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixtureS9 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixtureS9,
+TEST_P(IsometryFixture,
        forDotsThatAreAlreadySafe_dontGetMovesThatMakeThemSafe)
 {
     std::string sgf{
@@ -110,9 +89,6 @@ TEST_P(IsometryFixtureS9,
     auto moves = game.getSafetyMoves(who_moves);
     EXPECT_EQ(1, moves.size());
 }
-
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS9,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
 TEST(extractSgfMove, forMoveNotWithMinimalArea)
 {
@@ -160,10 +136,6 @@ TEST(smallMultimap, works)
     EXPECT_EQ(3, map.getNumberOfGroups());
 }
 
-class IsometryFixture3 : public ::testing::TestWithParam<unsigned>
-{
-};
-
 bool containsThreat2m(const AllThreats& thr, pti move0, pti move1)
 {
     auto it =
@@ -176,7 +148,7 @@ bool containsThreat2m(const AllThreats& thr, pti move0, pti move1)
     return (it2 != it->thr_list.end());
 }
 
-TEST_P(IsometryFixture3, weFindThreat2mDistantFromThePointPlayed)
+TEST_P(IsometryFixture, weFindThreat2mDistantFromThePointPlayed)
 {
     unsigned isometry = GetParam();
     // http://eidokropki.reaktywni.pl/#2aub0edZj:0,0
@@ -222,14 +194,7 @@ TEST_P(IsometryFixture3, weFindThreat2mDistantFromThePointPlayed)
         coord.sgfToPti(applyIsometry("hf", isometry, coord))));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixture3,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixture4 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixture4,
+TEST_P(IsometryFixture,
        weFindThreat2mWithOnePointCloseAndOneDistantFromThePointPlayed)
 {
     const unsigned isometry = GetParam();
@@ -270,14 +235,7 @@ TEST_P(IsometryFixture4,
         coord.sgfToPti(applyIsometry("df", isometry, coord))));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixture4,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixture5 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixture5, weFindThreat2mWithBothPointsCloseToThePointPlayed)
+TEST_P(IsometryFixture, weFindThreat2mWithBothPointsCloseToThePointPlayed)
 {
     const unsigned isometry = GetParam();
     auto sgf = constructSgfFromGameBoard(
@@ -317,14 +275,7 @@ TEST_P(IsometryFixture5, weFindThreat2mWithBothPointsCloseToThePointPlayed)
         coord.sgfToPti(applyIsometry("ce", isometry, coord))));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixture5,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixture6 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixture6,
+TEST_P(IsometryFixture,
        weFindThreat2mWithBothPointsToEachOtherAndOneCloseToThePointPlayed)
 {
     const unsigned isometry = GetParam();
@@ -365,15 +316,8 @@ TEST_P(IsometryFixture6,
         coord.sgfToPti(applyIsometry("df", isometry, coord))));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixture6,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixture7 : public ::testing::TestWithParam<unsigned>
-{
-};
-
 TEST_P(
-    IsometryFixture7,
+    IsometryFixture,
     weFindThreat2mWithOnePointCloseAndOneDistantFromThePointPlayed_evenIfTheOneCloseMakesEnclosure)
 {
     const unsigned isometry = GetParam();
@@ -402,14 +346,7 @@ TEST_P(
         coord.sgfToPti(applyIsometry("bc", isometry, coord))));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixture7,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixture7b : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixture7b, weFindThreat2mWhenThereWasThreatIn1m)
+TEST_P(IsometryFixture, weFindThreat2mWhenThereWasThreatIn1m)
 {
     const unsigned isometry = GetParam();
     auto sgf = constructSgfFromGameBoard(
@@ -431,9 +368,6 @@ TEST_P(IsometryFixture7b, weFindThreat2mWhenThereWasThreatIn1m)
         thr, coord.sgfToPti(applyIsometry("cf", isometry, coord)),
         coord.sgfToPti(applyIsometry("df", isometry, coord))));
 }
-
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixture7b,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
 TEST(Threats2mTest,
      miaiIsFoundWhenTwoSecondMovesAreInsideTerr_zagram355111_after_move107)
@@ -605,11 +539,7 @@ TEST(Zobrist, worksForEnclMoves)
     EXPECT_EQ(zobr, game.getZobrist());
 }
 
-class IsometryFixture8 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixture8, deleteUnnecessaryThreats)
+TEST_P(IsometryFixture, deleteUnnecessaryThreats)
 {
     const unsigned isometry = GetParam();
     const std::string sgf_start{
@@ -631,9 +561,6 @@ TEST_P(IsometryFixture8, deleteUnnecessaryThreats)
     EXPECT_EQ(game1.threats[1].is_in_terr, game2.threats[1].is_in_terr);
     EXPECT_EQ(game1.threats[1].is_in_border, game2.threats[1].is_in_border);
 }
-
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixture8,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
 void checkIfGamesAreSame(const Game& game1, const Game& game2)
 {
@@ -672,11 +599,7 @@ void checkIfGamesAreSame(const Game& game1, const Game& game2)
     }
 }
 
-class IsometryFixture9 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixture9,
+TEST_P(IsometryFixture,
        inconsistencyInThreats2m_shouldBeRestrictedToInsideTerr)
 {
     // it would be maybe better if threats2m were more consistent, but at least
@@ -726,14 +649,7 @@ TEST_P(IsometryFixture9,
     checkIfGamesAreSame(game1, game2);
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixture9,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixture10 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixture10, deleteUnnecessaryThreats2)
+TEST_P(IsometryFixture, deleteUnnecessaryThreats2)
 {
     const unsigned isometry = GetParam();
     const std::string sgf_start{
@@ -766,14 +682,7 @@ TEST_P(IsometryFixture10, deleteUnnecessaryThreats2)
     checkIfGamesAreSame(game1, game2);
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixture10,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixture11 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixture11, threatsIn1move)
+TEST_P(IsometryFixture, threatsIn1move)
 {
     const unsigned isometry = GetParam();
     auto sgf = constructSgfFromGameBoard(
@@ -798,14 +707,7 @@ TEST_P(IsometryFixture11, threatsIn1move)
                      coord.sgfToPti(applyIsometry("bf", isometry, coord)), 1));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixture11,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixture12 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixture12, ladderEscape)
+TEST_P(IsometryFixture, ladderEscape)
 {
     const unsigned isometry = GetParam();
     auto sgf = constructSgfFromGameBoard(
@@ -826,7 +728,7 @@ TEST_P(IsometryFixture12, ladderEscape)
                      1, coord.sgfToPti(applyIsometry("ee", isometry, coord))));
 }
 
-TEST_P(IsometryFixture12, ladderWorks)
+TEST_P(IsometryFixture, ladderWorks)
 {
     const unsigned isometry = GetParam();
     auto sgf = constructSgfFromGameBoard(
@@ -843,7 +745,7 @@ TEST_P(IsometryFixture12, ladderWorks)
                                                 "df", isometry, coord))));
 }
 
-TEST_P(IsometryFixture12, complicatedLadderEscape)
+TEST_P(IsometryFixture, complicatedLadderEscape)
 {
     const unsigned isometry = GetParam();
     std::vector<std::string> positions{
@@ -896,7 +798,7 @@ TEST_P(IsometryFixture12, complicatedLadderEscape)
     }
 }
 
-TEST_P(IsometryFixture12, complicatedLadderCapture)
+TEST_P(IsometryFixture, complicatedLadderCapture)
 {
     const unsigned isometry = GetParam();
     std::vector<std::string> positions{
@@ -936,7 +838,7 @@ TEST_P(IsometryFixture12, complicatedLadderCapture)
     }
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixture12,
+INSTANTIATE_TEST_CASE_P(Par, IsometryFixture,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
 }  // namespace
