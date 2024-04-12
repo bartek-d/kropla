@@ -21,7 +21,6 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
-
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -8770,6 +8769,28 @@ bool Game::checkSoftSafetyCorrectness()
 bool Game::checkThreatCorrectness()
 {
     std::map<uint64_t, Threat> checked[2];
+    for (int pl = 0; pl < 2; ++pl)
+    {
+        uint16_t prev = 0;
+        for (const Threat &thr : threats[pl].threats)
+	{
+	  if (prev > thr.hist_size) {
+                std::cerr << "No monotonicity of hist_size, for player " << pl + 1
+                          << " previous: " << prev << ", current = " << thr.hist_size << std::endl;
+                std::cerr << thr.show() << std::endl;
+		return false;
+	  }
+	  if (thr.hist_size == 0)
+	    {
+                std::cerr << "Unexpected hist_size == 0, for player " << pl + 1
+                          << " previous: " << prev << ", current = " << thr.hist_size << std::endl;
+                std::cerr << thr.show() << std::endl;
+		return false;
+	    }
+	  prev = thr.hist_size;
+	}
+    }
+
     for (int ind = coord.first + 1; ind < coord.last; ind++)
     {
         // if (coord.dist[ind]<0) continue;
