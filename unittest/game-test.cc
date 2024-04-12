@@ -67,8 +67,7 @@ TEST_P(IsometryFixture, chooseSafetyMoveReturnsNoMoveBecauseEverythingIsSafe)
     EXPECT_EQ(0, move.ind);
 }
 
-TEST_P(IsometryFixture,
-       forDotsThatAreAlreadySafe_dontGetMovesThatMakeThemSafe)
+TEST_P(IsometryFixture, forDotsThatAreAlreadySafe_dontGetMovesThatMakeThemSafe)
 {
     std::string sgf{
         "(;FF[4]GM[40]CA[UTF-8]AP[board.cc:SgfTree]RU[Punish=0,Holes=1,AddTurn="
@@ -599,8 +598,7 @@ void checkIfGamesAreSame(const Game& game1, const Game& game2)
     }
 }
 
-TEST_P(IsometryFixture,
-       inconsistencyInThreats2m_shouldBeRestrictedToInsideTerr)
+TEST_P(IsometryFixture, inconsistencyInThreats2m_shouldBeRestrictedToInsideTerr)
 {
     // it would be maybe better if threats2m were more consistent, but at least
     // they should be outside territories

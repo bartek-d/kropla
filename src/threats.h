@@ -51,6 +51,8 @@ struct Threat
         0};  // == number of opp's dots which are inside only this threat
     int16_t border_dots_in_danger{
         0};  // == number of dots in border that are in some opp's threats
+    uint16_t hist_size{
+        0};  // history.size() at the moment of this threat being added
     uint64_t zobrist_key;
     std::shared_ptr<Enclosure> encl;
     std::vector<uint64_t> opp_thr;  // zobrist keys of opp's threats that

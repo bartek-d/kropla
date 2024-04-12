@@ -275,8 +275,7 @@ TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialised3c)
                         coord.sgfToPti(applyIsometry("fg", isometry, coord))));
 }
 
-TEST_P(IsometryFixtureS,
-       safetyIsCorrectlyInitialisedAndDotsAtCornersAreIgnored)
+TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialisedAndDotsAtCornersAreIgnored)
 {
     const unsigned isometry = GetParam();
     auto sgf = constructSgfFromGameBoard(

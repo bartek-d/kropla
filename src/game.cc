@@ -2436,6 +2436,7 @@ void Game::checkThreat_encl(Threat *thr, int who)
                             t.opp_dots = std::get<0>(tmp);
                             t.zobrist_key = zobr;
                             t.terr_points = std::get<1>(tmp);
+                            t.hist_size = history.size();
                             t.encl =
                                 std::make_shared<Enclosure>(std::move(encl));
                             // std::tie<t.opp_dots, t.terr_points>
@@ -2510,6 +2511,7 @@ void Game::checkThreat_terr(Threat *thr, pti p, int who,
                 auto tmp = countDotsTerrInEncl(encl, 3 - who);
                 t.opp_dots = std::get<0>(tmp);
                 t.terr_points = std::get<1>(tmp);
+                t.hist_size = history.size();
                 t.encl = std::make_shared<Enclosure>(std::move(encl));
                 addThreat(std::move(t), who);
             }
@@ -2648,6 +2650,7 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
                         t.opp_dots = std::get<0>(tmp);
                         t.terr_points = std::get<1>(tmp);
                         t.encl = std::make_shared<Enclosure>(std::move(encl));
+                        t.hist_size = history.size();
                         addThreat(std::move(t), who);
                     }
                 }
@@ -2718,6 +2721,7 @@ void Game::checkThreat2moves_encl(Threat *thr, pti where0, int who)
         {
             if (t[j].type)
             {
+                t[j].hist_size = history.size();
                 threats[who - 1].addThreat2moves(
                     where0, where, isSafeFor(where0, who),
                     isSafeFor(where, who), who, t[j]);
@@ -2736,6 +2740,7 @@ int Game::addThreat2moves(pti ind0, pti ind1, int who, Enclosure &&encl)
     t.opp_dots = std::get<0>(tmp);
     t.terr_points = std::get<1>(tmp);
     t.encl = std::make_shared<Enclosure>(std::move(encl));
+    t.hist_size = history.size();
     return threats[who - 1].addThreat2moves(ind0, ind1, isSafeFor(ind0, who),
                                             isSafeFor(ind1, who), who, t);
 }
