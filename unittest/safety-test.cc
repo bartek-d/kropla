@@ -95,14 +95,7 @@ TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialised1)
                     move_at1("eg", good_move), move_at2("eg", good_move)));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixtureS2 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixtureS2, safetyIsCorrectlyInitialised2)
+TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialised2)
 {
     const unsigned isometry = GetParam();
     auto sgf = constructSgfFromGameBoard(
@@ -165,14 +158,7 @@ TEST_P(IsometryFixtureS2, safetyIsCorrectlyInitialised2)
                     move_at1("ad", bad_move), move_at2("ad", bad_move)));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS2,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixtureS3 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixtureS3, safetyIsCorrectlyInitialised3)
+TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialised3)
 {
     const unsigned isometry = GetParam();
     auto sgf = constructSgfFromGameBoard(
@@ -231,14 +217,7 @@ TEST_P(IsometryFixtureS3, safetyIsCorrectlyInitialised3)
                     move_at_for("be", good_move, x_player)));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS3,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixtureS3b : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixtureS3b, safetyIsCorrectlyInitialised3b)
+TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialised3b)
 {
     const unsigned isometry = GetParam();
     auto sgf = constructSgfFromGameBoard(
@@ -274,14 +253,7 @@ TEST_P(IsometryFixtureS3b, safetyIsCorrectlyInitialised3b)
                         coord.sgfToPti(applyIsometry("ff", isometry, coord))));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS3b,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixtureS3c : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixtureS3c, safetyIsCorrectlyInitialised3c)
+TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialised3c)
 {
     const unsigned isometry = GetParam();
     auto sgf = constructSgfFromGameBoard(
@@ -303,14 +275,7 @@ TEST_P(IsometryFixtureS3c, safetyIsCorrectlyInitialised3c)
                         coord.sgfToPti(applyIsometry("fg", isometry, coord))));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS3c,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixtureS3d : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixtureS3d,
+TEST_P(IsometryFixtureS,
        safetyIsCorrectlyInitialisedAndDotsAtCornersAreIgnored)
 {
     const unsigned isometry = GetParam();
@@ -370,14 +335,7 @@ TEST_P(IsometryFixtureS3d,
                     move_at_for("be", good_move, x_player)));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS3d,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixtureS3e : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixtureS3e, safetyIsCorrectlyInitialisedGame_1uWjT8c6B_move95)
+TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialisedGame_1uWjT8c6B_move95)
 {
     const unsigned isometry = GetParam();
     auto sgf = constructSgfFromGameBoard(
@@ -424,14 +382,7 @@ TEST_P(IsometryFixtureS3e, safetyIsCorrectlyInitialisedGame_1uWjT8c6B_move95)
         2, coord.sgfToPti(applyIsometry("bh", isometry, coord))));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS3e,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixtureS4 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixtureS4, moveSuggestionsAreCorrect)
+TEST_P(IsometryFixtureS, moveSuggestionsAreCorrect)
 {
     const unsigned isometry = GetParam();
     auto sgf = constructSgfFromGameBoard(
@@ -469,14 +420,7 @@ TEST_P(IsometryFixtureS4, moveSuggestionsAreCorrect)
                                      move("eg"), move("dg"), move("df")));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS4,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixtureS5 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixtureS5,
+TEST_P(IsometryFixtureS,
        moveSuggestionsAreCorrectlyRemovedWhenNoLongerMakeSense)
 {
     const unsigned isometry = GetParam();
@@ -510,14 +454,7 @@ TEST_P(IsometryFixtureS5,
     EXPECT_TRUE(moveSuggPrev[1].empty());
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS5,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixtureS6 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixtureS6, correctlyAssignedNoDame)
+TEST_P(IsometryFixtureS, correctlyAssignedNoDame)
 {
     const unsigned isometry = GetParam();
     auto sgf = constructSgfFromGameBoard(
@@ -539,9 +476,6 @@ TEST_P(IsometryFixtureS6, correctlyAssignedNoDame)
     EXPECT_TRUE(it != moveSugg.end() and it->second > 0);
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS6,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
 TEST(Safety, getUpdateValueForMarginsContaining)
 {
     Safety safety;
@@ -553,11 +487,7 @@ TEST(Safety, getUpdateValueForMarginsContaining)
                      coord.ind(coord.wlkx - 2, 3)));
 }
 
-class IsometryFixtureS7 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixtureS7,
+TEST_P(IsometryFixtureS,
        removesMovesThatNoLongerMakesSenseWhenNoExpensiveUpdateIsNeeded)
 {
     const unsigned isometry = GetParam();
@@ -597,14 +527,7 @@ TEST_P(IsometryFixtureS7,
     EXPECT_THAT(moveSuggPrev[1], testing::UnorderedElementsAre(move("dg")));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS7,
-                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
-
-class IsometryFixtureS8 : public ::testing::TestWithParam<unsigned>
-{
-};
-
-TEST_P(IsometryFixtureS8,
+TEST_P(IsometryFixtureS,
        removesMovesThatNoLongerMakesSenseWhenNoExpensiveUpdateIsNeeded2)
 {
     const unsigned isometry = GetParam();
@@ -644,7 +567,7 @@ TEST_P(IsometryFixtureS8,
     EXPECT_THAT(moveSuggPrev[1], testing::UnorderedElementsAre(move("dg")));
 }
 
-INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS8,
+INSTANTIATE_TEST_CASE_P(Par, IsometryFixtureS,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
 }  // namespace
