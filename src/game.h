@@ -513,20 +513,21 @@ class Game
     DebugInfo generateListOfMoves(TreenodeAllocator& alloc, Treenode* parent,
                                   int depth, int who);
     Move getRandomEncl(Move& m);
-    Move chooseAtariMove(int who);
-    Move chooseAtariResponse(pti lastMove, int who);
-    Move chooseSoftSafetyResponse(int who);
-    Move chooseSoftSafetyContinuation(int who);
-    Move selectMoveRandomlyFrom(const std::vector<pti>& moves, int who);
-    Move choosePattern3Move(pti move0, pti move1, int who);
-    std::vector<pti> getSafetyMoves(int who);
-    Move chooseSafetyMove(int who);
-    Move chooseAnyMove(int who);
+    Move chooseAtariMove(int who, pti forbidden_place);
+    Move chooseAtariResponse(pti lastMove, int who, pti forbidden_place);
+    Move chooseSoftSafetyResponse(int who, pti forbidden_place);
+    Move chooseSoftSafetyContinuation(int who, pti forbidden_place);
+    Move selectMoveRandomlyFrom(const std::vector<pti>& moves, int who,
+                                pti forbidden_place);
+    Move choosePattern3Move(pti move0, pti move1, int who, pti forbidden_place);
+    std::vector<pti> getSafetyMoves(int who, pti forbidden_place);
+    Move chooseSafetyMove(int who, pti forbidden_place);
+    Move chooseAnyMove(int who, pti forbidden_place);
     std::vector<pti> getGoodTerrMoves(int who) const;
-    Move chooseAnyMove_pm(int who);
-    Move chooseInterestingMove(int who);
-    Move chooseLastGoodReply(int who);
-    Move choosePatt3extraMove(int who);
+    Move chooseAnyMove_pm(int who, pti forbidden_place);
+    Move chooseInterestingMove(int who, pti forbidden_place);
+    Move chooseLastGoodReply(int who, pti forbidden_place);
+    Move choosePatt3extraMove(int who, pti forbidden_place);
     Move getLastMove() const;
     Move getLastButOneMove() const;
     real_t randomPlayout();

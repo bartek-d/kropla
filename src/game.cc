@@ -7373,7 +7373,7 @@ Move Game::getRandomEncl(Move &m)
 }
 
 /// This function selects enclosures using Game:::chooseRandomEncl().
-Move Game::chooseAtariMove(int who)
+Move Game::chooseAtariMove(int who, pti forbidden_place)
 {
     krb::SmallVector<pti, 16>::allocator_type::arena_type arena_urgent;
     krb::SmallVector<pti, 16> urgent{arena_urgent};  //, non_urgent;
@@ -7397,9 +7397,9 @@ Move Game::chooseAtariMove(int who)
     }
     for (auto &t : threats[2 - who].threats)
     {
-        if (t.singular_dots and (t.type & ThreatConsts::ENCL))
+        if (t.singular_dots and (t.type & ThreatConsts::ENCL) and
+            t.where != forbidden_place)
         {
-            // TODO: check also the ladder
             if (isInEncl(t.where, 3 - who) == 0 and
                 threats[2 - who].is_in_2m_miai[t.where] == 0 and
                 threats[2 - who].is_in_2m_miai[t.where] == 0)
@@ -7421,7 +7421,7 @@ Move Game::chooseAtariMove(int who)
     // add also some threats-in-2-moves (double atari, etc.)   (v80+)
     for (auto &t : threats[who - 1].threats2m)
     {
-        if (t.min_win2 and t.isSafe())
+        if (t.min_win2 and t.isSafe() and t.where0 != forbidden_place)
         {
             urgent.push_back(t.where0);
             int count = t.min_win2;
@@ -7434,7 +7434,8 @@ Move Game::chooseAtariMove(int who)
     }
     for (auto &t : threats[2 - who].threats2m)
     {
-        if (t.min_win2 and t.isSafe() and isInTerr(t.where0, 3 - who) == 0 and
+        if (t.min_win2 and t.where0 != forbidden_place and t.isSafe() and
+            isInTerr(t.where0, 3 - who) == 0 and
             isInEncl(t.where0, 3 - who) == 0)
         {
             urgent.push_back(t.where0);
@@ -7487,16 +7488,15 @@ Move Game::chooseAtariMove(int who)
 }
 
 /// This function selects enclosures using Game:::chooseRandomEncl().
-Move Game::chooseAtariResponse(pti lastMove, int who)
+Move Game::chooseAtariResponse(pti lastMove, int who, pti forbidden_place)
 {
     krb::SmallVector<pti, 16>::allocator_type::arena_type arena_urgent;
     krb::SmallVector<pti, 16> urgent{arena_urgent};
     for (auto &t : threats[2 - who].threats)
     {
         if (t.singular_dots and (t.type & ThreatConsts::ENCL) and
-            t.encl->isInBorder(lastMove))
+            t.where != forbidden_place and t.encl->isInBorder(lastMove))
         {
-            // TODO: check also the ladder
             if (isInEncl(t.where, 3 - who) == 0 and
                 threats[2 - who].is_in_2m_miai[t.where] == 0 and
                 threats[2 - who].is_in_2m_miai[t.where] == 0)
@@ -7533,7 +7533,8 @@ Move Game::chooseAtariResponse(pti lastMove, int who)
     // check opp threats in 2 moves
     for (auto &t : threats[2 - who].threats2m)
     {
-        if (t.min_win2 and t.isSafe() and isInTerr(t.where0, 3 - who) == 0 and
+        if (t.min_win2 and t.isSafe() and t.where0 != forbidden_place and
+            isInTerr(t.where0, 3 - who) == 0 and
             isInEncl(t.where0, 3 - who) == 0 and
             isInTerr(t.where0, who) == 0 and isInEncl(t.where0, who) == 0 and
             (coord.distBetweenPts_infty(t.where0, lastMove) <= 1 or
@@ -7580,20 +7581,21 @@ Move Game::chooseAtariResponse(pti lastMove, int who)
 }
 
 /// This function selects enclosures using Game:::chooseRandomEncl().
-Move Game::chooseSoftSafetyResponse(int who)
+Move Game::chooseSoftSafetyResponse(int who, pti forbidden_place)
 {
     auto responses = safety_soft.getCurrentlyAddedSugg();
-    return selectMoveRandomlyFrom(responses[who - 1], who);
+    return selectMoveRandomlyFrom(responses[who - 1], who, forbidden_place);
 }
 
 /// This function selects enclosures using Game:::chooseRandomEncl().
-Move Game::chooseSoftSafetyContinuation(int who)
+Move Game::chooseSoftSafetyContinuation(int who, pti forbidden_place)
 {
     auto responses = safety_soft.getPreviouslyAddedSugg();
-    return selectMoveRandomlyFrom(responses[who - 1], who);
+    return selectMoveRandomlyFrom(responses[who - 1], who, forbidden_place);
 }
 
-Move Game::selectMoveRandomlyFrom(const std::vector<pti> &moves, int who)
+Move Game::selectMoveRandomlyFrom(const std::vector<pti> &moves, int who,
+                                  pti forbidden_place)
 {
     const int total = moves.size();
     Move m;
@@ -7607,6 +7609,7 @@ Move Game::selectMoveRandomlyFrom(const std::vector<pti> &moves, int who)
     moves_not_in_atari.reserve(total);
     for (auto move : moves)
     {
+        if (move == forbidden_place) continue;
         if (safety_soft.isDameFor(who, move)) continue;
         if ((isInEncl(move, 3 - who) == 0 and isInTerr(move, 3 - who) == 0) or
             isInBorder(move, who))
@@ -7626,7 +7629,8 @@ Move Game::selectMoveRandomlyFrom(const std::vector<pti> &moves, int who)
 
 /// Note: if move0 and move1 have common neighbours, then they have
 ///  the probability of being chosen doubled.
-Move Game::choosePattern3Move(pti move0, pti move1, int who)
+Move Game::choosePattern3Move(pti move0, pti move1, int who,
+                              pti forbidden_place)
 {
     Move move;
     move.who = who;
@@ -7643,9 +7647,10 @@ Move Game::choosePattern3Move(pti move0, pti move1, int who)
                 pti nb = m + coord.nb8[i];
                 auto v = pattern3_value[who - 1][nb];
                 assert(v == getPattern3Value(nb, who));
-                if (v > 0 and ((isInEncl(nb, 3 - who) == 0 and
-                                isInTerr(nb, 3 - who) == 0) ||
-                               isInBorder(nb, who)))
+                if (v > 0 and nb != forbidden_place and
+                    ((isInEncl(nb, 3 - who) == 0 and
+                      isInTerr(nb, 3 - who) == 0) ||
+                     isInBorder(nb, who)))
                 {
                     stack.push_back(std::make_pair(nb, v));
                     total += v;
@@ -7669,7 +7674,8 @@ Move Game::choosePattern3Move(pti move0, pti move1, int who)
                         auto v = pattern3_value[who - 1][nb];
                         assert(v == getPattern3Value(nb, who));
 
-                        if (v >= 0 and  // here non-dame (>=0) is enough
+                        if (v >= 0 and nb != forbidden_place and
+                            // here non-dame (>=0) is enough
                             ((isInEncl(nb, 3 - who) == 0 and
                               isInTerr(nb, 3 - who) == 0) ||
                              isInBorder(nb, who)))
@@ -7724,7 +7730,7 @@ Move Game::choosePattern3Move(pti move0, pti move1, int who)
     return move;
 }
 
-std::vector<pti> Game::getSafetyMoves(int /*who*/)
+std::vector<pti> Game::getSafetyMoves(int /*who*/, pti forbidden_place)
 {
     std::vector<pti> stack;
     std::set<pti> already_saved;
@@ -7753,8 +7759,11 @@ std::vector<pti> Game::getSafetyMoves(int /*who*/)
                 //    o ?    ? = .o but not 'x'    --> then mark O as
                 //    interesting (anti-global)
                 {
-                    stack.push_back(p + vside);
-                    already_saved.insert(p + vside);
+                    if (p + vside != forbidden_place)
+                    {
+                        stack.push_back(p + vside);
+                        already_saved.insert(p + vside);
+                    }
                 }
                 else if (whoseDotMarginAt(p + vside) + whose == 3 and
                          whoseDotMarginAt(p - vside) == 0 and
@@ -7766,8 +7775,11 @@ std::vector<pti> Game::getSafetyMoves(int /*who*/)
                 //  ? o      ? = .o but not 'x'    --> then mark O as
                 //  interesting (anti-global)
                 {
-                    stack.push_back(p - vside);
-                    already_saved.insert(p - vside);
+                    if (p - vside != forbidden_place)
+                    {
+                        stack.push_back(p - vside);
+                        already_saved.insert(p - vside);
+                    }
                 }
             }
 
@@ -7776,8 +7788,11 @@ std::vector<pti> Game::getSafetyMoves(int /*who*/)
             {
                 if (whoseDotMarginAt(p + vnorm) == 0)
                 {
-                    stack.push_back(p + vnorm);
-                    continue;
+                    if (p + vnorm != forbidden_place)
+                    {
+                        stack.push_back(p + vnorm);
+                        continue;
+                    }
                 }
                 if (whoseDotMarginAt(p + vside) == 0 and
                     coord.dist[p + vside] == 1 and
@@ -7788,8 +7803,11 @@ std::vector<pti> Game::getSafetyMoves(int /*who*/)
                 {
                     // x ?
                     // o .   ? = .o but not 'x'
-                    stack.push_back(p + vside);
-                    already_saved.insert(p + vside);
+                    if (p + vside != forbidden_place)
+                    {
+                        stack.push_back(p + vside);
+                        already_saved.insert(p + vside);
+                    }
                 }
                 if (whoseDotMarginAt(p - vside) == 0 and
                     coord.dist[p - vside] == 1 and
@@ -7800,8 +7818,11 @@ std::vector<pti> Game::getSafetyMoves(int /*who*/)
                 {
                     // x ?
                     // o .   ? = .o but not 'x'
-                    stack.push_back(p - vside);
-                    already_saved.insert(p - vside);
+                    if (p - vside != forbidden_place)
+                    {
+                        stack.push_back(p - vside);
+                        already_saved.insert(p - vside);
+                    }
                 }
             }
         }
@@ -7809,11 +7830,11 @@ std::vector<pti> Game::getSafetyMoves(int /*who*/)
     return stack;
 }
 
-Move Game::chooseSafetyMove(int who)
+Move Game::chooseSafetyMove(int who, pti forbidden_place)
 {
     Move move;
     move.who = who;
-    const auto stack = getSafetyMoves(who);
+    const auto stack = getSafetyMoves(who, forbidden_place);
     if (!stack.empty())
     {
         std::uniform_int_distribution<int> di(0, stack.size() - 1);
@@ -7825,7 +7846,7 @@ Move Game::chooseSafetyMove(int who)
     return move;
 }
 
-Move Game::chooseAnyMove(int who)
+Move Game::chooseAnyMove(int who, pti forbidden_place)
 {
     Move move;
     move.who = who;
@@ -7835,8 +7856,9 @@ Move Game::chooseAnyMove(int who)
     {
         if (whoseDotMarginAt(i) == 0)
         {
-            if ((connects[who - 1][i].groups_id[0] == 0) and
-                (isInTerr(i, who) > 0 || isInTerr(i, 3 - who) > 0))
+            if (((connects[who - 1][i].groups_id[0] == 0) and
+                 (isInTerr(i, who) > 0 || isInTerr(i, 3 - who) > 0)) or
+                i == forbidden_place)
             {
                 bad_moves.push_back(i);
             }
@@ -7919,7 +7941,7 @@ std::vector<pti> Game::getGoodTerrMoves(int who) const
 }
 
 /// Chooses any move using possible_moves.
-Move Game::chooseAnyMove_pm(int who)
+Move Game::chooseAnyMove_pm(int who, pti /*forbidden_place*/)
 {
     Move move;
     move.who = who;
@@ -8018,7 +8040,7 @@ Move Game::chooseAnyMove_pm(int who)
 }
 
 /// Chooses interesting_move.
-Move Game::chooseInterestingMove(int who)
+Move Game::chooseInterestingMove(int who, pti forbidden_place)
 {
     Move move;
     move.who = who;
@@ -8037,15 +8059,16 @@ Move Game::chooseInterestingMove(int who)
             return move;
         }
     }
-    return selectMoveRandomlyFrom(interesting_moves.lists[which_list], who);
+    return selectMoveRandomlyFrom(interesting_moves.lists[which_list], who,
+                                  forbidden_place);
 }
 
-Move Game::chooseLastGoodReply(int who)
+Move Game::chooseLastGoodReply(int who, pti forbidden_place)
 {
     Move move;
     move.who = who;
     move.ind = history.getLastGoodReplyFor(who);
-    if (whoseDotMarginAt(move.ind) != 0)
+    if (whoseDotMarginAt(move.ind) != 0 or move.ind == forbidden_place)
     {
         move.ind = 0;
         return move;
@@ -8054,7 +8077,7 @@ Move Game::chooseLastGoodReply(int who)
     return getRandomEncl(move);
 }
 
-Move Game::choosePatt3extraMove(int who)
+Move Game::choosePatt3extraMove(int who, pti forbidden_place)
 {
     Move move;
     move.who = who;
@@ -8063,7 +8086,7 @@ Move Game::choosePatt3extraMove(int who)
     for (int i = coord.first; i <= coord.last; ++i)
         if (patt3extrav[i])
         {
-            if (threats[0].is_in_encl[i] == 0 and
+            if (i != forbidden_place and threats[0].is_in_encl[i] == 0 and
                 threats[0].is_in_terr[i] == 0 and
                 threats[1].is_in_encl[i] == 0 and threats[1].is_in_terr[i] == 0)
             {
@@ -8221,21 +8244,24 @@ real_t Game::randomPlayout()
         int number = di(engine);
         if ((number & 0x10000) != 0)  // probability 1/2
         {
-            m = chooseLastGoodReply(nowMoves);
+            m = chooseLastGoodReply(nowMoves, forbidden_place);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
                 makeMove(m);
+                forbidden_place = 0;
                 continue;
             }
         }
         if ((number & 0xc00) != 0)
         {
-            m = chooseAtariResponse(history.getLast(), nowMoves);
+            m = chooseAtariResponse(history.getLast(), nowMoves,
+                                    forbidden_place);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
                 makeMove(m);
+                forbidden_place = 0;
 #ifdef DEBUG_SGF
                 sgf_tree.addComment("ar");
 #endif
@@ -8244,11 +8270,12 @@ real_t Game::randomPlayout()
         }
         if ((number & 0xc000) != 0)
         {
-            m = chooseSoftSafetyResponse(nowMoves);
+            m = chooseSoftSafetyResponse(nowMoves, forbidden_place);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
                 makeMove(m);
+                forbidden_place = 0;
 #ifdef DEBUG_SGF
                 sgf_tree.addComment("soft");
 #endif
@@ -8258,7 +8285,8 @@ real_t Game::randomPlayout()
 
         if ((number & 0x300) != 0)
         {
-            m = choosePattern3Move(history.getLast(), 0, nowMoves);
+            m = choosePattern3Move(history.getLast(), 0, nowMoves,
+                                   forbidden_place);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
@@ -8266,6 +8294,7 @@ real_t Game::randomPlayout()
                 auto v = pattern3_value[m.who - 1][m.ind];
 #endif
                 makeMove(m);
+                forbidden_place = 0;
 #ifdef DEBUG_SGF
                 sgf_tree.addComment(std::string("pa:") + std::to_string(v));
 #endif
@@ -8276,11 +8305,12 @@ real_t Game::randomPlayout()
 
         if ((number & 0x2000) != 0)
         {
-            m = chooseSoftSafetyContinuation(nowMoves);
+            m = chooseSoftSafetyContinuation(nowMoves, forbidden_place);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
                 makeMove(m);
+                forbidden_place = 0;
 #ifdef DEBUG_SGF
                 sgf_tree.addComment("sofc");
 #endif
@@ -8290,7 +8320,8 @@ real_t Game::randomPlayout()
 
         if ((number & 0x4) != 0)
         {
-            m = choosePattern3Move(0, history.getLastButOne(), nowMoves);
+            m = choosePattern3Move(0, history.getLastButOne(), nowMoves,
+                                   forbidden_place);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
@@ -8298,6 +8329,7 @@ real_t Game::randomPlayout()
                 auto v = pattern3_value[m.who - 1][m.ind];
 #endif
                 makeMove(m);
+                forbidden_place = 0;
 #ifdef DEBUG_SGF
                 sgf_tree.addComment(std::string("pe:") + std::to_string(v));
 #endif
@@ -8307,11 +8339,12 @@ real_t Game::randomPlayout()
         }
         if ((number & 0x2) != 0)
         {
-            m = chooseAtariMove(nowMoves);
+            m = chooseAtariMove(nowMoves, forbidden_place);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
                 makeMove(m);
+                forbidden_place = 0;
 #ifdef DEBUG_SGF
                 sgf_tree.addComment("at");
 #endif
@@ -8321,7 +8354,7 @@ real_t Game::randomPlayout()
         }
         if ((number & 0x80) != 0)
         {  // probability 1/2, could be 3/4 by changing 0x80 to 0xc0
-            m = chooseInterestingMove(nowMoves);
+            m = chooseInterestingMove(nowMoves, forbidden_place);
             if (m.ind != 0)
             {
 #ifdef DEBUG_SGF
@@ -8344,6 +8377,7 @@ real_t Game::randomPlayout()
 #endif
                 dame_moves_so_far = 0;
                 makeMove(m);
+                forbidden_place = 0;
 #ifdef DEBUG_SGF
                 sgf_tree.addComment(std::string("cut"));
                 if (!prop.second.empty())
@@ -8356,11 +8390,12 @@ real_t Game::randomPlayout()
         }
         if ((number & 0x1) != 0)
         {  // probability 1/2
-            m = chooseSafetyMove(nowMoves);
+            m = chooseSafetyMove(nowMoves, forbidden_place);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
                 makeMove(m);
+                forbidden_place = 0;
 #ifdef DEBUG_SGF
                 sgf_tree.addComment(std::string("saf"));
 #endif
@@ -8369,9 +8404,8 @@ real_t Game::randomPlayout()
         }
         /*
         if ((number & 0x10) != 0) {  // probability 1/2, could be 3/4 by
-    changing 0x10 to 0x30 m = choosePatt3extraMove(nowMoves); if (m.ind != 0) {
-            dame_moves_so_far = 0;
-            makeMove(m);
+    changing 0x10 to 0x30 m = choosePatt3extraMove(nowMoves, forbidden_place);
+    if (m.ind != 0) { dame_moves_so_far = 0; makeMove(m); forbidden_place = 0;
     #ifdef DEBUG_SGF
             sgf_tree.addComment(std::string("ext"));
     #endif
@@ -8381,10 +8415,11 @@ real_t Game::randomPlayout()
         */
         /*
         if ((number & 0xc) != 0) {
-          m = chooseInfluenceMove(nowMoves);
+          m = chooseInfluenceMove(nowMoves, forbidden_place);
           if (m.ind != 0) {
             dame_moves_so_far = 0;
             makeMove(m);
+            forbidden_place = 0;
     #ifdef DEBUG_SGF
             sgf_tree.addComment(std::string("infl"));
     #endif
@@ -8392,10 +8427,11 @@ real_t Game::randomPlayout()
           }
         }
         */
-        m = chooseAnyMove_pm(nowMoves);
+        m = chooseAnyMove_pm(nowMoves, forbidden_place);
         if (m.ind != 0)
         {
             makeMove(m);
+            forbidden_place = 0;
 #ifdef DEBUG_SGF
             sgf_tree.addComment(std::string(":") +
                                 std::to_string(dame_moves_so_far));
