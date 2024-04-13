@@ -8209,8 +8209,10 @@ real_t Game::randomPlayout()
             if (forbidden == 0)
             {
                 // maybe prev player tried to defend working ladder?
-                const auto [status, next_att, next_def] =
-                    checkLadder(3 - nowMoves, history.getLast());
+                const auto [status, next_att, next_def] = checkLadder(
+                    3 - nowMoves,
+                    history.getLast());  // TODO: this will not work! Reason:
+                                         // move is made
                 const int ESC_WINS = -1, ATT_WINS = 1;
                 if (status == ATT_WINS)
                 {

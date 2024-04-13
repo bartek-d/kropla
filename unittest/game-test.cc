@@ -29,7 +29,7 @@ TEST_P(IsometryFixture, chooseSafetyMove)
     for (int tries = 1000;
          tries > 0 and seenMoves.size() < expectedMoves.size(); --tries)
     {
-        auto move = game.chooseSafetyMove(whoMoves);
+        auto move = game.chooseSafetyMove(whoMoves, 0);
         ASSERT_NE(0, move.ind);
         seenMoves.insert(coord.indToSgf(move.ind));
     }
@@ -52,7 +52,7 @@ TEST_P(IsometryFixture, chooseSafetyResponse_doesNotGiveMovesInAtari)
     // reply in rollout: W[bf]C[soft]
     Game game = constructGameFromSgfWithIsometry(sgf, 0);
     const int who_moves = 2;
-    auto move = game.chooseSoftSafetyResponse(who_moves);
+    auto move = game.chooseSoftSafetyResponse(who_moves, 0);
     EXPECT_EQ(0, move.ind);
 }
 
@@ -63,7 +63,7 @@ TEST_P(IsometryFixture, chooseSafetyMoveReturnsNoMoveBecauseEverythingIsSafe)
     Game game = constructGameFromSgfWithIsometry(
         "(;GM[40]FF[4]CA[UTF-8]SZ[9];B[bc];W[eb];B[bd];W[fb])", isometry);
     const int whoMoves = 1;
-    auto move = game.chooseSafetyMove(whoMoves);
+    auto move = game.chooseSafetyMove(whoMoves, 0);
     EXPECT_EQ(0, move.ind);
 }
 
@@ -85,7 +85,7 @@ TEST_P(IsometryFixture, forDotsThatAreAlreadySafe_dontGetMovesThatMakeThemSafe)
     // reply in rollout: B[ia]C[saf]
     Game game = constructGameFromSgfWithIsometry(sgf, 0);
     const int who_moves = 1;
-    auto moves = game.getSafetyMoves(who_moves);
+    auto moves = game.getSafetyMoves(who_moves, 0);
     EXPECT_EQ(1, moves.size());
 }
 
