@@ -718,12 +718,15 @@ TEST_P(IsometryFixture, ladderEscape)
         "..oo...");
     const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
     const int ESC_WINS = -1;
-    EXPECT_EQ(ESC_WINS, game.checkLadder(2, coord.sgfToPti(applyIsometry(
-                                                "df", isometry, coord))));
-    EXPECT_EQ(0, game.checkLadder(
-                     1, coord.sgfToPti(applyIsometry("dc", isometry, coord))));
-    EXPECT_EQ(0, game.checkLadder(
-                     1, coord.sgfToPti(applyIsometry("ee", isometry, coord))));
+    const auto next_att = coord.sgfToPti(applyIsometry("ef", isometry, coord));
+    const auto next_def = coord.sgfToPti(applyIsometry("de", isometry, coord));
+    EXPECT_EQ((std::make_tuple(ESC_WINS, next_att, next_def)),
+              game.checkLadder(
+                  2, coord.sgfToPti(applyIsometry("df", isometry, coord))));
+    EXPECT_EQ(0, std::get<0>(game.checkLadder(
+                     1, coord.sgfToPti(applyIsometry("dc", isometry, coord)))));
+    EXPECT_EQ(0, std::get<0>(game.checkLadder(
+                     1, coord.sgfToPti(applyIsometry("ee", isometry, coord)))));
 }
 
 TEST_P(IsometryFixture, ladderWorks)
@@ -739,8 +742,11 @@ TEST_P(IsometryFixture, ladderWorks)
         "..oo...");
     const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
     const int ATT_WINS = 1;
-    EXPECT_EQ(ATT_WINS, game.checkLadder(2, coord.sgfToPti(applyIsometry(
-                                                "df", isometry, coord))));
+    const auto next_att = coord.sgfToPti(applyIsometry("ef", isometry, coord));
+    const auto next_def = coord.sgfToPti(applyIsometry("de", isometry, coord));
+    EXPECT_EQ((std::make_tuple(ATT_WINS, next_att, next_def)),
+              game.checkLadder(
+                  2, coord.sgfToPti(applyIsometry("df", isometry, coord))));
 }
 
 TEST_P(IsometryFixture, complicatedLadderEscape)
@@ -787,12 +793,15 @@ TEST_P(IsometryFixture, complicatedLadderEscape)
         ".ox...."
         "..oo..."};
     const int ESC_WINS = -1;
+    const auto next_att = coord.sgfToPti(applyIsometry("ef", isometry, coord));
+    const auto next_def = coord.sgfToPti(applyIsometry("de", isometry, coord));
     for (const auto& pos : positions)
     {
         auto sgf = constructSgfFromGameBoard(pos);
         const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
-        EXPECT_EQ(ESC_WINS, game.checkLadder(2, coord.sgfToPti(applyIsometry(
-                                                    "df", isometry, coord))));
+        EXPECT_EQ((std::make_tuple(ESC_WINS, next_att, next_def)),
+                  game.checkLadder(
+                      2, coord.sgfToPti(applyIsometry("df", isometry, coord))));
     }
 }
 
@@ -824,13 +833,16 @@ TEST_P(IsometryFixture, complicatedLadderCapture)
         ".ox..x."
         "..oo..."};
     const int ATT_WINS = 1;
+    const auto next_att = coord.sgfToPti(applyIsometry("ef", isometry, coord));
+    const auto next_def = coord.sgfToPti(applyIsometry("de", isometry, coord));
     int nr = 0;
     for (const auto& pos : positions)
     {
         auto sgf = constructSgfFromGameBoard(pos);
         const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
-        EXPECT_EQ(ATT_WINS, game.checkLadder(2, coord.sgfToPti(applyIsometry(
-                                                    "df", isometry, coord))))
+        EXPECT_EQ((std::make_tuple(ATT_WINS, next_att, next_def)),
+                  game.checkLadder(
+                      2, coord.sgfToPti(applyIsometry("df", isometry, coord))))
             << "Position number " << nr;
         ++nr;
     }

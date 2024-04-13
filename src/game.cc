@@ -3740,35 +3740,36 @@ int Game::checkLadderStep(pti x, krb::PointsSet &ladder_breakers, pti v1,
     return ATT_WINS;
 }
 
-int Game::checkLadder(int who_defends, pti where) const
+std::tuple<int, pti, pti> Game::checkLadder(int who_defends, pti where) const
 {
     const int who_attacks = 3 - who_defends;
-    if (coord.dist[where] <= 0) return 0;
-    if (isInBorder(where, who_attacks) == 0) return 0;  // even no atari
-    if (whoseDotMarginAt(where) != 0) return 0;
+    if (coord.dist[where] <= 0) return {0, 0, 0};
+    if (isInBorder(where, who_attacks) == 0) return {0, 0, 0};  // even no atari
+    if (whoseDotMarginAt(where) != 0) return {0, 0, 0};
     pti attackers_neighb = 0;
     pti defenders_neighb = 0;
-    ;
     for (int i = 0; i < 4; ++i)
     {
         pti nind = where + coord.nb4[i];
         if (whoseDotMarginAt(nind) == who_attacks)
         {
-            if (attackers_neighb != 0) return 0;  // more than 2 attacker's dots
+            if (attackers_neighb != 0)
+                return {0, 0, 0};  // more than 2 attacker's dots
             attackers_neighb = nind;
         }
         if (whoseDotMarginAt(nind) == who_defends)
         {
-            if (defenders_neighb != 0) return 0;  // more than 2 defender's dots
+            if (defenders_neighb != 0)
+                return {0, 0, 0};  // more than 2 defender's dots
             defenders_neighb = nind;
         }
     }
-    if (attackers_neighb == 0 or attackers_neighb == 0) return 0;
+    if (attackers_neighb == 0 or defenders_neighb == 0) return {0, 0, 0};
     if (attackers_neighb + defenders_neighb == where + where)
-        return 0;  // attacker and defender have dots at opposite sides of
-                   // where, it's not ladder
+        return {0, 0, 0};  // attacker and defender have dots at opposite sides
+                           // of where, it's not ladder
     const pti another_att = defenders_neighb + where - attackers_neighb;
-    if (whoseDotMarginAt(another_att) != who_attacks) return 0;
+    if (whoseDotMarginAt(another_att) != who_attacks) return {0, 0, 0};
     krb::PointsSet ladder_breakers;
     const pti x = defenders_neighb;
     const pti v1 = where - x;
@@ -3777,8 +3778,11 @@ int Game::checkLadder(int who_defends, pti where) const
     const bool ladder_ext = false;
     const int escapes = who_defends;
     const int iteration = 0;
-    return checkLadderStep(x, ladder_breakers, v1, v2, escaping_group,
-                           ladder_ext, escapes, iteration);
+    const pti next_att_dot = where + v1;
+    const pti next_def_dot = where + v2;
+    return {checkLadderStep(x, ladder_breakers, v1, v2, escaping_group,
+                            ladder_ext, escapes, iteration),
+            next_att_dot, next_def_dot};
 }
 
 /// Finds simplifying enclosures (=those that have 0 territory).
@@ -8108,17 +8112,111 @@ Move Game::getLastButOneMove() const
     return m;
 }
 
+std::pair<pti, pti> Game::checkLadderToFindBadOrGoodMoves() const
+// Assumes that the last move played was atari.
+// returns [forbidden_place, forced_move]
+// if forced_move == 0, forbidden_place concerns current player (working
+// ladder), otherwise, current player should play forced_move and then the other
+// not at forbidden
+{
+    int opponent = 3 - nowMoves;
+    uint16_t last_move_no = history.size();
+    const int min_value_threshold = 3;
+    for (auto thr_it = threats[opponent - 1].threats.rbegin();
+         thr_it != threats[opponent - 1].threats.rend(); ++thr_it)
+    {
+        if (thr_it->hist_size != last_move_no) return {0, 0};
+        if (thr_it->type & ThreatConsts::TERR) continue;
+        if (thr_it->where != 0 and
+            coord.distBetweenPts_infty(thr_it->where, history.getLast()) ==
+                1 and
+            thr_it->opp_dots >= min_value_threshold)
+        {
+            const auto [status, next_att, next_def] =
+                checkLadder(nowMoves, thr_it->where);
+            const int ESC_WINS = -1, ATT_WINS = 1;
+            if (status == ESC_WINS)
+            {
+                return {next_att, thr_it->where};
+            }
+            if (status == ATT_WINS)
+            {
+                return {thr_it->where, 0};
+            }
+        }
+    }
+    return {0, 0};
+}
+
 real_t Game::randomPlayout()
 {
     Move m;
     std::uniform_int_distribution<uint32_t> di(0, 0xffffff);
     constexpr int threats2m_threshold = 30;
+    pti forbidden_place{};  // further attack in non-working ladder, or defense
+                            // in a working ladder
     for (int move_number = 0;; ++move_number)
     {
         if (move_number > threats2m_threshold)
         {
             threats[0].turnOffThreats2m();
             threats[1].turnOffThreats2m();
+        }
+        if (forbidden_place == 0)
+        {
+            // check ladder to find new forbidden_place or forced_move
+            const auto [forbidden, forced] = checkLadderToFindBadOrGoodMoves();
+            forbidden_place = forbidden;
+            if (forced and forbidden)
+            {
+                // prev player played non-working ladder
+                Move forced_move;
+                forced_move.ind = forced;
+                forced_move.who = nowMoves;
+                dame_moves_so_far = 0;
+                makeMove(getRandomEncl(forced_move));
+                /*
+                std::cout << "---- Non-working ladder played at " <<
+                coord.showPt(history.getLast()) <<
+                  ", forced move: " << coord.showPt(forced) << ", forbidden: "
+                <<  coord.showPt(forbidden) << '\n'; show();
+                */
+                continue;
+            }
+            if (forbidden == 0)
+            {
+                // maybe prev player tried to defend working ladder?
+                const auto [status, next_att, next_def] =
+                    checkLadder(3 - nowMoves, history.getLast());
+                const int ESC_WINS = -1, ATT_WINS = 1;
+                if (status == ATT_WINS)
+                {
+                    Move forced_move;
+                    forced_move.ind = next_att;
+                    forced_move.who = nowMoves;
+                    dame_moves_so_far = 0;
+                    makeMove(getRandomEncl(forced_move));
+                    forbidden_place = next_def;
+                    std::cout
+                        << "-*-*-* Working ladder defended at "
+                        << coord.showPt(history.getLast())
+                        << ", forced move: " << coord.showPt(forced_move.ind)
+                        << ", forbidden: " << coord.showPt(forbidden_place)
+                        << '\n';
+                    show();
+                    continue;
+                }
+                if (status == ESC_WINS)
+                {
+                    forbidden_place = next_att;
+                    std::cout
+                        << "-*-*-*%^%^ Working ladder attack at "
+                        << coord.showPt(history.getLast())
+                        << ", forbidden: " << coord.showPt(forbidden_place)
+                        << '\n';
+                    show();
+                }
+            }
         }
         int number = di(engine);
         if ((number & 0x10000) != 0)  // probability 1/2
@@ -8773,22 +8871,25 @@ bool Game::checkThreatCorrectness()
     {
         uint16_t prev = 0;
         for (const Threat &thr : threats[pl].threats)
-	{
-	  if (prev > thr.hist_size) {
-                std::cerr << "No monotonicity of hist_size, for player " << pl + 1
-                          << " previous: " << prev << ", current = " << thr.hist_size << std::endl;
+        {
+            if (prev > thr.hist_size)
+            {
+                std::cerr << "No monotonicity of hist_size, for player "
+                          << pl + 1 << " previous: " << prev
+                          << ", current = " << thr.hist_size << std::endl;
                 std::cerr << thr.show() << std::endl;
-		return false;
-	  }
-	  if (thr.hist_size == 0)
-	    {
+                return false;
+            }
+            if (thr.hist_size == 0)
+            {
                 std::cerr << "Unexpected hist_size == 0, for player " << pl + 1
-                          << " previous: " << prev << ", current = " << thr.hist_size << std::endl;
+                          << " previous: " << prev
+                          << ", current = " << thr.hist_size << std::endl;
                 std::cerr << thr.show() << std::endl;
-		return false;
-	    }
-	  prev = thr.hist_size;
-	}
+                return false;
+            }
+            prev = thr.hist_size;
+        }
     }
 
     for (int ind = coord.first + 1; ind < coord.last; ind++)

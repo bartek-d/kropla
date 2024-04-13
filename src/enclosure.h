@@ -85,7 +85,7 @@ struct Move
 {
     std::vector<std::shared_ptr<Enclosure> > enclosures;
     uint64_t zobrist_key{0};
-    pti ind;
+    pti ind{0};
     pti who{-1};
     bool operator==(const Move &other) const
     {
