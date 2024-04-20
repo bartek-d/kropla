@@ -3741,11 +3741,20 @@ int Game::checkLadderStep(pti x, krb::PointsSet &ladder_breakers, pti v1,
 }
 
 std::tuple<int, pti, pti> Game::checkLadder(int who_defends, pti where) const
+// Defender about to play at 'where' or has just played at 'where'.
+// Returns {status, next_attacker_dot, next_defender_dot}.
 {
     const int who_attacks = 3 - who_defends;
     if (coord.dist[where] <= 0) return {0, 0, 0};
-    if (isInBorder(where, who_attacks) == 0) return {0, 0, 0};  // even no atari
-    if (whoseDotMarginAt(where) != 0) return {0, 0, 0};
+    const bool defender_has_played_at_where =
+        (whoseDotMarginAt(where) == who_defends);
+    if (not defender_has_played_at_where and
+        whoseDotMarginAt(where) != 0)  // check for correctness: 'where' should
+                                       // be either empty or belong to defender
+        return {0, 0, 0};
+    if (not defender_has_played_at_where and
+        isInBorder(where, who_attacks) == 0)
+        return {0, 0, 0};  // even no atari
     pti attackers_neighb = 0;
     pti defenders_neighb = 0;
     for (int i = 0; i < 4; ++i)
@@ -3770,6 +3779,10 @@ std::tuple<int, pti, pti> Game::checkLadder(int who_defends, pti where) const
                            // of where, it's not ladder
     const pti another_att = defenders_neighb + where - attackers_neighb;
     if (whoseDotMarginAt(another_att) != who_attacks) return {0, 0, 0};
+    if (descr.at(worm[attackers_neighb]).group_id !=
+        descr.at(worm[another_att]).group_id)
+        return {0, 0, 0};  // attacker dots are where they should be, but they
+                           // are not connected!
     krb::PointsSet ladder_breakers;
     const pti x = defenders_neighb;
     const pti v1 = where - x;
@@ -8235,7 +8248,7 @@ real_t Game::randomPlayout()
                 {
                     forbidden_place = next_att;
                     std::cout
-                        << "-*-*-*%^%^ Working ladder attack at "
+                        << "-*-*-*%^%^ Non-working ladder defended at "
                         << coord.showPt(history.getLast())
                         << ", forbidden: " << coord.showPt(forbidden_place)
                         << '\n';
