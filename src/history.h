@@ -39,6 +39,7 @@ class History
     void push_back(u32 ind, bool terr, bool encl_border, bool opp_encl_border,
                    uint32_t atari_neighb_code);
     void setEnclosureInLastMove();
+    void xorAtariNeigbhCodeInLastMove(uint32_t atari_neighb_code);
 
     u32 getLast() const;
     u32 getLastButOne() const;

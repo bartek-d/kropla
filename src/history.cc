@@ -39,6 +39,11 @@ void History::push_back(u32 ind, bool terr, bool encl_border,
 
 void History::setEnclosureInLastMove() { history.back() |= HISTORY_ENCL_MOVE; }
 
+void History::xorAtariNeigbhCodeInLastMove(uint32_t atari_neighb_code)
+{
+    history.back() ^= (atari_neighb_code << HISTORY_ATARI_CODE_SHIFT);
+}
+
 History::u32 History::getLast() const
 {
     return history.back() & history_move_MASK;

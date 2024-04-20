@@ -6695,6 +6695,10 @@ void Game::makeMove(const Move &m)
         {
             makeEnclosure(*encl, true);
         }
+        if (not m.enclosures.empty()) history.setEnclosureInLastMove();
+        const uint32_t atari_neighb_code =
+            threats[2 - m.who].getAtariNeighbCode(m.ind);
+        history.xorAtariNeigbhCodeInLastMove(atari_neighb_code);
         if (must_surround)
         {
             int corner_right_bottom = coord.ind(coord.wlkx - 2, coord.wlky - 2);
