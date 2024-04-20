@@ -140,6 +140,7 @@ struct AllThreats
     bool isActiveThreats2m() const;
     int numberOfDotsToBeEnclosedIn2mAfterPlayingAt(pti i) const;
     bool isInBorder2m(pti i) const;
+    uint32_t getAtariNeighbCode(pti ind) const;
 
    private:
     bool active_thr2m{true};

@@ -4398,14 +4398,15 @@ void Game::placeDot(int x, int y, int who)
 // places a dot of who at (x,y),
 // TODO: if rules:must-surround, then also makes necessary enclosures
 {
-    pti ind = coord.ind(x, y);
+    const pti ind = coord.ind(x, y);
     assert(worm[ind] == 0);
     recalculate_list.clear();
+    const uint32_t atari_neighb_code = threats[2 - who].getAtariNeighbCode(ind);
     if (isInTerr(ind, who) == 0 and isInEncl(ind, who) == 0)
     {
         const bool is_in_terr_with_atari = false;
-        history.push_back(ind, is_in_terr_with_atari,
-                          isInBorder(ind, who) != 0);
+        history.push_back(ind, is_in_terr_with_atari, isInBorder(ind, who) != 0,
+                          isInBorder(ind, 3 - who) != 0, atari_neighb_code);
     }
     else
     {
@@ -4428,7 +4429,9 @@ void Game::placeDot(int x, int y, int who)
         }
         const bool is_in_terr_with_atari = (count == 0 || count == 1);
         const bool is_in_encl_border = false;
-        history.push_back(ind, is_in_terr_with_atari, is_in_encl_border);
+        const bool is_in_opp_encl_border = false;
+        history.push_back(ind, is_in_terr_with_atari, is_in_encl_border,
+                          is_in_opp_encl_border, atari_neighb_code);
     }
 #ifdef DEBUG_SGF
     sgf_tree.makePartialMove({(who == 1 ? "B" : "W"), {coord.indToSgf(ind)}});

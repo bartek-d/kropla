@@ -561,6 +561,17 @@ bool AllThreats::isInBorder2m(pti i) const
     return pos != threats2m.end();
 }
 
+uint32_t AllThreats::getAtariNeighbCode(pti ind) const
+{
+    uint32_t code = 0;
+    uint32_t mask = 1;
+    for (int i = 0; i < 4; ++i, mask <<= 1)
+    {
+        code |= (is_in_encl[ind + coord.nb4[i]] ? mask : 0);
+    }
+    return code;
+}
+
 void AllThreats::removeMarkedAndAtPoint2moves(pti ind)
 {
     if (!threats2m.empty())

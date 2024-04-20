@@ -28,10 +28,13 @@
 
 History::History() : history{0, 0} {}
 
-void History::push_back(u32 ind, bool terr, bool encl_border)
+void History::push_back(u32 ind, bool terr, bool encl_border,
+                        bool opp_encl_border, uint32_t atari_neighb_code)
 {
     history.push_back(ind | (terr ? HISTORY_TERR : 0) |
-                      (encl_border ? HISTORY_ENCL_BORDER : 0));
+                      (encl_border ? HISTORY_ENCL_BORDER : 0) |
+                      (opp_encl_border ? HISTORY_OPP_ENCL_BORDER : 0) |
+                      (atari_neighb_code << HISTORY_ATARI_CODE_SHIFT));
 }
 
 void History::setEnclosureInLastMove() { history.back() |= HISTORY_ENCL_MOVE; }

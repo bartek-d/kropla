@@ -36,7 +36,8 @@ class History
    public:
     using u32 = uint32_t;
     History();
-    void push_back(u32 ind, bool terr, bool encl_border);
+    void push_back(u32 ind, bool terr, bool encl_border, bool opp_encl_border,
+                   uint32_t atari_neighb_code);
     void setEnclosureInLastMove();
 
     u32 getLast() const;
@@ -61,9 +62,12 @@ class History
                  // played on the border of their encl, possibly enclosing sth
     static const u32 HISTORY_ENCL_MOVE =
         0x1000;  // apart from the move, there was also an enclosure
+    static const u32 HISTORY_OPP_ENCL_BORDER =
+        0x8000;  // played where opp could enclose
+    static const u32 HISTORY_ATARI_CODE_SHIFT =
+        16;  // shift 4-bit atari code that many bits left
 
-    static const u32 history_move_MASK =
-        ~(HISTORY_ENCL_BORDER | HISTORY_TERR | HISTORY_ENCL_MOVE);
+    static const u32 history_move_MASK = 0xfff;
 
     void saveGoodReplyAt(int i, int who) const;
     void forgetReplyAt(int i, int who) const;
