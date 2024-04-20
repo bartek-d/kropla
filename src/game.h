@@ -497,6 +497,7 @@ class Game
     pattern3_t getPattern3_at(pti ind) const;
     uint64_t getZobrist() const { return zobrist; }
     uint64_t getHistorySize() const { return history.size(); }
+    const History& getHistory() const { return history; }
     NonatomicMovestats priorsAndDameForPattern3(bool& is_dame, bool is_root,
                                                 bool is_in_our_te,
                                                 bool is_in_opp_te, int i,

@@ -48,6 +48,8 @@ class History
     bool isInEnclBorder(int i) const;
     bool isInTerrWithAtari(int i) const;
     bool isEnclosure(int i) const;
+    bool isInOppEnclBorder(int i) const;
+    u32 getAtariCode(int i) const;
 
     pti getLastGoodReplyFor(int who) const;
 

@@ -73,6 +73,17 @@ bool History::isEnclosure(int i) const
     return history[i] & HISTORY_ENCL_MOVE;
 }
 
+bool History::isInOppEnclBorder(int i) const
+{
+    return history[i] & HISTORY_OPP_ENCL_BORDER;
+}
+
+History::u32 History::getAtariCode(int i) const
+{
+    u32 code_mask = 0xf;
+    return (history[i] >> HISTORY_ATARI_CODE_SHIFT) & code_mask;
+}
+
 namespace
 {
 thread_local std::unordered_map<uint32_t, pti> last_good_reply{};
