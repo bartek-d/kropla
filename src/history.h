@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <vector>
 
 #include "board.h"
@@ -32,32 +33,16 @@ void clearLastGoodReplies();
 
 class History
 {
-    std::vector<pti> history;
-
-    static const pti HISTORY_TERR =
-        0x4000;  // this is OR-ed with history[...] to denote that someone
-                 // played inside own terr or encl
-    static const pti HISTORY_ENCL_BORDER =
-        0x2000;  // this is OR-ed with history[...] to denote that someone
-                 // played on the border of their encl, possibly enclosing sth
-    static const pti HISTORY_ENCL_MOVE =
-        0x1000;  // apart from the move, there was also an enclosure
-
-    static const pti history_move_MASK =
-        ~(HISTORY_ENCL_BORDER | HISTORY_TERR | HISTORY_ENCL_MOVE);
-
-    void saveGoodReplyAt(int i, int who) const;
-    void forgetReplyAt(int i, int who) const;
-
    public:
+    using u32 = uint32_t;
     History();
-    void push_back(pti ind, bool terr, bool encl_border);
+    void push_back(u32 ind, bool terr, bool encl_border);
     void setEnclosureInLastMove();
 
-    pti getLast() const;
-    pti getLastButOne() const;
+    u32 getLast() const;
+    u32 getLastButOne() const;
     std::size_t size() const;
-    pti get(int i) const;
+    u32 get(int i) const;
     bool isInEnclBorder(int i) const;
     bool isInTerrWithAtari(int i) const;
     bool isEnclosure(int i) const;
@@ -65,4 +50,21 @@ class History
     pti getLastGoodReplyFor(int who) const;
 
     void updateGoodReplies(int lastWho, float abs_value);
+
+   private:
+    std::vector<u32> history;
+    static const u32 HISTORY_TERR =
+        0x4000;  // this is OR-ed with history[...] to denote that someone
+                 // played inside own terr or encl
+    static const u32 HISTORY_ENCL_BORDER =
+        0x2000;  // this is OR-ed with history[...] to denote that someone
+                 // played on the border of their encl, possibly enclosing sth
+    static const u32 HISTORY_ENCL_MOVE =
+        0x1000;  // apart from the move, there was also an enclosure
+
+    static const u32 history_move_MASK =
+        ~(HISTORY_ENCL_BORDER | HISTORY_TERR | HISTORY_ENCL_MOVE);
+
+    void saveGoodReplyAt(int i, int who) const;
+    void forgetReplyAt(int i, int who) const;
 };

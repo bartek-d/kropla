@@ -28,7 +28,7 @@
 
 History::History() : history{0, 0} {}
 
-void History::push_back(pti ind, bool terr, bool encl_border)
+void History::push_back(u32 ind, bool terr, bool encl_border)
 {
     history.push_back(ind | (terr ? HISTORY_TERR : 0) |
                       (encl_border ? HISTORY_ENCL_BORDER : 0));
@@ -36,13 +36,19 @@ void History::push_back(pti ind, bool terr, bool encl_border)
 
 void History::setEnclosureInLastMove() { history.back() |= HISTORY_ENCL_MOVE; }
 
-pti History::getLast() const { return history.back() & history_move_MASK; }
+History::u32 History::getLast() const
+{
+    return history.back() & history_move_MASK;
+}
 
-pti History::getLastButOne() const { return get(history.size() - 2); }
+History::u32 History::getLastButOne() const { return get(history.size() - 2); }
 
 std::size_t History::size() const { return history.size(); }
 
-pti History::get(int i) const { return history[i] & history_move_MASK; }
+History::u32 History::get(int i) const
+{
+    return history[i] & history_move_MASK;
+}
 
 bool History::isInEnclBorder(int i) const
 {
