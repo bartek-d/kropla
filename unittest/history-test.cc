@@ -109,3 +109,35 @@ TEST(History, savesCorrectAtariCodes)
         EXPECT_TRUE(h.isInOppEnclBorder(move));
     }
 }
+
+TEST(History, savesCorrectAtariCodes_caseWithEnclosures)
+{
+    unsigned isometry = 0;
+    Game game = constructGameFromSgfWithIsometry(
+        "(;GM[40]FF[4]CA[UTF-8]SZ[13];B[fg];W[eg];B[eh];W[fh];B[dh];W[ef];B[ff]"
+        ";W[dg];B[cg];W[gh];B[ee];W[df];B[cf];W[hg];B[de.cfcgdhehfgffeedecf];W["
+        "hj];B[hi];W[gi];B[hh];W[ii];B[ih];W[fj];B[gg];W[jh];B[ig];W[if];B[hf."
+        "gghhighfgg])",
+        isometry);
+
+    const auto h = game.getHistory();
+    for (int move = 2; move <= 28; ++move)
+    {
+        EXPECT_FALSE(h.isInTerrWithAtari(move));
+        EXPECT_EQ((move == 16 or move == 28), h.isInEnclBorder(move));
+        EXPECT_EQ((move == 16 or move == 28), h.isEnclosure(move));
+    }
+
+    const uint32_t E = 2;
+    const uint32_t S = 4;
+    const uint32_t W = 8;
+
+    EXPECT_EQ(E + S, h.getAtariCode(13));
+    EXPECT_TRUE(h.isInOppEnclBorder(13));
+
+    EXPECT_EQ(W, h.getAtariCode(22));
+    EXPECT_TRUE(h.isInOppEnclBorder(22));
+
+    EXPECT_EQ(S, h.getAtariCode(26));
+    EXPECT_TRUE(h.isInOppEnclBorder(26));
+}
