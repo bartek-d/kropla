@@ -3746,6 +3746,8 @@ std::tuple<int, pti, pti> Game::checkLadder(int who_defends, pti where) const
 {
     const int who_attacks = 3 - who_defends;
     if (coord.dist[where] <= 0) return {0, 0, 0};
+    if (isInTerr(where, 1) or isInTerr(where, 2))
+        return {0, 0, 0};  // ignore ladders inside territory
     const bool defender_has_played_at_where =
         (whoseDotMarginAt(where) == who_defends);
     if (not defender_has_played_at_where and
@@ -3755,6 +3757,9 @@ std::tuple<int, pti, pti> Game::checkLadder(int who_defends, pti where) const
     if (not defender_has_played_at_where and
         isInBorder(where, who_attacks) == 0)
         return {0, 0, 0};  // even no atari
+    if (defender_has_played_at_where and
+        not history.isInOppEnclBorder(history.size() - 1))
+        return {0, 0, 0};  // last dot of defender was not at opp's border
     pti attackers_neighb = 0;
     pti defenders_neighb = 0;
     for (int i = 0; i < 4; ++i)
@@ -3783,6 +3788,22 @@ std::tuple<int, pti, pti> Game::checkLadder(int who_defends, pti where) const
         descr.at(worm[another_att]).group_id)
         return {0, 0, 0};  // attacker dots are where they should be, but they
                            // are not connected!
+    if (defender_has_played_at_where)
+    {
+        const auto atari_code = history.getAtariCode(history.size() - 1);
+        if (atari_code != 1 and atari_code != 2 and atari_code != 4 and
+            atari_code != 8)
+            return {0, 0, 0};  // in fact, ladder is possible with more than 1
+                               // defender's dot in the neighbourhood,
+        // but we don't handle such situations (we care most for further steps
+        // in ladder)
+        const int direction = where - defenders_neighb;
+        const unsigned index_of_atari_code =
+            (atari_code <= 2) ? (atari_code - 1) : (2 + (atari_code >> 3));
+        if (coord.nb4[index_of_atari_code] != direction)
+            return {0, 0, 0};  // the place that defender defended does not
+                               // match the found defender's dot position
+    }
     krb::PointsSet ladder_breakers;
     const pti x = defenders_neighb;
     const pti v1 = where - x;
@@ -8229,10 +8250,8 @@ real_t Game::randomPlayout()
             if (forbidden == 0)
             {
                 // maybe prev player tried to defend working ladder?
-                const auto [status, next_att, next_def] = checkLadder(
-                    3 - nowMoves,
-                    history.getLast());  // TODO: this will not work! Reason:
-                                         // move is made
+                const auto [status, next_att, next_def] =
+                    checkLadder(3 - nowMoves, history.getLast());
                 const int ESC_WINS = -1, ATT_WINS = 1;
                 if (status == ATT_WINS)
                 {
@@ -8241,7 +8260,8 @@ real_t Game::randomPlayout()
                     forced_move.who = nowMoves;
                     dame_moves_so_far = 0;
                     makeMove(getRandomEncl(forced_move));
-                    forbidden_place = next_def;
+                    if (not isInEncl(next_def, 3 - nowMoves))
+                        forbidden_place = next_def;
                     std::cout
                         << "-*-*-* Working ladder defended at "
                         << coord.showPt(history.getLast())
@@ -8251,7 +8271,7 @@ real_t Game::randomPlayout()
                     show();
                     continue;
                 }
-                if (status == ESC_WINS)
+                if (status == ESC_WINS and not isInEncl(next_att, nowMoves))
                 {
                     forbidden_place = next_att;
                     std::cout
