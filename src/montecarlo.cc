@@ -64,8 +64,8 @@ DebugInfo root_debug_info;
 bool finish_threads(false);
 uint64_t time_seed{0};
 constexpr int start_increasing = 200;
-constexpr real_t increase_komi_threshhold = 0.75;
-constexpr real_t decrease_komi_threshhold = 0.15;
+constexpr real_t increase_komi_threshhold = 0.55;
+constexpr real_t decrease_komi_threshhold = 0.45;
 constexpr int MC_EXPAND_THRESHOLD = 8;
 
 bool save_mc_stats = false;
