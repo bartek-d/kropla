@@ -36,6 +36,7 @@ def collectTests():
         for line in regrf:
             if line.startswith('name='):
                 name = getValue(line, "name=")
+                default_value = 0.0
             elif line.startswith('sgf='):
                 sgf = getValue(line, "sgf=")
             elif line.startswith('time='):
@@ -180,7 +181,7 @@ print(f"CNN: {cnn_name}")
 total = 0.0
 number_of_tests = 0
 for test in tests:
-    test['threads'] = 16
+    test['threads'] = 80
     if not check_name(test['name']):
         print(f"Omitting {test['name']}")
         continue
