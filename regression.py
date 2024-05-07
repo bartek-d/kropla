@@ -31,6 +31,7 @@ def collectTests():
     sgf = None
     time_msec = None
     default_time_msec = "10000"
+    default_value = 0.0
     with open("../regression-list.txt") as regrf:
         for line in regrf:
             if line.startswith('name='):
@@ -42,13 +43,15 @@ def collectTests():
             elif line.startswith('move='):
                 move, pts = getValue(line, "move=").split()
                 moves.append((move, float(pts)))
+            elif line.startswith('else='):
+                default_value = float(getValue(line, "else="))
             elif line.startswith('end'):
                 if name == None or sgf == None or len(moves) == 0:
                     print(f"Ignoring a noncomplete test: name = {name}, sgf = {sgf}, moves = {moves}", file=sys.stderr)
                 else:
                     if time_msec == None:
                         time_msec = default_time_msec
-                    tests.append({'name': name, 'sgf': sgf, 'moves': moves[:], 'time': time_msec})
+                    tests.append({'name': name, 'sgf': sgf, 'moves': moves[:], 'time': time_msec, 'default_value': default_value})
                 moves = []
                 name = None
                 sgf = None
@@ -59,7 +62,7 @@ def getScoreForMove(ai_move, test):
     for (move, score) in test['moves']:
         if ai_move == move:
             return score
-    return 0.0
+    return test['default_value']
 
 def runSingleTestOnce(test, *args):
     args = ['./kropla'] + list([*args])

@@ -64,9 +64,12 @@ DebugInfo root_debug_info;
 bool finish_threads(false);
 uint64_t time_seed{0};
 constexpr int start_increasing = 200;
-constexpr real_t increase_komi_threshhold = 0.55;
+constexpr real_t increase_komi_threshhold = 0.75;
 constexpr real_t decrease_komi_threshhold = 0.45;
 constexpr int MC_EXPAND_THRESHOLD = 8;
+constexpr int komi_step = 2;
+auto take_next_komi_change = [](auto curr_komi_change)
+{ return curr_komi_change + 8000; };
 
 bool save_mc_stats = false;
 }  // namespace montec
@@ -103,7 +106,7 @@ std::string MonteCarlo::findBestMove(Game &pos, int iter_count)
         if ((i & 0x7f) == 0) std::cerr << "iteration = " << i << std::endl;
         if (i >= komi_change_at)
         {
-            komi_change_at *= 6;
+            komi_change_at = montec::take_next_komi_change(komi_change_at);
             if (montec::root.t.value_sum <
                 montec::root.t.playouts *
                     (1 - montec::increase_komi_threshhold))
@@ -119,7 +122,9 @@ std::string MonteCarlo::findBestMove(Game &pos, int iter_count)
                 {
                     std::cerr << "Changing komi from " << global::komi
                               << " to ";
-                    global::komi += (montec::root.move.who == 1) ? -2 : 2;
+                    global::komi += (montec::root.move.who == 1)
+                                        ? -montec::komi_step
+                                        : montec::komi_step;
                     std::cerr << global::komi << std::endl;
                 }
             }
@@ -140,7 +145,9 @@ std::string MonteCarlo::findBestMove(Game &pos, int iter_count)
                 }
                 std::cerr << "New ratchet: " << global::komi_ratchet
                           << ". Changing komi from " << global::komi << " to ";
-                global::komi -= (montec::root.move.who == 1) ? -2 : 2;
+                global::komi -= (montec::root.move.who == 1)
+                                    ? -montec::komi_step
+                                    : montec::komi_step;
                 std::cerr << global::komi << std::endl;
             }
         }
@@ -413,7 +420,7 @@ int MonteCarlo::runSimulations(int max_iter_count, unsigned thread_no,
         {
             if (montec::iterations >= komi_change_at)
             {
-                komi_change_at *= 6;
+                komi_change_at = montec::take_next_komi_change(komi_change_at);
                 if (montec::root.t.value_sum <
                     montec::root.t.playouts *
                         (1 - montec::increase_komi_threshhold))
@@ -429,7 +436,9 @@ int MonteCarlo::runSimulations(int max_iter_count, unsigned thread_no,
                     {
                         std::cerr << "Changing komi from " << global::komi
                                   << " to ";
-                        global::komi += (montec::root.move.who == 1) ? -2 : 2;
+                        global::komi += (montec::root.move.who == 1)
+                                            ? -montec::komi_step
+                                            : montec::komi_step;
                         was_komi_change = true;
                         std::cerr << global::komi << std::endl;
                     }
@@ -452,7 +461,9 @@ int MonteCarlo::runSimulations(int max_iter_count, unsigned thread_no,
                     std::cerr << "New ratchet: " << global::komi_ratchet
                               << ". Changing komi from " << global::komi
                               << " to ";
-                    global::komi -= (montec::root.move.who == 1) ? -2 : 2;
+                    global::komi -= (montec::root.move.who == 1)
+                                        ? -montec::komi_step
+                                        : montec::komi_step;
                     was_komi_change = true;
                     std::cerr << global::komi << std::endl;
                 }
@@ -472,8 +483,10 @@ int MonteCarlo::runSimulations(int max_iter_count, unsigned thread_no,
     {
         std::cerr << "komi was not changed, so changing komi from "
                   << global::komi << " to ";
-        global::komi += (global::komi > 0) ? -2 : 2;
-        std::cerr << global::komi << std::endl;
+        global::komi +=
+            (global::komi > 0) ? -montec::komi_step : montec::komi_step;
+        std::cerr << global::komi << " and increasing ratchet by 1 to "
+                  << ++global::komi_ratchet << std::endl;
     }
 
     montec::threads_to_be_finished--;
