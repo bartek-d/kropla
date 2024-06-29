@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.9.4)
 
 project(kropla)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -60,10 +60,6 @@ else()
   set(CNN_src "src/get_cnn_prob_dummy.cc" "src/get_cnn_prob.h")
   set(CNN_lib "")
 endif()
-
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
   

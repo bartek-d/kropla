@@ -848,6 +848,72 @@ TEST_P(IsometryFixture, complicatedLadderCapture)
     }
 }
 
+TEST_P(IsometryFixture, priorAgainstLadderFor_o)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "..xx..."
+        ".xoox.."
+        "..xo..."
+        "......."
+        "......."
+        "......."
+        ".......");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const std::map<pattern3_t, std::pair<pti, pti>> ladder_danger{
+        {0x6, {coord.NE, coord.SEE}},    {0x24, {coord.SE, coord.NEE}},
+        {0x60, {coord.SE, coord.SSW}},   {0x240, {coord.SW, coord.SSE}},
+        {0x600, {coord.SW, coord.NWW}},  {0x2400, {coord.NW, coord.SWW}},
+        {0x6000, {coord.NW, coord.NNE}}, {0x4002, {coord.NE, coord.NNW}}};
+
+    const auto patt = game.getPattern3_at(
+        coord.sgfToPti(applyIsometry("dd", isometry, coord)));
+    const auto iter = ladder_danger.find(patt);
+    const auto centre = coord.sgfToPti(applyIsometry("dd", isometry, coord));
+    ASSERT_NE(ladder_danger.end(), iter);
+    const auto attacking = 2;
+    const auto defending = 1;
+
+    EXPECT_EQ(attacking, game.whoseDotMarginAt(centre + iter->second.first));
+    EXPECT_EQ(attacking, game.whoseDotMarginAt(centre + iter->second.second));
+    const auto to_side = iter->second.first + iter->second.second;
+    EXPECT_EQ(0, to_side % 3);
+    EXPECT_EQ(defending, game.whoseDotMarginAt(centre + to_side / 3));
+}
+
+TEST_P(IsometryFixture, priorAgainstLadderFor_x)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "..oo..."
+        ".oxxo.."
+        "..ox..."
+        "......."
+        "......."
+        "......."
+        ".......");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const std::map<pattern3_t, std::pair<pti, pti>> ladder_danger{
+        {0x9, {coord.NE, coord.SEE}},    {0x18, {coord.SE, coord.NEE}},
+        {0x90, {coord.SE, coord.SSW}},   {0x180, {coord.SW, coord.SSE}},
+        {0x900, {coord.SW, coord.NWW}},  {0x1800, {coord.NW, coord.SWW}},
+        {0x9000, {coord.NW, coord.NNE}}, {0x8001, {coord.NE, coord.NNW}}};
+
+    const auto patt = game.getPattern3_at(
+        coord.sgfToPti(applyIsometry("dd", isometry, coord)));
+    const auto iter = ladder_danger.find(patt);
+    const auto centre = coord.sgfToPti(applyIsometry("dd", isometry, coord));
+    ASSERT_NE(ladder_danger.end(), iter);
+    const auto attacking = 1;
+    const auto defending = 2;
+
+    EXPECT_EQ(attacking, game.whoseDotMarginAt(centre + iter->second.first));
+    EXPECT_EQ(attacking, game.whoseDotMarginAt(centre + iter->second.second));
+    const auto to_side = iter->second.first + iter->second.second;
+    EXPECT_EQ(0, to_side % 3);
+    EXPECT_EQ(defending, game.whoseDotMarginAt(centre + to_side / 3));
+}
+
 INSTANTIATE_TEST_CASE_P(Par, IsometryFixture,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
