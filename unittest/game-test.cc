@@ -946,7 +946,7 @@ TEST_P(IsometryFixture, priorsForLadderExtension)
     const auto attacking = 1;
     EXPECT_EQ((NonatomicMovestats{3, 3.0f}),
               game.priorsForLadderExtension(false, good_move_NW, attacking));
-    EXPECT_EQ((NonatomicMovestats{20, 0.0f}),
+    EXPECT_EQ((NonatomicMovestats{40, 0.0f}),
               game.priorsForLadderExtension(false, bad_move_NE, attacking));
     EXPECT_EQ((NonatomicMovestats{0, 0.0f}),
               game.priorsForLadderExtension(false, neutral_move_SE, attacking));
@@ -985,7 +985,7 @@ TEST_P(IsometryFixture, priorsForLadderExtension2)
     EXPECT_EQ(
         (NonatomicMovestats{5, 0.0f}),
         game.priorsForLadderExtension(false, somewhat_bad_move_NW, attacking));
-    EXPECT_EQ((NonatomicMovestats{20, 0.0f}),
+    EXPECT_EQ((NonatomicMovestats{40, 0.0f}),
               game.priorsForLadderExtension(false, bad_move_NE, attacking));
     EXPECT_EQ((NonatomicMovestats{5, 0.0f}),
               game.priorsForLadderExtension(false, somewhat_bad_SE, attacking));

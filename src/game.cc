@@ -7049,7 +7049,9 @@ NonatomicMovestats Game::priorsForLadderExtension(bool is_root, int i,
         out << "badlad=" << length_of_attacker_chain + opp_dots_along << " ";
     if (length_of_attacker_chain + opp_dots_along == 2)
         return lostSimulations(5);
-    return lostSimulations(20);
+    if (length_of_attacker_chain + opp_dots_along == 3)
+        return lostSimulations(40);
+    return lostSimulations(80);
 }
 
 int encl_count, opt_encl_count, moves_count, priority_count;
@@ -7153,6 +7155,7 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
         priors += priorsForInterestingMoves_cut_or_connect(is_root, i);
         priors += priorsForDistanceFromLastMoves(is_root, i);
         priors += priorsForThreats(is_root, is_in_opp_te, i, who);
+        priors += priorsForLadderExtension(is_root, i, who);
 
         // captures
         if (std::find(ml_special_moves.begin(), ml_special_moves.end(), i) ==
