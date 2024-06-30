@@ -6980,6 +6980,78 @@ NonatomicMovestats Game::priorsForThreats(bool is_root, bool is_in_opp_te,
     return value;
 }
 
+NonatomicMovestats Game::priorsForLadderExtension(bool is_root, int i,
+                                                  int who) const
+{
+    pti v_diag, v_keima;
+    if (who == 1)
+    {
+        const std::map<pattern3_t, std::pair<pti, pti>> ladder_danger_att1{
+            {0x9, {coord.NE, coord.SEE}},    {0x18, {coord.SE, coord.NEE}},
+            {0x90, {coord.SE, coord.SSW}},   {0x180, {coord.SW, coord.SSE}},
+            {0x900, {coord.SW, coord.NWW}},  {0x1800, {coord.NW, coord.SWW}},
+            {0x9000, {coord.NW, coord.NNE}}, {0x8001, {coord.NE, coord.NNW}}};
+        const auto iter = ladder_danger_att1.find(pattern3_at[i]);
+        if (iter == ladder_danger_att1.end()) return {};
+        std::tie(v_diag, v_keima) = iter->second;
+    }
+    else
+    {
+        const std::map<pattern3_t, std::pair<pti, pti>> ladder_danger_att2{
+            {0x6, {coord.NE, coord.SEE}},    {0x24, {coord.SE, coord.NEE}},
+            {0x60, {coord.SE, coord.SSW}},   {0x240, {coord.SW, coord.SSE}},
+            {0x600, {coord.SW, coord.NWW}},  {0x2400, {coord.NW, coord.SWW}},
+            {0x6000, {coord.NW, coord.NNE}}, {0x4002, {coord.NE, coord.NNW}}};
+        const auto iter = ladder_danger_att2.find(pattern3_at[i]);
+        if (iter == ladder_danger_att2.end()) return {};
+        std::tie(v_diag, v_keima) = iter->second;
+    }
+    if (whoseDotMarginAt(i + v_keima) != who) return {};
+    const auto group_id = descr.at(worm[i + v_diag]).group_id;
+    if (descr.at(worm[i + v_keima]).group_id != group_id) return {};
+    const pti v_defend = (v_diag + v_keima) / 3;
+    const pti v_side = v_diag - v_defend;
+    // here we have a shape of the type
+    // ? ? x
+    // x o .
+    // ? i ?
+    // where both x are of player who and from the same group, so a potential
+    // ladder is possible v_defend is the direction from 'i' to 'o', so here it
+    // would be coord.N v_side is the direction here to left (coord.W)
+    krb::PointsSet ladder_breakers;
+    const auto status = checkLadderStep(
+        i + v_defend, ladder_breakers, -v_side, -v_defend,
+        descr.at(worm[i + v_defend]).group_id, false, 3 - who, 0);
+    const int attacker_wins = 1;
+    if (status == attacker_wins)
+    {
+        if (is_root) out << "goodlad ";
+        return wonSimulations(3);
+    }
+    int length_of_attacker_chain = 0;
+    int opp_dots_along = 0;
+    const pti outside = 3;
+    for (pti point = i; length_of_attacker_chain < 3;
+         ++length_of_attacker_chain)
+    {
+        if (whoseDotMarginAt(point + v_diag) != who) break;
+        if (whoseDotMarginAt(point + v_side) == who or
+            whoseDotMarginAt(point + v_side) == outside)
+            break;
+        if (whoseDotMarginAt(point + v_side) == 3 - who) ++opp_dots_along;
+        if (isInEncl(point + v_side, who) > 0 or
+            isInTerr(point + v_side, who) > 0)
+            break;
+        point += v_diag;
+    }
+    if (length_of_attacker_chain + opp_dots_along <= 1) return {};
+    if (is_root)
+        out << "badlad=" << length_of_attacker_chain + opp_dots_along << " ";
+    if (length_of_attacker_chain + opp_dots_along == 2)
+        return lostSimulations(5);
+    return lostSimulations(20);
+}
+
 int encl_count, opt_encl_count, moves_count, priority_count;
 
 DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,

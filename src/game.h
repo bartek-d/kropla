@@ -128,6 +128,7 @@ struct NonatomicMovestats
     real_t value_sum{0.0f};
     const NonatomicMovestats& operator+=(const NonatomicMovestats& other);
     NonatomicMovestats& operator=(const NonatomicMovestats&) = default;
+    bool operator==(const NonatomicMovestats&) const = default;
     void normaliseTo(int32_t N);
     std::string show() const;
 };
@@ -510,6 +511,8 @@ class Game
                                                       int i) const;
     NonatomicMovestats priorsForThreats(bool is_root, bool is_in_opp_te, int i,
                                         int who) const;
+    NonatomicMovestats priorsForLadderExtension(bool is_root, int i,
+                                                int who) const;
 
     DebugInfo generateListOfMoves(TreenodeAllocator& alloc, Treenode* parent,
                                   int depth, int who);

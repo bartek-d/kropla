@@ -914,6 +914,83 @@ TEST_P(IsometryFixture, priorAgainstLadderFor_x)
     EXPECT_EQ(defending, game.whoseDotMarginAt(centre + to_side / 3));
 }
 
+TEST_P(IsometryFixture, priorsForLadderExtension)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "..oo..........oo.."
+        ".oxxo........oxxo."
+        "..ox........oxxo.."
+        ".....o.......xo..."
+        ".................."
+        ".................."
+        ".................."
+        ".................."
+        "..........x......."
+        ".................."
+        "...............xo."
+        "..............oo.."
+        ".................."
+        ".................."
+        ".................."
+        ".................."
+        ".................."
+        "..................");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const auto good_move_NW =
+        coord.sgfToPti(applyIsometry("dd", isometry, coord));
+    const auto bad_move_NE =
+        coord.sgfToPti(applyIsometry("ne", isometry, coord));
+    const auto neutral_move_SE =
+        coord.sgfToPti(applyIsometry("pj", isometry, coord));
+    const auto attacking = 1;
+    EXPECT_EQ((NonatomicMovestats{3, 3.0f}),
+              game.priorsForLadderExtension(false, good_move_NW, attacking));
+    EXPECT_EQ((NonatomicMovestats{20, 0.0f}),
+              game.priorsForLadderExtension(false, bad_move_NE, attacking));
+    EXPECT_EQ((NonatomicMovestats{0, 0.0f}),
+              game.priorsForLadderExtension(false, neutral_move_SE, attacking));
+}
+
+TEST_P(IsometryFixture, priorsForLadderExtension2)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "..oo..........oo.."
+        ".oxxo........oxxo."
+        "..ox........oxxo.."
+        ".....x......xxo..."
+        ".............o...."
+        ".................."
+        ".................."
+        ".................."
+        "..........x......."
+        "..............xo.."
+        ".............oxxo."
+        "..............oo.."
+        ".................."
+        ".................."
+        ".................."
+        ".................."
+        ".................."
+        "..................");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const auto somewhat_bad_move_NW =
+        coord.sgfToPti(applyIsometry("dd", isometry, coord));
+    const auto bad_move_NE =
+        coord.sgfToPti(applyIsometry("ld", isometry, coord));
+    const auto somewhat_bad_SE =
+        coord.sgfToPti(applyIsometry("oi", isometry, coord));
+    const auto attacking = 1;
+    EXPECT_EQ(
+        (NonatomicMovestats{5, 0.0f}),
+        game.priorsForLadderExtension(false, somewhat_bad_move_NW, attacking));
+    EXPECT_EQ((NonatomicMovestats{20, 0.0f}),
+              game.priorsForLadderExtension(false, bad_move_NE, attacking));
+    EXPECT_EQ((NonatomicMovestats{5, 0.0f}),
+              game.priorsForLadderExtension(false, somewhat_bad_SE, attacking));
+}
+
 INSTANTIATE_TEST_CASE_P(Par, IsometryFixture,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
