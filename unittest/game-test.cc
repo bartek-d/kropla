@@ -1081,7 +1081,7 @@ TEST_P(IsometryFixture, findNumberOfDotsToEncloseBy_emptyPoint_7pts)
     EXPECT_EQ(7, count);
 }
 
-TEST_P(IsometryFixture, findNumberOfDotsToEncloseBy_emptyPointInBambus_7pts)
+TEST_P(IsometryFixture, findNumberOfDotsToEncloseBy_emptyPointInBambus)
 {
     const unsigned isometry = GetParam();
     auto sgf = constructSgfFromGameBoard(
@@ -1097,6 +1097,24 @@ TEST_P(IsometryFixture, findNumberOfDotsToEncloseBy_emptyPointInBambus_7pts)
     const auto count = game.findNumberOfDotsToEncloseBy(
         coord.sgfToPti(applyIsometry("dd", isometry, coord)), 1, infty{15});
     EXPECT_EQ(12, count);
+}
+
+TEST_P(IsometryFixture, findNumberOfDotsToEncloseBy_emptyPointCloseToBambus)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        ".xxx..."
+        "..o...."
+        "..o.o.."
+        "..o.o.."
+        "..o.o.."
+        "....o.."
+        ".......");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    using infty = int;
+    const auto count = game.findNumberOfDotsToEncloseBy(
+        coord.sgfToPti(applyIsometry("db", isometry, coord)), 1, infty{15});
+    EXPECT_EQ(9, count);
 }
 
 INSTANTIATE_TEST_CASE_P(Par, IsometryFixture,
