@@ -991,6 +991,114 @@ TEST_P(IsometryFixture, priorsForLadderExtension2)
               game.priorsForLadderExtension(false, somewhat_bad_SE, attacking));
 }
 
+TEST_P(IsometryFixture, findNumberOfDotsToEncloseBy_1pt)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        ".xxx..."
+        "x.oox.."
+        ".xxox.."
+        "......."
+        "......."
+        "......."
+        ".......");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    using infty = int;
+    const auto count = game.findNumberOfDotsToEncloseBy(
+        coord.sgfToPti(applyIsometry("bb", isometry, coord)), 1, infty{3});
+    EXPECT_EQ(1, count);
+}
+
+TEST_P(IsometryFixture, findNumberOfDotsToEncloseBy_3pts)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        ".xxx..."
+        "x.oox.."
+        ".x.o..."
+        ".x.o..."
+        "...x..."
+        "......."
+        ".......");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    using infty = int;
+    const auto count = game.findNumberOfDotsToEncloseBy(
+        coord.sgfToPti(applyIsometry("dd", isometry, coord)), 1, infty{5});
+    EXPECT_EQ(3, count);
+}
+
+TEST_P(IsometryFixture, findNumberOfDotsToEncloseBy_infty)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        ".xxx..."
+        "x.oox.."
+        ".x.o..."
+        ".x.ooo."
+        "...xo.."
+        "....o.."
+        ".......");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    using infty = int;
+    const auto count = game.findNumberOfDotsToEncloseBy(
+        coord.sgfToPti(applyIsometry("dd", isometry, coord)), 1, infty{10});
+    EXPECT_EQ(10, count);
+}
+
+TEST_P(IsometryFixture, findNumberOfDotsToEncloseBy_7pts)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        ".xxx..."
+        "x.oox.."
+        ".x.o..."
+        ".x.oo.."
+        "...xo.."
+        "....o.."
+        ".......");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    using infty = int;
+    const auto count = game.findNumberOfDotsToEncloseBy(
+        coord.sgfToPti(applyIsometry("dd", isometry, coord)), 1, infty{10});
+    EXPECT_EQ(7, count);
+}
+
+TEST_P(IsometryFixture, findNumberOfDotsToEncloseBy_emptyPoint_7pts)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        ".xxx..."
+        "x.oox.."
+        ".x.o..."
+        ".x..o.."
+        "...xo.."
+        "....o.."
+        ".......");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    using infty = int;
+    const auto count = game.findNumberOfDotsToEncloseBy(
+        coord.sgfToPti(applyIsometry("dd", isometry, coord)), 1, infty{10});
+    EXPECT_EQ(7, count);
+}
+
+TEST_P(IsometryFixture, findNumberOfDotsToEncloseBy_emptyPointInBambus_7pts)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        ".xxx..."
+        "..o...."
+        "..o.o.."
+        "..o.o.."
+        "..o.o.."
+        "....o.."
+        ".......");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    using infty = int;
+    const auto count = game.findNumberOfDotsToEncloseBy(
+        coord.sgfToPti(applyIsometry("dd", isometry, coord)), 1, infty{15});
+    EXPECT_EQ(12, count);
+}
+
 INSTANTIATE_TEST_CASE_P(Par, IsometryFixture,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 

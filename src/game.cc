@@ -3819,6 +3819,246 @@ std::tuple<int, pti, pti> Game::checkLadder(int who_defends, pti where) const
             next_att_dot, next_def_dot};
 }
 
+namespace
+{
+using Edge = std::pair<pti, pti>;
+struct EdgeInfo
+{
+    int capacity;
+    int flow;
+};
+
+std::vector<int> findPathInGraph(std::map<Edge, EdgeInfo> &capAndFlow,
+                                 int source, int sink)
+{
+    std::vector<int> path;
+    int current_point = source;
+    path.push_back(current_point);
+    std::set<int> visited;
+    visited.insert(current_point);
+    using IteratorT = typename std::decay_t<decltype(capAndFlow)>::iterator;
+    std::vector<IteratorT> stack;
+
+    auto findEdgeToVisit = [&capAndFlow, &stack, &path](int current_point)
+    {
+        if (stack.size() != path.size())
+        {
+            stack.push_back(capAndFlow.lower_bound(Edge{current_point, 0}));
+            return stack.back();
+        }
+        return std::next(stack.back());
+    };
+
+    auto tryToGoDeeper = [&capAndFlow, &stack, &path, &visited](
+                             int current_point, IteratorT it) -> bool
+    {
+        auto isValid = [&capAndFlow, current_point](IteratorT it) -> bool
+        {
+            if (it == capAndFlow.end()) return false;
+            return it->first.first == current_point;
+        };
+
+        auto mayVisit = [&visited](IteratorT it) -> bool
+        {
+            return (it->second.flow < it->second.capacity &&
+                    not visited.contains(it->first.second));
+        };
+
+        auto visit =
+            [&capAndFlow, &stack, &path, &visited, current_point](IteratorT it)
+        {
+            stack.back() = it;
+            int next_point = it->first.second;
+            ++(it->second.flow);
+            --capAndFlow.at(Edge{next_point, current_point}).flow;
+            visited.insert(next_point);
+            path.push_back(next_point);
+        };
+
+        for (; isValid(it); ++it)
+        {
+            if (mayVisit(it))
+            {
+                visit(it);
+                return true;
+            }
+        }
+        return false;
+    };
+
+    auto unvisit = [&capAndFlow, &stack, &path, &visited](int current_point)
+    {
+        stack.pop_back();
+        if (!stack.empty())
+        {
+            auto it = stack.back();
+            int prev_point = it->first.first;
+            --(it->second.flow);
+            ++capAndFlow.at(Edge{current_point, prev_point}).flow;
+        }
+        visited.erase(current_point);
+        path.pop_back();
+    };
+
+    try
+    {
+        for (;;)
+        {
+            current_point = path.back();
+            if (current_point == sink) return path;
+            const auto it = findEdgeToVisit(current_point);
+            const bool went_deeper = tryToGoDeeper(current_point, it);
+            if (went_deeper) continue;
+            unvisit(current_point);
+            if (path.empty()) return path;
+        }
+    }
+    catch (...)
+    {
+        std::cout << "Wyjatek!\n";
+        std::cout << "path:";
+        for (auto el : path) std::cout << " " << el;
+        std::cout << std::endl;
+        std::cout << "stack:";
+        for (auto el : stack)
+        {
+            auto [key, value] = *el;
+            std::cout << " " << key.first << "->" << key.second << ":("
+                      << value.capacity << "," << value.flow << ")";
+        }
+        std::cout << std::endl;
+
+        std::cout << "full:";
+        for (auto [key, value] : capAndFlow)
+            std::cout << " " << key.first << "->" << key.second << ":("
+                      << value.capacity << "," << value.flow << ")";
+        std::cout << std::endl;
+        throw;
+    }
+}
+
+}  // anonymous namespace
+
+/// who tries to enclose point source, returns the minimum number of dots to
+/// play returns infty if the number >= infty
+int Game::findNumberOfDotsToEncloseBy(pti source, int who, int infty) const
+{
+    std::map<Edge, EdgeInfo> capAndFlow;
+    const pti sink = 0;
+    const pti outerMask = 0x4000;
+    for (auto ind = coord.first; ind <= coord.last; ind++)
+    {
+        if (whoseDotMarginAt(ind) == 0)
+        {
+            capAndFlow.emplace(Edge{ind, ind | outerMask}, EdgeInfo{1, 0});
+            capAndFlow.emplace(Edge{ind | outerMask, ind}, EdgeInfo{0, 0});
+            if (coord.dist[ind] == 0)
+            {
+                capAndFlow.emplace(Edge{ind | outerMask, sink}, EdgeInfo{1, 0});
+                capAndFlow.emplace(Edge{sink, ind | outerMask}, EdgeInfo{0, 0});
+                continue;
+            }
+
+            for (int d = 0; d < 4; d++)
+            {
+                const auto ind2 = ind + coord.nb4[d];
+                if (whoseDotMarginAt(ind2) == 0)
+                {
+                    capAndFlow.emplace(Edge{ind | outerMask, ind2},
+                                       EdgeInfo{1, 0});
+                    capAndFlow.emplace(Edge{ind2, ind | outerMask},
+                                       EdgeInfo{0, 0});
+                }
+            }
+            continue;
+        }
+
+        if (whoseDotMarginAt(ind) == who && descr.at(worm[ind]).leftmost == ind)
+        {
+            std::set<pti> neighbs;
+            const auto leftmost = ind;
+            auto addNeighbs = [&neighbs, this](int i)
+            {
+                for (int d = 0; d < 4; d++)
+                {
+                    const auto ind2 = i + coord.nb4[d];
+                    if (whoseDotMarginAt(ind2) == 0) neighbs.insert(ind2);
+                }
+            };
+            addNeighbs(ind);
+            for (pti i = nextDot[ind]; i != leftmost; i = nextDot[i])
+            {
+                addNeighbs(i);
+            }
+            // we have all neighbours, connect them to sink if worm is safe
+            const bool isSourceInThisWorm =
+                (whoseDotMarginAt(source) == who &&
+                 descr.at(worm[source]).leftmost == ind);
+            if (descr.at(worm[ind]).isSafe())
+            {
+                for (const auto el : neighbs)
+                {
+                    capAndFlow.emplace(Edge{el | outerMask, sink},
+                                       EdgeInfo{1, 0});
+                    capAndFlow.emplace(Edge{sink, el | outerMask},
+                                       EdgeInfo{0, 0});
+                }
+                if (isSourceInThisWorm)
+                {
+                    capAndFlow.emplace(Edge{source | outerMask, sink},
+                                       EdgeInfo{infty, 0});
+                    capAndFlow.emplace(Edge{sink, source | outerMask},
+                                       EdgeInfo{0, 0});
+                }
+                continue;
+            }
+            // not safe, so connect each point with a fixed point inside, and a
+            // point inside with each point When source is inside, source can be
+            // this fixed point and there is no need for connections from
+            // neighbs to source.
+            const auto fixedPoint = ind;
+            if (not isSourceInThisWorm)
+            {
+                capAndFlow.emplace(Edge{fixedPoint, fixedPoint | outerMask},
+                                   EdgeInfo{infty, 0});
+                capAndFlow.emplace(Edge{fixedPoint | outerMask, fixedPoint},
+                                   EdgeInfo{0, 0});
+            }
+            for (const auto el : neighbs)
+            {
+                if (isSourceInThisWorm)
+                {
+                    capAndFlow.emplace(Edge{source | outerMask, el},
+                                       EdgeInfo{1, 0});
+                    capAndFlow.emplace(Edge{el, source | outerMask},
+                                       EdgeInfo{0, 0});
+                }
+                else
+                {
+                    capAndFlow.emplace(Edge{el | outerMask, fixedPoint},
+                                       EdgeInfo{infty, 0});
+                    capAndFlow.emplace(Edge{fixedPoint, el | outerMask},
+                                       EdgeInfo{0, 0});
+                    capAndFlow.emplace(Edge{fixedPoint | outerMask, el},
+                                       EdgeInfo{1, 0});
+                    capAndFlow.emplace(Edge{el, fixedPoint | outerMask},
+                                       EdgeInfo{0, 0});
+                }
+            }
+        }
+    }
+    // now go from source to sink
+    int current_point = source | outerMask;
+
+    for (int count = 0; count < infty; ++count)
+    {
+        std::vector<int> path =
+            findPathInGraph(capAndFlow, current_point, sink);
+        if (path.empty()) return count;
+    }
+    return infty;
+}
+
 /// Finds simplifying enclosures (=those that have 0 territory).
 bool Game::appendSimplifyingEncl(
     std::vector<std::shared_ptr<Enclosure>> &encl_moves, uint64_t &zobrists,

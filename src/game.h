@@ -480,6 +480,8 @@ class Game
     pti isInBorder(pti ind, int who) const;
     std::tuple<int, pti, pti> checkLadder(int who_defends, pti where) const;
 
+    int findNumberOfDotsToEncloseBy(pti ind, int who, int infty) const;
+
    private:
     pti& isInTerr(pti ind, int who);
     pti& isInEncl(pti ind, int who);
