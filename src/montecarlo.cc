@@ -601,8 +601,8 @@ std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
     for (int t = 0; t < threads; t++)
     {
         concurrent.push_back(
-            std::async(std::launch::async,
-                       [=] { return runSimulations(iter_count, t, threads); }));
+            std::async(std::launch::async, [=, this]
+                       { return runSimulations(iter_count, t, threads); }));
     }
     auto time_begin = std::chrono::high_resolution_clock::now();
     if (msec > 0)

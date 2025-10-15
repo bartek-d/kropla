@@ -480,6 +480,14 @@ class Game
     pti isInBorder(pti ind, int who) const;
     std::tuple<int, pti, pti> checkLadder(int who_defends, pti where) const;
 
+    using Edge = std::pair<pti, pti>;
+    struct EdgeInfo
+    {
+        int capacity;
+        int flow;
+    };
+    std::map<Edge, EdgeInfo> findCapAndFlow(pti source, int who, pti sink,
+                                            pti outerMask, int infty) const;
     int findNumberOfDotsToEncloseBy(pti ind, int who, int infty) const;
 
    private:

@@ -3821,16 +3821,11 @@ std::tuple<int, pti, pti> Game::checkLadder(int who_defends, pti where) const
 
 namespace
 {
-using Edge = std::pair<pti, pti>;
-struct EdgeInfo
-{
-    int capacity;
-    int flow;
-};
 
-std::vector<int> findPathInGraph(std::map<Edge, EdgeInfo> &capAndFlow,
-                                 int source, int sink)
+std::vector<int> findPathInGraph(
+    std::map<Game::Edge, Game::EdgeInfo> &capAndFlow, int source, int sink)
 {
+    using Edge = Game::Edge;
     std::vector<int> path;
     int current_point = source;
     path.push_back(current_point);
@@ -3939,13 +3934,12 @@ std::vector<int> findPathInGraph(std::map<Edge, EdgeInfo> &capAndFlow,
 
 }  // anonymous namespace
 
-/// who tries to enclose point source, returns the minimum number of dots to
-/// play returns infty if the number >= infty
-int Game::findNumberOfDotsToEncloseBy(pti source, int who, int infty) const
+std::map<Game::Edge, Game::EdgeInfo> Game::findCapAndFlow(pti source, int who,
+                                                          pti sink,
+                                                          pti outerMask,
+                                                          int infty) const
 {
     std::map<Edge, EdgeInfo> capAndFlow;
-    const pti sink = 0;
-    const pti outerMask = 0x4000;
     for (auto ind = coord.first; ind <= coord.last; ind++)
     {
         if (whoseDotMarginAt(ind) == 0)
@@ -4047,6 +4041,17 @@ int Game::findNumberOfDotsToEncloseBy(pti source, int who, int infty) const
             }
         }
     }
+    return capAndFlow;
+}
+
+/// who tries to enclose point source, returns the minimum number of dots to
+/// play returns infty if the number >= infty
+int Game::findNumberOfDotsToEncloseBy(pti source, int who, int infty) const
+{
+    const pti sink = 0;
+    const pti outerMask = 0x4000;
+    std::map<Edge, EdgeInfo> capAndFlow =
+        findCapAndFlow(source, who, sink, outerMask, infty);
     // now go from source to sink
     int current_point = source | outerMask;
 
