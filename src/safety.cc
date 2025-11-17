@@ -24,10 +24,11 @@
 
 #include "safety.h"
 
+#include <algorithm>
 #include <cassert>
 
 #include "board.h"
-#include "game.h"
+#include "simplegame.h"
 
 namespace
 {
@@ -41,7 +42,7 @@ Safety::Safety()
     move_value.resize(coord.getSize(), {0, 0});
 }
 
-void Safety::init(Game* game)
+void Safety::init(const SimpleGame* game)
 {
     safety.resize(coord.getSize());
     move_value.resize(coord.getSize(), {0, 0});
@@ -51,7 +52,7 @@ void Safety::init(Game* game)
     prevAddedMoveSugg = {};
 }
 
-bool Safety::computeSafety(Game* game, int what_to_update)
+bool Safety::computeSafety(const SimpleGame* game, int what_to_update)
 {
     bool something_changed =
         (what_to_update ==
@@ -88,7 +89,7 @@ bool Safety::computeSafety(Game* game, int what_to_update)
     return something_changed;
 }
 
-void Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n,
+void Safety::initSafetyForMargin(const SimpleGame* game, pti p, pti v, pti n,
                                  int direction_is_clockwise,
                                  bool& something_changed)
 {
@@ -193,7 +194,7 @@ void Safety::initSafetyForMargin(Game* game, pti p, pti v, pti n,
     }
 }
 
-void Safety::findMoveValues(Game* game)
+void Safety::findMoveValues(const SimpleGame* game)
 {
     markMovesAsOld();
     updateAfterMoveWithoutAnyChangeToSafety();
@@ -270,8 +271,8 @@ void Safety::removeOldMoves()
     }
 }
 
-void Safety::findMoveValuesForMargin(Game* game, pti p, pti last_p, pti v,
-                                     pti n, int v_is_clockwise)
+void Safety::findMoveValuesForMargin(const SimpleGame* game, pti p, pti last_p,
+                                     pti v, pti n, int v_is_clockwise)
 {
     constexpr pti bad_move = -10;
     constexpr pti good_move = 10;
@@ -349,7 +350,8 @@ void Safety::findMoveValuesForMargin(Game* game, pti p, pti last_p, pti v,
     }
 }
 
-bool Safety::areThereNoFreePointsAtTheEdgeNearPoint(Game* game, pti p) const
+bool Safety::areThereNoFreePointsAtTheEdgeNearPoint(const SimpleGame* game,
+                                                    pti p) const
 {
     if (coord.dist[p] == 0)
     {
@@ -373,7 +375,8 @@ bool Safety::areThereNoFreePointsAtTheEdgeNearPoint(Game* game, pti p) const
     return true;
 }
 
-void Safety::updateAfterMove(Game* game, int what_to_update, pti last_move)
+void Safety::updateAfterMove(const SimpleGame* game, int what_to_update,
+                             pti last_move)
 {
     if (what_to_update == 0)
     {

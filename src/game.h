@@ -39,84 +39,10 @@
 #include "board.h"
 #include "enclosure.h"
 #include "game_utils.h"
-#include "history.h"
 #include "patterns.h"
 #include "safety.h"
+#include "simplegame.h"
 #include "threats.h"
-
-namespace krb
-{
-typedef std::set<pti, std::greater<pti>> PointsSet;
-template <class T, std::size_t ElemSize = 200>
-using SmallVector =
-    std::vector<T, short_alloc<T, ElemSize * sizeof(T), alignof(T)>>;
-}  // namespace krb
-
-/********************************************************************************************************
-  Worm description class
-*********************************************************************************************************/
-
-struct WormDescr
-{
-    pti dots[2];   // number of dots of players
-    pti leftmost;  // the dot of the worm with the smallest index (the top one
-                   // from the leftmost)
-    pti group_id;  // some positive number which is common for worms in the same
-                   // group (i.e., connected) and different otherwise
-    int32_t safety;  // safety info, ==0 not safe, ==1 partially safe, >=2 safe
-    bool isSafe() const { return safety >= 2; }
-    const static int32_t SAFE_VALUE =
-        20000;  // safety := SAFE_VALUE when the worm touches the edge
-    const static int32_t SAFE_THRESHOLD = 10000;
-    krb::SmallVector<pti, 6>::allocator_type::arena_type arena_neighb;
-    krb::SmallVector<pti, 6> neighb{
-        arena_neighb};  // numbers of other worms that touch this one
-    std::string show() const;
-    WormDescr(const WormDescr& other)
-        : leftmost{other.leftmost},
-          group_id{other.group_id},
-          safety{other.safety},
-          neighb{other.neighb, arena_neighb}
-    {
-        dots[0] = other.dots[0];
-        dots[1] = other.dots[1];
-    }
-    WormDescr() = default;
-    WormDescr& operator=(const WormDescr&) = delete;
-    WormDescr& operator=(WormDescr&&) = delete;
-    ~WormDescr() = default;
-};
-
-/********************************************************************************************************
-  Connections class
-*********************************************************************************************************/
-struct OneConnection
-{
-    std::array<pti, 4> groups_id{
-        0, 0, 0, 0};  // id's of connected groups, the same may appear more than
-                      // once, 0-filled at the end if necessary
-    int code{0};      // code of the neighbourhood used by coord.connections_tab
-    // int() and != are mainly for debugging, to print and check connections
-    operator int() const
-    {
-        return (groups_id[0] != 0) + (groups_id[1] != 0) + (groups_id[2] != 0) +
-               (groups_id[3] != 0);
-    }
-    bool operator!=(const OneConnection& other) const;
-    // returns the number of groups in the neighbourhood
-    int count()
-    {
-        int count = 0;
-        while (count < 4 && groups_id[count] != 0) count++;
-        return count;
-    }
-    bool contains(pti what) const
-    {
-        return (groups_id[0] == what) or (groups_id[1] == what) or
-               (groups_id[2] == what) or (groups_id[3] == what);
-    }
-    int getUniqueGroups(std::array<pti, 4>& ug) const;
-};
 
 /********************************************************************************************************
   Movestats class for handling Monte Carlo tree.
@@ -156,6 +82,7 @@ struct DebugInfo
 /********************************************************************************************************
   Treenode class for handling Monte Carlo tree.
 *********************************************************************************************************/
+class Game;
 struct Treenode
 {
     Treenode* parent{nullptr};
@@ -306,19 +233,12 @@ class InterestingMoves
 
 class Game
 {
-    std::vector<pti> worm;
-    std::vector<pti> nextDot;
-    std::unordered_map<pti, WormDescr> descr;
+    SimpleGame sg;
 
    public:
     AllThreats threats[2];
 
    private:
-    std::vector<OneConnection> connects[2];
-    Score score[2];
-    int lastWormNo[2];  // lastWormNo used in worm, for players 1,2
-    int nowMoves;       // =1 or 2
-    History history{};
     //
     std::vector<pti> recalculate_list;
     PossibleMoves possible_moves;
@@ -333,19 +253,8 @@ class Game
     std::vector<std::shared_ptr<Enclosure>> ml_encl_moves;
     std::vector<std::shared_ptr<Enclosure>> ml_opt_encl_moves;
     std::vector<uint64_t> ml_encl_zobrists;
-    int update_soft_safety{0};  // if safety_soft needs to be recalculated after
-                                // dot+(enclosure), and which margins
-    Safety safety_soft;
+    int update_soft_safety{0};
     int dame_moves_so_far{0};
-    // worm[] has worm-id if it is >= 4 && <= MASK_WORM_NO,
-    // worm[] & MASK_DOT can have 4 values: 0=empty, 1,2 = dots, 3=point outside
-    // the board
-    static const int MASK_DOT = 3;
-    static const int CONST_WORM_INCR = 4;  // =MASK_DOT+1
-    static const int MASK_WORM_NO = 0xfff;
-    static const int MASK_MARK = 0x2000;    // used by some functions
-    static const int MASK_BORDER = 0x4000;  //
-    //
     static const int COEFF_URGENT = 4;
     static const int COEFF_NONURGENT = 1;
     bool must_surround{false};
@@ -362,11 +271,6 @@ class Game
    private:
 #endif
     //
-    void initWorm();
-    void wormMergeAny(pti dst, pti src);
-    void wormMergeOther(pti dst, pti src);
-    void wormMergeSame(pti dst, pti src);
-    void wormMerge_common(pti dst, pti src);
     int floodFillExterior(std::vector<pti>& tab, pti mark_by,
                           pti stop_at) const;
     static const constexpr float COST_INFTY = 1000.0;
@@ -380,7 +284,15 @@ class Game
                                               pti forbidden2, int who) const;
     void addClosableNeighbours(std::vector<pti>& tab, pti p0, pti p1, pti p2,
                                int who) const;
-    bool haveConnection(pti p1, pti p2, int who) const;
+    bool haveConnection(pti p1, pti p2, int who) const
+    {
+        return sg.haveConnection(p1, p2, who);
+    }
+    const std::vector<OneConnection>& getConnects(int ind) const
+    {
+        return sg.getConnects(ind);
+    }
+
     std::vector<pti> findThreats2moves_preDot(pti ind, int who);
     SmallMultimap<7, 7> getEmptyPointsCloseToIndTouchingSomeOtherGroup(
         const SmallMultiset<pti, 4>& connected_groups, pti ind, int who) const;
@@ -400,11 +312,6 @@ class Game
     void pointNowInDanger2moves(pti ind, int who);
     void pointNowSafe2moves(pti ind, int who);
     bool isSafeFor(pti ind, int who) const;
-    void connectionsRecalculateCode(pti ind, int who);
-    void connectionsRecalculateConnect(pti ind, int who);
-    void connectionsRecalculatePoint(pti ind, int who);
-    void connectionsRecalculateNeighb(pti ind, int who);
-    void connectionsRenameGroup(pti dst, pti src);
     bool isEmptyInDirection(pti ind, int direction) const;
     bool isEmptyInNeighbourhood(pti ind) const;
     pattern3_val getPattern3Value(pti ind, int who) const;
@@ -435,7 +342,8 @@ class Game
    public:
     Game() = delete;
     Game(SgfSequence seq, int max_moves, bool must_surround = false);
-    int whoNowMoves() const { return nowMoves; };
+    const SimpleGame& getSimpleGame() const { return sg; }
+    int whoNowMoves() const { return sg.whoNowMoves(); };
     void replaySgfSequence(SgfSequence seq, int max_moves);
     void placeDot(int x, int y, int who);
     Enclosure findNonSimpleEnclosure(std::vector<pti>& tab, pti point, pti mask,
@@ -463,18 +371,10 @@ class Game
     void makeMove(const Move& m);
     void makeMoveWithPointsToEnclose(
         const Move& m, const std::vector<std::string>& to_enclose);
+    bool isDotAt(pti ind) const { return sg.isDotAt(ind); }
+    int whoseDotMarginAt(pti ind) const { return sg.whoseDotMarginAt(ind); }
+    int whoseDotAt(pti ind) const { return whoseDotAt(ind); }
 
-    bool isDotAt(pti ind) const
-    {
-        assert(worm[ind] >= 0 && worm[ind] <= MASK_WORM_NO);
-        return (worm[ind] >= CONST_WORM_INCR);
-    }
-    int whoseDotMarginAt(pti ind) const { return (worm[ind] & MASK_DOT); }
-    int whoseDotAt(pti ind) const
-    {
-        int v[4] = {0, 1, 2, 0};
-        return v[worm[ind] & MASK_DOT];
-    }
     pti isInTerr(pti ind, int who) const;
     pti isInEncl(pti ind, int who) const;
     pti isInBorder(pti ind, int who) const;
@@ -497,18 +397,12 @@ class Game
 
    public:
     bool isDameOnEdge(pti i, int who) const;
-    int getSafetyOf(pti ind) const { return descr.at(worm[ind]).safety; }
-    float getTotalSafetyOf(pti ind) const
-    {
-        return whoseDotAt(ind)
-                   ? descr.at(worm[ind]).safety + safety_soft.getSafetyOf(ind)
-                   : 0.0f;
-    }
+    int getSafetyOf(pti ind) const { return sg.getSafetyOf(ind); }
+    float getTotalSafetyOf(pti ind) const { return sg.getTotalSafetyOf(ind); }
     pattern3_t readPattern3_at(pti ind) const { return pattern3_at[ind]; }
     pattern3_t getPattern3_at(pti ind) const;
     uint64_t getZobrist() const { return zobrist; }
-    uint64_t getHistorySize() const { return history.size(); }
-    const History& getHistory() const { return history; }
+    const History& getHistory() const { return sg.getHistory(); }
     NonatomicMovestats priorsAndDameForPattern3(bool& is_dame, bool is_root,
                                                 bool is_in_our_te,
                                                 bool is_in_opp_te, int i,
@@ -563,7 +457,6 @@ class Game
     bool checkPattern3valuesCorrectness() const;
 
     void seedRandomEngine(int newseed) { engine.seed(newseed); }
-    void findConnections();
     const AllThreats& getAllThreatsForPlayer(int who) const
     {
         return threats[who];
@@ -577,7 +470,7 @@ class Game
     void showThreats2m();
     void showPattern3extra();
 
-    std::string showDescr(pti p) const { return descr.at(p).show(); }
+    std::string showDescr(pti p) const { return sg.descr.at(p).show(); }
 
     friend class Safety;
     friend class GroupNeighbours;

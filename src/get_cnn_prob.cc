@@ -184,7 +184,7 @@ std::pair<bool, std::vector<float>> getCnnInfo(Game& game,
     std::pair<bool, std::vector<float>> fromHT{false, {}};
     if (not use_secondary_cnn)
     {
-        auto pos = Position{game.getHistorySize(), game.getZobrist()};
+        auto pos = Position{game.getHistory().size(), game.getZobrist()};
         fromHT = getCnnInfoFromHT(pos);
         if (fromHT.first)
         {
@@ -201,7 +201,7 @@ std::pair<bool, std::vector<float>> getCnnInfo(Game& game,
     res = convertToBoard(res);
     if (not use_secondary_cnn)
     {
-        auto pos = Position{game.getHistorySize(), game.getZobrist()};
+        auto pos = Position{game.getHistory().size(), game.getZobrist()};
         saveCnnInfo(pos, res);
     }
     return {success, std::move(res)};

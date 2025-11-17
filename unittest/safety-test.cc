@@ -55,7 +55,7 @@ TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialised1)
         ".......");
     Game game = constructGameFromSgfWithIsometry(sgf, isometry);
     Safety safety;
-    safety.init(&game);
+    safety.init(&game.getSimpleGame());
     EXPECT_EQ(0.75f, safety.getSafetyOf(
                          coord.sgfToPti(applyIsometry("cb", isometry, coord))));
     EXPECT_EQ(1.50f, safety.getSafetyOf(
@@ -108,7 +108,7 @@ TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialised2)
         ".......");
     Game game = constructGameFromSgfWithIsometry(sgf, isometry);
     Safety safety;
-    safety.init(&game);
+    safety.init(&game.getSimpleGame());
     EXPECT_EQ(0.0f, safety.getSafetyOf(
                         coord.sgfToPti(applyIsometry("bb", isometry, coord))));
     EXPECT_EQ(2.0f, safety.getSafetyOf(
@@ -171,7 +171,7 @@ TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialised3)
         ".x.....");
     Game game = constructGameFromSgfWithIsometry(sgf, isometry);
     Safety safety;
-    safety.init(&game);
+    safety.init(&game.getSimpleGame());
     EXPECT_EQ(0.75f, safety.getSafetyOf(
                          coord.sgfToPti(applyIsometry("bb", isometry, coord))));
     EXPECT_EQ(0.0f, safety.getSafetyOf(
@@ -230,7 +230,7 @@ TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialised3b)
         "...oox.");
     Game game = constructGameFromSgfWithIsometry(sgf, isometry);
     Safety safety;
-    safety.init(&game);
+    safety.init(&game.getSimpleGame());
     EXPECT_EQ(0.0f, safety.getSafetyOf(
                         coord.sgfToPti(applyIsometry("bb", isometry, coord))));
     EXPECT_EQ(0.0f, safety.getSafetyOf(
@@ -266,11 +266,12 @@ TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialised3c)
         ".....o.");
     Game game = constructGameFromSgfWithIsometry(sgf, isometry);
     Safety safety;
-    safety.init(&game);
+    safety.init(&game.getSimpleGame());
     EXPECT_EQ(0.0f, safety.getSafetyOf(
                         coord.sgfToPti(applyIsometry("fg", isometry, coord))));
     game.makeSgfMove(applyIsometry("dg", isometry, coord), 1);
-    safety.updateAfterMove(&game, safety.getUpdateValueForAllMargins());
+    safety.updateAfterMove(&game.getSimpleGame(),
+                           safety.getUpdateValueForAllMargins());
     EXPECT_EQ(0.0f, safety.getSafetyOf(
                         coord.sgfToPti(applyIsometry("fg", isometry, coord))));
 }
@@ -288,7 +289,7 @@ TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialisedAndDotsAtCornersAreIgnored)
         ".x....x");
     Game game = constructGameFromSgfWithIsometry(sgf, isometry);
     Safety safety;
-    safety.init(&game);
+    safety.init(&game.getSimpleGame());
     EXPECT_EQ(0.75f, safety.getSafetyOf(
                          coord.sgfToPti(applyIsometry("bb", isometry, coord))));
     EXPECT_EQ(0.0f, safety.getSafetyOf(
@@ -348,12 +349,13 @@ TEST_P(IsometryFixtureS, safetyIsCorrectlyInitialisedGame_1uWjT8c6B_move95)
         "........");
     Game game = constructGameFromSgfWithIsometry(sgf, isometry);
     Safety safety;
-    safety.init(&game);
+    safety.init(&game.getSimpleGame());
 
     game.makeSgfMove(applyIsometry("ae", isometry, coord), 2);
     safety.updateAfterMove(
-        &game, safety.getUpdateValueForMarginsContaining(
-                   coord.sgfToPti(applyIsometry("ae", isometry, coord))));
+        &game.getSimpleGame(),
+        safety.getUpdateValueForMarginsContaining(
+            coord.sgfToPti(applyIsometry("ae", isometry, coord))));
 
     EXPECT_EQ(0.0f, safety.getSafetyOf(
                         coord.sgfToPti(applyIsometry("bd", isometry, coord))));
@@ -394,11 +396,12 @@ TEST_P(IsometryFixtureS, moveSuggestionsAreCorrect)
         ".......");
     Game game = constructGameFromSgfWithIsometry(sgf, isometry);
     Safety safety;
-    safety.init(&game);
+    safety.init(&game.getSimpleGame());
     EXPECT_EQ(0.75f, safety.getSafetyOf(
                          coord.sgfToPti(applyIsometry("ef", isometry, coord))));
     game.makeSgfMove(applyIsometry("cf", isometry, coord), 1);
-    safety.updateAfterMove(&game, safety.getUpdateValueForAllMargins());
+    safety.updateAfterMove(&game.getSimpleGame(),
+                           safety.getUpdateValueForAllMargins());
     EXPECT_EQ(0.0f, safety.getSafetyOf(
                         coord.sgfToPti(applyIsometry("ef", isometry, coord))));
     auto moveSugg = safety.getCurrentlyAddedSugg();
@@ -409,7 +412,8 @@ TEST_P(IsometryFixtureS, moveSuggestionsAreCorrect)
     EXPECT_THAT(moveSugg[1], testing::UnorderedElementsAre(
                                  move("eg"), move("dg"), move("df")));
     game.makeSgfMove(applyIsometry("cg", isometry, coord), 2);
-    safety.updateAfterMove(&game, safety.getUpdateValueForAllMargins());
+    safety.updateAfterMove(&game.getSimpleGame(),
+                           safety.getUpdateValueForAllMargins());
     auto moveSuggNow = safety.getCurrentlyAddedSugg();
     auto moveSuggPrev = safety.getPreviouslyAddedSugg();
     EXPECT_THAT(moveSuggNow[0], testing::UnorderedElementsAre(move("bf")));
@@ -433,9 +437,10 @@ TEST_P(IsometryFixtureS,
         ".......");
     Game game = constructGameFromSgfWithIsometry(sgf, isometry);
     Safety safety;
-    safety.init(&game);
+    safety.init(&game.getSimpleGame());
     game.makeSgfMove(applyIsometry("cf", isometry, coord), 1);
-    safety.updateAfterMove(&game, safety.getUpdateValueForAllMargins());
+    safety.updateAfterMove(&game.getSimpleGame(),
+                           safety.getUpdateValueForAllMargins());
     auto moveSugg = safety.getCurrentlyAddedSugg();
     auto move = [&](auto pstr) -> pti
     { return coord.sgfToPti(applyIsometry(pstr, isometry, coord)); };
@@ -444,7 +449,8 @@ TEST_P(IsometryFixtureS,
     EXPECT_THAT(moveSugg[1], testing::UnorderedElementsAre(
                                  move("eg"), move("dg"), move("df")));
     game.makeSgfMove(applyIsometry("df", isometry, coord), 2);
-    safety.updateAfterMove(&game, safety.getUpdateValueForAllMargins());
+    safety.updateAfterMove(&game.getSimpleGame(),
+                           safety.getUpdateValueForAllMargins());
     auto moveSuggNow = safety.getCurrentlyAddedSugg();
     auto moveSuggPrev = safety.getPreviouslyAddedSugg();
     EXPECT_TRUE(moveSuggNow[0].empty());
@@ -466,7 +472,7 @@ TEST_P(IsometryFixtureS, correctlyAssignedNoDame)
         ".......");
     Game game = constructGameFromSgfWithIsometry(sgf, isometry);
     Safety safety;
-    safety.init(&game);
+    safety.init(&game.getSimpleGame());
     EXPECT_EQ(0.0f, safety.getSafetyOf(
                         coord.sgfToPti(applyIsometry("cb", isometry, coord))));
     MoveSuggestions moveSugg = convertToMap(safety.getMoveValues());
@@ -500,12 +506,13 @@ TEST_P(IsometryFixtureS,
         ".......");
     Game game = constructGameFromSgfWithIsometry(sgf, isometry);
     Safety safety;
-    safety.init(&game);
+    safety.init(&game.getSimpleGame());
     auto move1_sgf = applyIsometry("df", isometry, coord);
     auto move1 = coord.sgfToPti(move1_sgf);
     game.makeSgfMove(move1_sgf, 1);
-    safety.updateAfterMove(
-        &game, safety.getUpdateValueForMarginsContaining(move1), move1);
+    safety.updateAfterMove(&game.getSimpleGame(),
+                           safety.getUpdateValueForMarginsContaining(move1),
+                           move1);
 
     auto move = [&](auto pstr) -> pti
     { return coord.sgfToPti(applyIsometry(pstr, isometry, coord)); };
@@ -518,8 +525,9 @@ TEST_P(IsometryFixtureS,
     auto move2_sgf = applyIsometry("cf", isometry, coord);
     auto move2 = coord.sgfToPti(move2_sgf);
     game.makeSgfMove(move2_sgf, 2);
-    safety.updateAfterMove(
-        &game, safety.getUpdateValueForMarginsContaining(move2), move2);
+    safety.updateAfterMove(&game.getSimpleGame(),
+                           safety.getUpdateValueForMarginsContaining(move2),
+                           move2);
     auto moveSuggPrev = safety.getPreviouslyAddedSugg();
     EXPECT_THAT(moveSuggPrev[0], testing::UnorderedElementsAre(
                                      move("dg"), move("eg"), move("ef")));
@@ -540,12 +548,13 @@ TEST_P(IsometryFixtureS,
         ".......");
     Game game = constructGameFromSgfWithIsometry(sgf, isometry);
     Safety safety;
-    safety.init(&game);
+    safety.init(&game.getSimpleGame());
     auto move1_sgf = applyIsometry("df", isometry, coord);
     auto move1 = coord.sgfToPti(move1_sgf);
     game.makeSgfMove(move1_sgf, 1);
-    safety.updateAfterMove(
-        &game, safety.getUpdateValueForMarginsContaining(move1), move1);
+    safety.updateAfterMove(&game.getSimpleGame(),
+                           safety.getUpdateValueForMarginsContaining(move1),
+                           move1);
 
     auto move = [&](auto pstr) -> pti
     { return coord.sgfToPti(applyIsometry(pstr, isometry, coord)); };
@@ -558,8 +567,9 @@ TEST_P(IsometryFixtureS,
     auto move2_sgf = applyIsometry("cg", isometry, coord);
     auto move2 = coord.sgfToPti(move2_sgf);
     game.makeSgfMove(move2_sgf, 2);
-    safety.updateAfterMove(
-        &game, safety.getUpdateValueForMarginsContaining(move2), move2);
+    safety.updateAfterMove(&game.getSimpleGame(),
+                           safety.getUpdateValueForMarginsContaining(move2),
+                           move2);
     auto moveSuggPrev = safety.getPreviouslyAddedSugg();
     EXPECT_THAT(moveSuggPrev[0], testing::UnorderedElementsAre(
                                      move("dg"), move("eg"), move("ef")));

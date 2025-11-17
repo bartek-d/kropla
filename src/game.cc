@@ -148,38 +148,6 @@ class Connections {
 */
 
 /********************************************************************************************************
-  Connections class
-*********************************************************************************************************/
-bool OneConnection::operator!=(const OneConnection &other) const
-{
-    for (int j = 0; j < 4; j++)
-        if (other.groups_id[j] != groups_id[j]) return true;
-    return false;
-}
-
-/// Finds unique groups in the neighbourhood (i.e., ug[i] != ug[j] for i!=j and
-/// i,j<count_ug). Does not change ug[i] for i>=count_ug.
-/// @param[out] unique_groups  The array where the unique groups' numbers are
-/// stored.
-/// @return                    The number of unique groups (count_ug).
-int OneConnection::getUniqueGroups(std::array<pti, 4> &unique_groups) const
-{
-    if (groups_id[0] == 0) return 0;
-    unique_groups[0] = groups_id[0];
-    if (groups_id[1] == 0) return 1;
-    int ug = 1;
-    for (int g = 1; g < 4; g++)
-    {
-        if (groups_id[g] == 0) break;
-        for (int j = 0; j < ug; j++)
-            if (unique_groups[j] == groups_id[g]) goto was_saved;
-        unique_groups[ug++] = groups_id[g];
-    was_saved:;
-    }
-    return ug;
-}
-
-/********************************************************************************************************
   Movestats class for handling Monte Carlo tree.
 *********************************************************************************************************/
 
@@ -720,19 +688,10 @@ int InterestingMoves::classOfMove(pti p) const
 SgfTree Game::sgf_tree;
 #endif
 
-void Game::initWorm()
-{
-    // set outside points to 3 in worm[]
-    for (int i = 0; i < coord.getSize(); i++)
-    {
-        if (coord.dist[i] < 0) worm[i] = 3;
-    }
-}
-
 Game::Game(SgfSequence seq, int max_moves, bool must_surround)
-    : descr{}, must_surround{must_surround}
+    : must_surround{must_surround}
 {
-    assert(Pattern3extra::MASK_DOT == MASK_DOT);
+    assert(Pattern3extra::MASK_DOT == sg.MASK_DOT);
     global::komi = 0;
     global::komi_ratchet = 10000;
     auto sz_pos = seq[0].findProp("SZ");
@@ -756,21 +715,14 @@ Game::Game(SgfSequence seq, int max_moves, bool must_surround)
     sgf_tree.changeBoardSize(coord.wlkx, coord.wlky);
 #endif
     // reserve memory
-    worm = std::vector<pti>(coord.getSize(), 0);
-    nextDot = std::vector<pti>(coord.getSize(), 0);
+    sg.reserveMemory();
     recalculate_list.reserve(coord.wlkx * coord.wlky);
     const pattern3_t empty_point = 0;
     pattern3_value[0] = std::vector<pattern3_val>(coord.getSize(), 0);
     pattern3_value[1] = std::vector<pattern3_val>(coord.getSize(), 0);
     pattern3_at = std::vector<pattern3_t>(coord.getSize(), empty_point);
-    connects[0] = std::vector<OneConnection>(coord.getSize(), OneConnection());
-    connects[1] = std::vector<OneConnection>(coord.getSize(), OneConnection());
     threats[0] = AllThreats();
     threats[1] = AllThreats();
-    lastWormNo[0] = 1;
-    lastWormNo[1] = 2;
-    safety_soft.init(this);
-    initWorm();
     possible_moves.generate();
     interesting_moves.generate();
 
@@ -1496,7 +1448,6 @@ Game::Game(SgfSequence seq, int max_moves, bool must_surround)
     // (...)
     // make moves
     start_time = std::chrono::high_resolution_clock::now();
-    nowMoves = 1;
     replaySgfSequence(seq, max_moves);
 }
 
@@ -1513,7 +1464,7 @@ void Game::replaySgfSequence(SgfSequence seq, int max_moves)
                     continue;  // Program kropki gives empty moves sometimes.
                 makeSgfMove(value, 1);
             }
-            nowMoves = 2;
+            sg.nowMoves = 2;
         }
         if (node.findProp("W") != node.props.end())
         {
@@ -1524,7 +1475,7 @@ void Game::replaySgfSequence(SgfSequence seq, int max_moves)
                     continue;  // Program kropki gives empty moves sometimes.
                 makeSgfMove(value, 2);
             }
-            nowMoves = 1;
+            sg.nowMoves = 1;
         }
         if (node.findProp("AB") != node.props.end())
         {
@@ -1584,8 +1535,8 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
         }
     }
     // find groups in the neighbourhood
-    std::array<pti, 4> groups = connects[who - 1][ind].groups_id;
-    int top = connects[who - 1][ind].count();
+    std::array<pti, 4> groups = sg.getConnects(who - 1)[ind].groups_id;
+    int top = sg.getConnects(who - 1)[ind].count();
     if (top == 0)
     {  // isolated dot cannot pose any threats
         return possible_threats;
@@ -1595,7 +1546,8 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
     if (smallest_terr)
     {
         auto border_group =
-            descr.at(worm[smallest_terr->encl->getBorderElement()]).group_id;
+            sg.descr.at(sg.worm[smallest_terr->encl->getBorderElement()])
+                .group_id;
         int count = 0;
         for (int g = 0; g < top; g++) count += (groups[g] == border_group);
         if (count >= 2)
@@ -1628,8 +1580,8 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
                 /* debug:
                    std::cerr << "count = " << count << ", encl_count = " <<
                    encl_count << std::endl; std::cerr << "last move [" <<
-                   nowMoves << "] at " << coord.showPt(history.back() &
-                   ~HISTORY_TERR) << std::endl; show(); assert(encl_count ==
+                   sg.nowMoves << "] at " << coord.showPt(sg.getHistory().back()
+                   & ~HISTORY_TERR) << std::endl; show(); assert(encl_count ==
                    count);
                 */
             }
@@ -1642,7 +1594,8 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
             for (int j = 0; j < 8; j++)
             {
                 pti nb = ind + coord.nb8[j];
-                if (isDotAt(nb) and descr.at(worm[nb]).group_id == border_group)
+                if (isDotAt(nb) and
+                    sg.descr.at(sg.worm[nb]).group_id == border_group)
                     gdots++;
             }
             if (gdots > 1)
@@ -1710,12 +1663,12 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
         auto debug_time = std::chrono::high_resolution_clock::now();
 
         std::array<pti, 4> unique_groups = {0, 0, 0, 0};
-        int ug = connects[who - 1][ind].getUniqueGroups(unique_groups);
+        int ug = sg.getConnects(who - 1)[ind].getUniqueGroups(unique_groups);
         if (ug >= 2)
         {
             for (int i = coord.first; i <= coord.last; i++)
             {
-                if (connects[who - 1][i].groups_id[1] !=
+                if (sg.getConnects(who - 1)[i].groups_id[1] !=
                         0  // this point connects at least 2 groups
                     and !coord.isInNeighbourhood(
                             i, ind))  // and does not touch [ind]
@@ -1725,7 +1678,7 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
                     for (int k = 0; k < ug; k++)
                     {
                         for (int j = 0; j < 4; j++)
-                            if (connects[who - 1][i].groups_id[j] ==
+                            if (sg.getConnects(who - 1)[i].groups_id[j] ==
                                 unique_groups[k])
                             {
                                 count++;
@@ -1742,7 +1695,7 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
                             if (whoseDotMarginAt(nb2) == who and
                                 std::find(unique_groups.begin(),
                                           unique_groups.end(),
-                                          descr.at(worm[nb2]).group_id) !=
+                                          sg.descr.at(sg.worm[nb2]).group_id) !=
                                     unique_groups.end())
                             {
                                 w |= 1;
@@ -1769,7 +1722,7 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
     for (int i = 0; i < 8; i++)
     {
         pti nb = ind + coord.nb8[i];
-        if (connects[who - 1][nb].groups_id[0] != 0)
+        if (sg.getConnects(who - 1)[nb].groups_id[0] != 0)
         {               // there is some dot of who, and we're inside the board
             int w = 0;  // find the code for the neighbourhood
             for (int j = 7; j >= 0; j--)
@@ -1778,7 +1731,8 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
                 if ((nb2 == ind) ||
                     (whoseDotMarginAt(nb2) == who and
                      std::find(groups.begin(), groups.end(),
-                               descr.at(worm[nb2]).group_id) != groups.end()))
+                               sg.descr.at(sg.worm[nb2]).group_id) !=
+                         groups.end()))
                 {
                     w |= 1;
                 }
@@ -1950,24 +1904,6 @@ void Game::addClosableNeighbours(std::vector<pti> &tab, pti p0, pti p1, pti p2,
     }
 }
 
-/// Checks if empty points p1, p2 are connected, i.e., if they both have the
-/// same group of who as a neighbour.
-bool Game::haveConnection(pti p1, pti p2, int who) const
-{
-    std::array<pti, 4> unique_groups1 = {0, 0, 0, 0};
-    int ug1 = connects[who - 1][p1].getUniqueGroups(unique_groups1);
-    if (ug1 == 0) return false;
-    std::array<pti, 4> unique_groups2 = {0, 0, 0, 0};
-    int ug2 = connects[who - 1][p2].getUniqueGroups(unique_groups2);
-    if (ug2 == 0) return false;
-    for (int i = 0; i < ug1; i++)
-    {
-        for (int j = 0; j < ug2; j++)
-            if (unique_groups1[i] == unique_groups2[j]) return true;
-    }
-    return false;
-}
-
 std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
 // find possible new threats in 2 moves because of the (future) dot of who at
 // [ind] Each possible threat consists of:
@@ -1980,8 +1916,8 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
     if (not threats[who - 1].isActiveThreats2m()) return {};
     std::vector<pti> possible_threats;
     // find groups in the neighbourhood
-    std::array<pti, 4> groups = connects[who - 1][ind].groups_id;
-    int top = connects[who - 1][ind].count();
+    std::array<pti, 4> groups = sg.getConnects(who - 1)[ind].groups_id;
+    int top = sg.getConnects(who - 1)[ind].count();
     if (top == 4) return possible_threats;
     SmallMultiset<pti, 4> connected_groups;
     if (top >= 1)
@@ -2007,7 +1943,7 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                 int count = 0;
                 for (int c = 0; c < 4; c++)
                 {
-                    auto g = connects[who - 1][nb].groups_id[c];
+                    auto g = sg.getConnects(who - 1)[nb].groups_id[c];
                     if (g == 0) break;
                     if (!connected_groups.contains(g))
                     {
@@ -2034,7 +1970,8 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                         {
                             for (int c = 0; c < 4; c++)
                             {
-                                auto g = connects[who - 1][nb2].groups_id[c];
+                                auto g =
+                                    sg.getConnects(who - 1)[nb2].groups_id[c];
                                 if (g == 0) break;
                                 // we found place nb2, which has group g as a
                                 // neighbour, check if g is in other_groups
@@ -2077,14 +2014,16 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                 auto tnb = ind + coord.nb8[i + 1];  // (i+1)&7
                 if (whoseDotMarginAt(tnb) == who)
                 {
-                    connected_only.remove_one(descr.at(worm[tnb]).group_id);
+                    connected_only.remove_one(
+                        sg.descr.at(sg.worm[tnb]).group_id);
                 }
                 else
                 {
                     tnb = ind + coord.nb8[i + 7];  // (i+7)&7
                     if (whoseDotMarginAt(tnb) == who)
                     {
-                        connected_only.remove_one(descr.at(worm[tnb]).group_id);
+                        connected_only.remove_one(
+                            sg.descr.at(sg.worm[tnb]).group_id);
                     }
                 }
             }
@@ -2094,28 +2033,32 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                 auto tnb = ind + coord.nb8[i + 1];  // (i+1)&7
                 if (whoseDotMarginAt(tnb) == who)
                 {
-                    connected_only.remove_one(descr.at(worm[tnb]).group_id);
+                    connected_only.remove_one(
+                        sg.descr.at(sg.worm[tnb]).group_id);
                 }
                 else
                 {
                     tnb = ind + coord.nb8[i + 2];  // (i+2)&7
                     if (whoseDotMarginAt(tnb) == who)
                     {
-                        connected_only.remove_one(descr.at(worm[tnb]).group_id);
+                        connected_only.remove_one(
+                            sg.descr.at(sg.worm[tnb]).group_id);
                     }
                 }
                 // second pair of neighbours
                 tnb = ind + coord.nb8[i + 7];  // (i+7)&7
                 if (whoseDotMarginAt(tnb) == who)
                 {
-                    connected_only.remove_one(descr.at(worm[tnb]).group_id);
+                    connected_only.remove_one(
+                        sg.descr.at(sg.worm[tnb]).group_id);
                 }
                 else
                 {
                     tnb = ind + coord.nb8[i + 6];  // (i+6)&7
                     if (whoseDotMarginAt(tnb) == who)
                     {
-                        connected_only.remove_one(descr.at(worm[tnb]).group_id);
+                        connected_only.remove_one(
+                            sg.descr.at(sg.worm[tnb]).group_id);
                     }
                 }
             }
@@ -2126,7 +2069,7 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
             }
             for (int gn = 0; gn < 4; gn++)
             {
-                pti g = connects[who - 1][nb].groups_id[gn];
+                pti g = sg.getConnects(who - 1)[nb].groups_id[gn];
                 if (g == 0) break;
                 if (connected_groups.contains(g))
                 {
@@ -2148,13 +2091,15 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                     // std::cerr << "    nb3 = " << coord.showPt(nb3) <<
                     // std::endl;
                     if (whoseDotMarginAt(nb3) == who and
-                        connected_groups.contains(descr.at(worm[nb3]).group_id))
+                        connected_groups.contains(
+                            sg.descr.at(sg.worm[nb3]).group_id))
                     {
                         /*
                         // dla pokazania ustaw kropki na ind, nb, nb2
-                        CleanupOneVar<pti> worm_where_cleanup0(&worm[ind],
-                        who+4); CleanupOneVar<pti> worm_where_cleanup(&worm[nb],
-                        who); CleanupOneVar<pti> worm_where_cleanup2(&worm[nb2],
+                        CleanupOneVar<pti> sg.worm_where_cleanup0(&sg.worm[ind],
+                        who+4); CleanupOneVar<pti>
+                        sg.worm_where_cleanup(&sg.worm[nb], who);
+                        CleanupOneVar<pti> sg.worm_where_cleanup2(&sg.worm[nb2],
                         who); show(); std::cerr << "dodaje (ind=" <<
                         coord.showPt(ind) << "): " << coord.showPt(nb) << ", "
                         << coord.showPt(nb2) << " --> " << coord.showPt(nb3) <<
@@ -2205,10 +2150,12 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                         /*
                         if (no_thr_expexcted) {
                           // dla pokazania ustaw kropki na ind, nb, nb2
-                          CleanupOneVar<pti> worm_where_cleanup0(&worm[ind],
-                        who+4); CleanupOneVar<pti> worm_where_cleanup(&worm[nb],
-                        who); CleanupOneVar<pti> worm_where_cleanup2(&worm[nb2],
-                        who); show(); std::cerr << "Nieoczekiwanie dodaje (ind="
+                          CleanupOneVar<pti>
+                        sg.worm_where_cleanup0(&sg.worm[ind], who+4);
+                        CleanupOneVar<pti> sg.worm_where_cleanup(&sg.worm[nb],
+                        who); CleanupOneVar<pti>
+                        sg.worm_where_cleanup2(&sg.worm[nb2], who); show();
+                        std::cerr << "Nieoczekiwanie dodaje (ind="
                         << coord.showPt(ind) << "): " << coord.showPt(nb) << ",
                         " << coord.showPt(nb2) << " --> " << coord.showPt(nb3)
                         << std::endl; std::cin.ignore();
@@ -2273,7 +2220,7 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                 for (auto point_close_to_1 :
                      group_neighb[first].neighbours_list)
                 {
-                    if (not connects[who - 1][point_close_to_1].contains(
+                    if (not sg.getConnects(who - 1)[point_close_to_1].contains(
                             second_gr_id))
                         continue;
                     auto number_of_neighb =
@@ -2339,15 +2286,15 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                     for (auto point_close_to_1 :
                          group_neighb[first].neighbours_list)
                     {
-                        if (not connects[who - 1][point_close_to_1].contains(
-                                other_gr_id))
+                        if (not sg.getConnects(who - 1)[point_close_to_1]
+                                    .contains(other_gr_id))
                             continue;
                         if (neighbours[point_close_to_1] & mask_second)
                             continue;
                         for (auto point_close_to_2 :
                              group_neighb[second].neighbours_list)
                         {
-                            if (not connects[who - 1][point_close_to_2]
+                            if (not sg.getConnects(who - 1)[point_close_to_2]
                                         .contains(other_gr_id))
                                 continue;
                             if (neighbours[point_close_to_2] & mask_first)
@@ -2377,10 +2324,10 @@ SmallMultimap<7, 7> Game::getEmptyPointsCloseToIndTouchingSomeOtherGroup(
     {
         pti nb = ind + coord.nb8[i];
         if (whoseDotMarginAt(nb) != 0 ||
-            connects[who - 1][nb].groups_id[0] == 0)
+            sg.getConnects(who - 1)[nb].groups_id[0] == 0)
             continue;
         std::array<pti, 4> unique_groups = {0, 0, 0, 0};
-        int ug = connects[who - 1][nb].getUniqueGroups(unique_groups);
+        int ug = sg.getConnects(who - 1)[nb].getUniqueGroups(unique_groups);
         for (int j = 0; j < ug; j++)
             if (not connected_groups.contains(unique_groups[j]))
             {
@@ -2401,11 +2348,11 @@ void Game::checkThreat_encl(Threat *thr, int who)
     // std::cerr << "Zagrozenie do usuniecia: " << who << " w " <<
     // coord.showPt(where) << std::endl; std::cerr << thr->show() << std::endl;
 #endif
-    if (worm[where] == 0)
+    if (sg.worm[where] == 0)
     {
         CleanupOneVar<pti> worm_where_cleanup(
-            &worm[where], who);  //  worm[where] = who;  with restored old value
-                                 //  (0) by destructor
+            &sg.worm[where], who);  //  sg.worm[where] = who;  with restored old
+                                    //  value (0) by destructor
         int done[4] = {0, 0, 0, 0};
         for (int j = 0; j < 4; j++)
             if (!done[j])
@@ -2413,7 +2360,7 @@ void Game::checkThreat_encl(Threat *thr, int who)
                 pti nb = where + coord.nb4[j];
                 if (whoseDotMarginAt(nb) != who and coord.dist[nb] >= 1)
                 {
-                    Enclosure encl = findEnclosure(nb, MASK_DOT, who);
+                    Enclosure encl = findEnclosure(nb, sg.MASK_DOT, who);
                     if (!encl.isEmpty() and !encl.isInInterior(where))
                     {
                         const auto zobr = encl.zobristKey(who);
@@ -2435,7 +2382,7 @@ void Game::checkThreat_encl(Threat *thr, int who)
                             t.opp_dots = std::get<0>(tmp);
                             t.zobrist_key = zobr;
                             t.terr_points = std::get<1>(tmp);
-                            t.hist_size = history.size();
+                            t.hist_size = sg.getHistory().size();
                             t.encl =
                                 std::make_shared<Enclosure>(std::move(encl));
                             // std::tie<t.opp_dots, t.terr_points>
@@ -2449,7 +2396,7 @@ void Game::checkThreat_encl(Threat *thr, int who)
                     }
                 }
             }
-        // worm[where] = 0;  by destructor of cleanup
+        // sg.worm[where] = 0;  by destructor of cleanup
     }
 }
 
@@ -2477,7 +2424,7 @@ void Game::checkThreat_terr(Threat *thr, pti p, int who,
 ///                 and we will just change thr.type (reset REMOVE flag) instead
 ///                 of saving new one.
 {
-    Enclosure encl = findEnclosure(p, MASK_DOT, who);
+    Enclosure encl = findEnclosure(p, sg.MASK_DOT, who);
     if (!encl.isEmpty())
     {
         if (done != nullptr)
@@ -2510,7 +2457,7 @@ void Game::checkThreat_terr(Threat *thr, pti p, int who,
                 auto tmp = countDotsTerrInEncl(encl, 3 - who);
                 t.opp_dots = std::get<0>(tmp);
                 t.terr_points = std::get<1>(tmp);
-                t.hist_size = history.size();
+                t.hist_size = sg.getHistory().size();
                 t.encl = std::make_shared<Enclosure>(std::move(encl));
                 addThreat(std::move(t), who);
             }
@@ -2614,11 +2561,11 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
         newthr.pop_back();
         pti where = newthr.back();
         newthr.pop_back();
-        if (worm[where] == 0)
+        if (sg.worm[where] == 0)
         {
             CleanupOneVar<pti> worm_where_cleanup(
-                &worm[where], who);  //  worm[where] = who;  with restored old
-                                     //  value (0) by destructor
+                &sg.worm[where], who);  //  worm[where] = who;  with restored
+                                        //  old value (0) by destructor
             int last = (interior & 0x1000) ? 1 : 4;
             pti last_pt = 0;
             for (int j = 0; j < last; j++)
@@ -2628,7 +2575,7 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
                 last_pt = pt;
                 interior >>= 3;
 
-                Enclosure encl = findEnclosure(pt, MASK_DOT, who);
+                Enclosure encl = findEnclosure(pt, sg.MASK_DOT, who);
                 if (!encl.isEmpty() and !encl.isInInterior(where))
                 {
                     /* for debugging */
@@ -2649,12 +2596,13 @@ void Game::checkThreats_postDot(std::vector<pti> &newthr, pti ind, int who)
                         t.opp_dots = std::get<0>(tmp);
                         t.terr_points = std::get<1>(tmp);
                         t.encl = std::make_shared<Enclosure>(std::move(encl));
-                        t.hist_size = history.size();
+                        t.hist_size = sg.getHistory().size();
                         addThreat(std::move(t), who);
                     }
                 }
             }
-            // worm[where] = 0;   this does the destructor of worm_where_cleanup
+            // sg.worm[where] = 0;   this does the destructor of
+            // worm_where_cleanup
         }
     }
 }
@@ -2665,14 +2613,14 @@ void Game::checkThreat2moves_encl(Threat *thr, pti where0, int who)
 {
     thr->type |= ThreatConsts::TO_REMOVE;
     int where = thr->where;
-    if (worm[where] == 0 and worm[where0] == 0)
+    if (sg.worm[where] == 0 and sg.worm[where0] == 0)
     {
         CleanupOneVar<pti> worm_where_cleanup0(
-            &worm[where0], who);  //  worm[where0] = who;  with restored old
-                                  //  value (0) by destructor
+            &sg.worm[where0], who);  //  sg.worm[where0] = who;  with restored
+                                     //  old value (0) by destructor
         CleanupOneVar<pti> worm_where_cleanup(
-            &worm[where], who);  //  worm[where] = who;  with restored old value
-                                 //  (0) by destructor
+            &sg.worm[where], who);  //  sg.worm[where] = who;  with restored old
+                                    //  value (0) by destructor
         int done[4] = {0, 0, 0, 0};
         Threat t[4];
         for (int j = 0; j < 4; j++)
@@ -2685,7 +2633,7 @@ void Game::checkThreat2moves_encl(Threat *thr, pti where0, int who)
                     thr->encl->isInInterior(nb))
                 {
                     t[j].encl = std::make_shared<Enclosure>(
-                        findEnclosure(nb, MASK_DOT, who));
+                        findEnclosure(nb, sg.MASK_DOT, who));
                     if (!t[j].encl->isEmpty() and
                         t[j].encl->isInBorder(where) and
                         t[j].encl->isInBorder(where0) and
@@ -2720,13 +2668,13 @@ void Game::checkThreat2moves_encl(Threat *thr, pti where0, int who)
         {
             if (t[j].type)
             {
-                t[j].hist_size = history.size();
+                t[j].hist_size = sg.getHistory().size();
                 threats[who - 1].addThreat2moves(
                     where0, where, isSafeFor(where0, who),
                     isSafeFor(where, who), who, t[j]);
             }
         }
-        // worm[where] = 0;  by destructor of cleanup
+        // sg.worm[where] = 0;  by destructor of cleanup
     }
 }
 
@@ -2739,7 +2687,7 @@ int Game::addThreat2moves(pti ind0, pti ind1, int who, Enclosure &&encl)
     t.opp_dots = std::get<0>(tmp);
     t.terr_points = std::get<1>(tmp);
     t.encl = std::make_shared<Enclosure>(std::move(encl));
-    t.hist_size = history.size();
+    t.hist_size = sg.getHistory().size();
     return threats[who - 1].addThreat2moves(ind0, ind1, isSafeFor(ind0, who),
                                             isSafeFor(ind1, who), who, t);
 }
@@ -2839,7 +2787,8 @@ void Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind,
                         // by checking whether the threat is still valid
                         if (t2.where0 < t.where and t.encl->interior.size() > 1)
                         {
-                            assert(worm[t2.where0] == 0 and worm[t.where] == 0);
+                            assert(sg.worm[t2.where0] == 0 and
+                                   sg.worm[t.where] == 0);
                             addClosableNeighbours(newthr, ind, t.where,
                                                   t2.where0, who);
                             newthr.push_back(t2.where0);
@@ -2873,14 +2822,14 @@ void Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind,
         assert(!newthr.empty());
         pti ind1 = newthr.back();
         newthr.pop_back();
-        assert(worm[ind0] == 0 and worm[ind1] == 0);
+        assert(sg.worm[ind0] == 0 and sg.worm[ind1] == 0);
         {
             CleanupOneVar<pti> worm_where_cleanup0(
-                &worm[ind0], who);  //  worm[ind0] = who;  with restored old
-                                    //  value (0) by destructor
+                &sg.worm[ind0], who);  //  sg.worm[ind0] = who;  with restored
+                                       //  old value (0) by destructor
             CleanupOneVar<pti> worm_where_cleanup1(
-                &worm[ind1], who);  //  worm[ind1] = who;  with restored old
-                                    //  value (0) by destructor
+                &sg.worm[ind1], who);  //  sg.worm[ind1] = who;  with restored
+                                       //  old value (0) by destructor
             debug_allt2m++;
             assert(!newthr.empty());
             int count = newthr.back();
@@ -2939,7 +2888,7 @@ void Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind,
                 {
                     pti pt = newthr[newthr.size() - i];
                     assert(coord.dist[pt] >= 1 and whoseDotMarginAt(pt) != who);
-                    Enclosure encl = findSimpleEnclosure(pt, MASK_DOT, who);
+                    Enclosure encl = findSimpleEnclosure(pt, sg.MASK_DOT, who);
                     // if (!encl->isEmpty()) was_one = true;
                     if (!encl.isEmpty() and encl.isInBorder(ind) and
                         encl.isInBorder(ind0) and encl.isInBorder(ind1))
@@ -2954,7 +2903,8 @@ void Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind,
                 for (int i = count; i > 0; --i)
                 {
                     pti pt = newthr[newthr.size() - i];
-                    Enclosure encl = findNonSimpleEnclosure(pt, MASK_DOT, who);
+                    Enclosure encl =
+                        findNonSimpleEnclosure(pt, sg.MASK_DOT, who);
                     // if (!encl->isEmpty()) was_one = true;
                     if (!encl.isEmpty() and encl.isInBorder(ind) and
                         encl.isInBorder(ind0) and encl.isInBorder(ind1))
@@ -2987,7 +2937,7 @@ void Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind,
                     pti pt = newthr.back();
                     newthr.pop_back();
                     assert(coord.dist[pt] >= 1 and whoseDotMarginAt(pt) != who);
-                    Enclosure encl = findEnclosure(pt, MASK_DOT, who);
+                    Enclosure encl = findEnclosure(pt, sg.MASK_DOT, who);
                     // if (!encl->isEmpty()) was_one = true;
                     if (!encl.isEmpty() and encl.isInBorder(ind) and
                         encl.isInBorder(ind0) and encl.isInBorder(ind1))
@@ -3085,11 +3035,11 @@ void Game::addThreat(Threat &&t, int who)
                 pointNowInDanger2moves(i, 3 - who);
                 if (whoseDotMarginAt(i) == 3 - who and
                     std::find(counted_worms.begin(), counted_worms.end(),
-                              descr.at(worm[i]).leftmost) ==
+                              sg.descr.at(sg.worm[i]).leftmost) ==
                         counted_worms.end())
                 {
-                    t.singular_dots += descr.at(worm[i]).dots[2 - who];
-                    counted_worms.push_back(descr.at(worm[i]).leftmost);
+                    t.singular_dots += sg.descr.at(sg.worm[i]).dots[2 - who];
+                    counted_worms.push_back(sg.descr.at(sg.worm[i]).leftmost);
                 }
                 if (isInBorder(i, 3 - who) >= 1)
                 {  // note: it may be an empty place, but still in_border (play
@@ -3107,13 +3057,14 @@ void Game::addThreat(Threat &&t, int who)
             case 2:
                 if (whoseDotMarginAt(i) == 3 - who and
                     std::find(counted_worms.begin(), counted_worms.end(),
-                              descr.at(worm[i]).leftmost) ==
+                              sg.descr.at(sg.worm[i]).leftmost) ==
                         counted_worms.end())
                 {
                     threats[who - 1]
                         .findThreatWhichContains(i)
-                        ->singular_dots -= descr.at(worm[i]).dots[2 - who];
-                    counted_worms.push_back(descr.at(worm[i]).leftmost);
+                        ->singular_dots -=
+                        sg.descr.at(sg.worm[i]).dots[2 - who];
+                    counted_worms.push_back(sg.descr.at(sg.worm[i]).leftmost);
                 }
                 [[fallthrough]];
             default:
@@ -3180,7 +3131,7 @@ void Game::subtractThreat(const Threat &t, int who)
         if (whoseDotMarginAt(i) == 3 - who and
             isInTerr(i, who) + isInEncl(i, who) == 1 and
             std::find(counted_worms.begin(), counted_worms.end(),
-                      descr.at(worm[i]).leftmost) == counted_worms.end())
+                      sg.descr.at(sg.worm[i]).leftmost) == counted_worms.end())
         {
             // Note: there are now 2 threats with i in interior, one being t,
             // i.e., the one that we are about to delete. We add to
@@ -3190,9 +3141,9 @@ void Game::subtractThreat(const Threat &t, int who)
             for (auto &t : threats[who - 1].threats)
             {
                 if (t.encl->isInInterior(i))
-                    t.singular_dots += descr.at(worm[i]).dots[2 - who];
+                    t.singular_dots += sg.descr.at(sg.worm[i]).dots[2 - who];
             }
-            counted_worms.push_back(descr.at(worm[i]).leftmost);
+            counted_worms.push_back(sg.descr.at(sg.worm[i]).leftmost);
         }
         if (isInBorder(i, 3 - who) >= 1)
         {
@@ -3361,82 +3312,6 @@ void Game::pointNowSafe2moves(pti ind, int who)
 bool Game::isSafeFor(pti ind, int who) const
 {
     return (isInTerr(ind, 3 - who) == 0 and isInEncl(ind, 3 - who) == 0);
-}
-
-void Game::connectionsRenameGroup(pti dst, pti src)
-{
-    int g = (dst & MASK_DOT) - 1;
-    assert(g == 0 || g == 1);
-    for (auto &p : connects[g])
-    {
-        for (int j = 0; j < 4; j++)
-            if (p.groups_id[j] == src) p.groups_id[j] = dst;
-    }
-}
-
-void Game::connectionsRecalculateCode(pti ind, int who)
-{
-    // TODO: we could use pattern3 and delete codes completely
-    if (!isDotAt(ind))
-    {
-        int code = 0;  // the codes for the neighbourhood for player who
-        for (int i = 7; i >= 0; i--)
-        {
-            pti nb = ind + coord.nb8[i];
-            if (whoseDotMarginAt(nb) == who)
-            {
-                code |= 1;
-            }
-            code <<= 1;
-        }
-        code >>= 1;
-        connects[who - 1][ind].code = code;
-    }
-    else
-    {
-        connects[who - 1][ind].code = 0;
-    }
-}
-
-void Game::connectionsRecalculateConnect(pti ind, int who)
-{
-    int g = who - 1;
-    auto new_connections = coord.connections_tab_simple[connects[g][ind].code];
-    for (int j = 0; j < 4; j++)
-    {
-        if (new_connections[j] >= 0)
-        {
-            pti pt = ind + coord.nb8[new_connections[j]];
-            connects[g][ind].groups_id[j] = descr.at(worm[pt]).group_id;
-        }
-        else
-        {
-            connects[g][ind].groups_id[j] = 0;
-        }
-    }
-}
-
-void Game::connectionsRecalculatePoint(pti ind, int who)
-{
-    connectionsRecalculateCode(ind, who);
-    connectionsRecalculateConnect(ind, who);
-}
-
-// Used after placing dot of who at [ind].
-void Game::connectionsRecalculateNeighb(pti ind, int who)
-{
-    for (int i = 0; i < 8; i++)
-    {
-        pti nb = ind + coord.nb8[i];
-        if (whoseDotMarginAt(nb) == 0)
-        {
-            connects[who - 1][nb].code |= (1 << (i ^ 4));
-            // connectionsRecalculatePoint(nb, who);
-            connectionsRecalculateConnect(nb, who);
-        }
-    }
-    connectionsRecalculatePoint(ind, 1);
-    connectionsRecalculatePoint(ind, 2);
 }
 
 pattern3_t Game::getPattern3_at(pti ind) const
@@ -3670,8 +3545,8 @@ int Game::checkLadderStep(pti x, krb::PointsSet &ladder_breakers, pti v1,
     }
     auto getGroupId = [&](pti x) -> pti
     {
-        if (whoseDotAt(x) == 0) return 0;
-        return descr.at(worm[x]).group_id;
+        if (sg.whoseDotAt(x) == 0) return 0;
+        return sg.descr.at(sg.worm[x]).group_id;
     };
     if (whoseDotMarginAt(nx) == 0 || ladder_ext || curr_ext)
     {
@@ -3690,7 +3565,7 @@ int Game::checkLadderStep(pti x, krb::PointsSet &ladder_breakers, pti v1,
             return ESC_WINS;
         // attacking player has an atari thanks to a dot on the way of the
         // ladder
-        if (((worm[nx + v1] | worm[nx + v2]) & MASK_DOT) == attacks and
+        if (((sg.worm[nx + v1] | sg.worm[nx + v2]) & sg.MASK_DOT) == attacks and
             !curr_ext)
         {
             return ATT_WINS;
@@ -3698,7 +3573,7 @@ int Game::checkLadderStep(pti x, krb::PointsSet &ladder_breakers, pti v1,
         // atari of the escaping player
         for (pti w : {(pti)(-v2), v2})
         {
-            if ((worm[nx + v1 - w] & MASK_DOT) == 0 and
+            if ((sg.worm[nx + v1 - w] & sg.MASK_DOT) == 0 and
                 coord.dist[nx + v1 - w] >= 0)
             {
                 ladder_breakers.insert(
@@ -3720,19 +3595,19 @@ int Game::checkLadderStep(pti x, krb::PointsSet &ladder_breakers, pti v1,
         if (iteration >= 2)
         {
             ladder_breakers.insert(nx - 2 * v2);
-            if (((worm[nx + v1 - v2] | worm[nx - 2 * v2]) & MASK_DOT) ==
-                escapes)
+            if (((sg.worm[nx + v1 - v2] | sg.worm[nx - 2 * v2]) &
+                 sg.MASK_DOT) == escapes)
             {
                 return ESC_WINS;
             }
         }
         // check what is on nx+v1
-        if ((worm[nx + v1] & MASK_DOT) == escapes)
+        if ((sg.worm[nx + v1] & sg.MASK_DOT) == escapes)
         {
             return ESC_WINS;
         }
         else
-            ladder_ext = ((worm[nx + v1] & MASK_DOT) != 0);
+            ladder_ext = ((sg.worm[nx + v1] & sg.MASK_DOT) != 0);
         return checkLadderStep(nx, ladder_breakers, v2, v1, escaping_group,
                                ladder_ext, escapes, iteration + 1);
     }
@@ -3758,7 +3633,7 @@ std::tuple<int, pti, pti> Game::checkLadder(int who_defends, pti where) const
         isInBorder(where, who_attacks) == 0)
         return {0, 0, 0};  // even no atari
     if (defender_has_played_at_where and
-        not history.isInOppEnclBorder(history.size() - 1))
+        not sg.getHistory().isInOppEnclBorder(sg.getHistory().size() - 1))
         return {0, 0, 0};  // last dot of defender was not at opp's border
     pti attackers_neighb = 0;
     pti defenders_neighb = 0;
@@ -3784,13 +3659,14 @@ std::tuple<int, pti, pti> Game::checkLadder(int who_defends, pti where) const
                            // of where, it's not ladder
     const pti another_att = defenders_neighb + where - attackers_neighb;
     if (whoseDotMarginAt(another_att) != who_attacks) return {0, 0, 0};
-    if (descr.at(worm[attackers_neighb]).group_id !=
-        descr.at(worm[another_att]).group_id)
+    if (sg.descr.at(sg.worm[attackers_neighb]).group_id !=
+        sg.descr.at(sg.worm[another_att]).group_id)
         return {0, 0, 0};  // attacker dots are where they should be, but they
                            // are not connected!
     if (defender_has_played_at_where)
     {
-        const auto atari_code = history.getAtariCode(history.size() - 1);
+        const auto atari_code =
+            sg.getHistory().getAtariCode(sg.getHistory().size() - 1);
         if (atari_code != 1 and atari_code != 2 and atari_code != 4 and
             atari_code != 8)
             return {0, 0, 0};  // in fact, ladder is possible with more than 1
@@ -3808,7 +3684,7 @@ std::tuple<int, pti, pti> Game::checkLadder(int who_defends, pti where) const
     const pti x = defenders_neighb;
     const pti v1 = where - x;
     const pti v2 = where - attackers_neighb;
-    const pti escaping_group = descr.at(worm[defenders_neighb]).group_id;
+    const pti escaping_group = sg.descr.at(sg.worm[defenders_neighb]).group_id;
     const bool ladder_ext = false;
     const int escapes = who_defends;
     const int iteration = 0;
@@ -3967,7 +3843,8 @@ std::map<Game::Edge, Game::EdgeInfo> Game::findCapAndFlow(pti source, int who,
             continue;
         }
 
-        if (whoseDotMarginAt(ind) == who && descr.at(worm[ind]).leftmost == ind)
+        if (whoseDotMarginAt(ind) == who &&
+            sg.descr.at(sg.worm[ind]).leftmost == ind)
         {
             std::set<pti> neighbs;
             const auto leftmost = ind;
@@ -3980,15 +3857,15 @@ std::map<Game::Edge, Game::EdgeInfo> Game::findCapAndFlow(pti source, int who,
                 }
             };
             addNeighbs(ind);
-            for (pti i = nextDot[ind]; i != leftmost; i = nextDot[i])
+            for (pti i = sg.nextDot[ind]; i != leftmost; i = sg.nextDot[i])
             {
                 addNeighbs(i);
             }
-            // we have all neighbours, connect them to sink if worm is safe
+            // we have all neighbours, connect them to sink if sg.worm is safe
             const bool isSourceInThisWorm =
                 (whoseDotMarginAt(source) == who &&
-                 descr.at(worm[source]).leftmost == ind);
-            if (descr.at(worm[ind]).isSafe())
+                 sg.descr.at(sg.worm[source]).leftmost == ind);
+            if (sg.descr.at(sg.worm[ind]).isSafe())
             {
                 for (const auto el : neighbs)
                 {
@@ -4143,12 +4020,13 @@ void Game::getSimplifyingEnclAndPriorities(int who)
                             {
                                 if (std::find(ti.saved_worms.begin(),
                                               ti.saved_worms.end(),
-                                              worm[p]) == ti.saved_worms.end())
+                                              sg.worm[p]) ==
+                                    ti.saved_worms.end())
                                 {
                                     // our worm not yet counted
-                                    ti.saved_worms.push_back(worm[p]);
+                                    ti.saved_worms.push_back(sg.worm[p]);
                                     ti.saved_dots +=
-                                        descr.at(worm[p]).dots[who - 1];
+                                        sg.descr.at(sg.worm[p]).dots[who - 1];
                                 }
                             }
                         }
@@ -4174,7 +4052,7 @@ void Game::getSimplifyingEnclAndPriorities(int who)
 /// @return          1-4: makes sense to play here, 0: neutral, -1: dame
 int Game::checkBorderMove(pti ind, int who) const
 {
-    assert(coord.dist[ind] == 0 and worm[ind] == 0);
+    assert(coord.dist[ind] == 0 and sg.worm[ind] == 0);
     if (threats[0].is_in_border[ind] > 0 || threats[1].is_in_border[ind] > 0)
         return 4;  // atari always makes sense
     int x = coord.x[ind];
@@ -4194,8 +4072,8 @@ int Game::checkBorderMove(pti ind, int who) const
         viter[1] = coord.W;
         vnorm = (y == 0) ? coord.N : coord.S;
     }
-    int neighb_worm = worm[ind - vnorm];
-    int neighb_whose = (neighb_worm & MASK_DOT);
+    int neighb_worm = sg.worm[ind - vnorm];
+    int neighb_whose = (neighb_worm & sg.MASK_DOT);
     if (neighb_whose == 0)
     {
         // it's usually not very good to play on the edge, when 2nd line is
@@ -4206,7 +4084,7 @@ int Game::checkBorderMove(pti ind, int who) const
     else if (neighb_whose == who)
     {
         // neighbour is our dot. Everything depends on its safety.
-        if (descr.at(neighb_worm).isSafe())
+        if (sg.descr.at(neighb_worm).isSafe())
             return -1;  // dame
         else
         {
@@ -4222,7 +4100,7 @@ int Game::checkBorderMove(pti ind, int who) const
     else
     {
         assert(neighb_whose == 3 - who);
-        if (descr.at(neighb_worm).isSafe())
+        if (sg.descr.at(neighb_worm).isSafe())
         {
             return -1;  // dame
         }
@@ -4292,17 +4170,17 @@ void Game::rollout(Treenode *node, int /*depth*/)
         if (whoseDotMarginAt(i) == 0) amafboard[i] = amaf_empty;
     }
     // we are at leaf, playout...
-    auto nmoves = history.size();
+    auto nmoves = sg.getHistory().size();
     real_t v = randomPlayout();
     auto lastWho = node->move.who;
-    // auto endmoves = std::min(history.size(), nmoves + 50);
-    auto endmoves = history.size();
+    // auto endmoves = std::min(sg.getHistory().size(), nmoves + 50);
+    auto endmoves = sg.getHistory().size();
     const int distance_rave = 3;
     const int distance_rave_TERR = 8;
     const int amaf_ENCL_BORDER = 16;
     const int distance_rave_SHIFT = 5;
     const int distance_rave_MASK = 7;
-    history.updateGoodReplies(lastWho, v);
+    sg.updateGoodReplies(lastWho, v);
     {
         int distance_rave_threshhold = (endmoves - nmoves + 2) / distance_rave;
         int distance_rave_current = distance_rave_threshhold / 2;
@@ -4310,17 +4188,18 @@ void Game::rollout(Treenode *node, int /*depth*/)
         for (auto i = nmoves; i < endmoves; i++)
         {
             lastWho ^= 3;
-            amafboard[history.get(i)] =
+            amafboard[sg.getHistory().get(i)] =
                 lastWho | (distance_rave_weight << distance_rave_SHIFT) |
-                (history.isInTerrWithAtari(i) ? distance_rave_TERR : 0) |
-                (history.isInEnclBorder(i) ? amaf_ENCL_BORDER : 0);
+                (sg.getHistory().isInTerrWithAtari(i) ? distance_rave_TERR
+                                                      : 0) |
+                (sg.getHistory().isInEnclBorder(i) ? amaf_ENCL_BORDER : 0);
             if (--distance_rave_current == 0)
             {
                 distance_rave_current = distance_rave_threshhold;
                 if (distance_rave_weight > 1) --distance_rave_weight;
             }
-            assert(coord.dist[history.get(i)] >= 1 ||
-                   (whoseDotMarginAt(history.get(i)) == lastWho));
+            assert(coord.dist[sg.getHistory().get(i)] >= 1 ||
+                   (whoseDotMarginAt(sg.getHistory().get(i)) == lastWho));
         }
         // experiment: add loses to amaf inside opp enclosures
         for (auto i = coord.first; i <= coord.last; i++)
@@ -4519,14 +4398,14 @@ void Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure>> &encl_moves,
                                 {
                                     auto pos = std::find(
                                         ourt.saved_worms.begin(),
-                                        ourt.saved_worms.end(), worm[p]);
+                                        ourt.saved_worms.end(), sg.worm[p]);
                                     if (pos != ourt.saved_worms.end())
                                     {
                                         // our worm was counted, subtract
                                         *pos = ourt.saved_worms.back();
                                         ourt.saved_worms.pop_back();
-                                        opp_d +=
-                                            descr.at(worm[p]).dots[who - 1];
+                                        opp_d += sg.descr.at(sg.worm[p])
+                                                     .dots[who - 1];
                                     }
                                 }
                             }
@@ -4636,14 +4515,14 @@ void Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure>> &encl_moves,
                                 {
                                     auto pos = std::find(
                                         it2->saved_worms.begin(),
-                                        it2->saved_worms.end(), worm[p]);
+                                        it2->saved_worms.end(), sg.worm[p]);
                                     if (pos != it2->saved_worms.end())
                                     {
                                         // our worm was counted, subtract
                                         *pos = it2->saved_worms.back();
                                         it2->saved_worms.pop_back();
-                                        opp_d +=
-                                            descr.at(worm[p]).dots[who - 1];
+                                        opp_d += sg.descr.at(sg.worm[p])
+                                                     .dots[who - 1];
                                     }
                                 }
                             }
@@ -4665,58 +4544,16 @@ void Game::placeDot(int x, int y, int who)
 // TODO: if rules:must-surround, then also makes necessary enclosures
 {
     const pti ind = coord.ind(x, y);
-    assert(worm[ind] == 0);
+    assert(sg.worm[ind] == 0);
     recalculate_list.clear();
     const uint32_t atari_neighb_code = threats[2 - who].getAtariNeighbCode(ind);
-    if (isInTerr(ind, who) == 0 and isInEncl(ind, who) == 0)
-    {
-        const bool is_in_terr_with_atari = false;
-        history.push_back(ind, is_in_terr_with_atari, isInBorder(ind, who) != 0,
-                          isInBorder(ind, 3 - who) != 0, atari_neighb_code);
-    }
-    else
-    {
-        // check for an anti-reduction move, which would be bad for the opponent
-        // Move would be bad, if all neighbours are 'who' dots, or all but one
-        // empty point
-        assert(coord.dist[ind] >= 1);  // because we're inside a threat
-        int count = 0;
-        for (int i = 0; i < 4; i++)
-        {
-            if (whoseDotMarginAt(ind + coord.nb4[i]) == 0)
-            {
-                count++;
-            }
-            else if (whoseDotMarginAt(ind + coord.nb4[i]) == (who ^ 3))
-            {
-                count = -1;
-                break;
-            }
-        }
-        const bool is_in_terr_with_atari = (count == 0 || count == 1);
-        const bool is_in_encl_border = false;
-        const bool is_in_opp_encl_border = false;
-        history.push_back(ind, is_in_terr_with_atari, is_in_encl_border,
-                          is_in_opp_encl_border, atari_neighb_code);
-    }
+    const bool notInTerrOrEncl =
+        (isInTerr(ind, who) == 0 and isInEncl(ind, who) == 0);
+    const bool isInBorder_ind_who = isInBorder(ind, who) != 0;
+    const bool isInBorder_ind_opp = isInBorder(ind, 3 - who) != 0;
 #ifdef DEBUG_SGF
     sgf_tree.makePartialMove({(who == 1 ? "B" : "W"), {coord.indToSgf(ind)}});
 #endif
-    // if (mustSurround) { ... place the dot, do the necessary surrounds }
-    pti numb[4];
-    int count = 0;
-    for (int i = 0; i < 4; i++)
-    {
-        pti nb = ind + coord.nb4[i];
-        if (whoseDotMarginAt(nb) == who)
-        {
-            // check if it was already saved
-            for (int j = 0; j < count; j++)
-                if (numb[j] == worm[nb]) goto AlreadyThere;
-            numb[count++] = worm[nb];
-        AlreadyThere:;
-        }
-    }
     std::vector<pti> to_check = findThreats_preDot(ind, who);
     std::vector<pti> to_check2m = findThreats2moves_preDot(ind, who);
     // remove opp threats that need to put at ind
@@ -4730,189 +4567,9 @@ void Game::placeDot(int x, int y, int who)
         // still doesn't know about it at this stage
         threats[2 - who].findThreatWhichContains(ind)->singular_dots++;
     }
-    bool update_safety_dame =
-        false;  // if some worms start/stop being safe, we need to recalculate
-                // dame moves on the first line
-    update_soft_safety =
-        0;  // if some worms gained hard-safety (from 0 to +1/+2 or from +1 to
-            // +2), then we need to recalculate soft safety
-    bool nonisolated = (count > 0);
-    if (count)
-    {
-        while (count >= 2)
-        {
-            // glue the smaller to the larger worm
-            if ((descr.at(numb[count - 1]).safety <= 1 ||
-                 descr.at(numb[count - 2]).safety <= 1) and
-                (descr.at(numb[count - 1]).safety +
-                     descr.at(numb[count - 2]).safety >=
-                 2))
-            {
-                update_safety_dame = true;
-            }
-            if ((descr.at(numb[count - 1]).safety <= 1 ||
-                 descr.at(numb[count - 2]).safety <= 1) and
-                (descr.at(numb[count - 1]).safety +
-                     descr.at(numb[count - 2]).safety >=
-                 1))
-            {
-                update_soft_safety = safety_soft.getUpdateValueForAllMargins();
-            }
-            if (descr.at(numb[count - 1]).dots[0] +
-                    descr.at(numb[count - 1]).dots[1] >
-                descr.at(numb[count - 2]).dots[0] +
-                    descr.at(numb[count - 2]).dots[1])
-            {
-                wormMergeSame(numb[count - 1], numb[count - 2]);
-                numb[count - 2] = numb[count - 1];
-            }
-            else
-            {
-                wormMergeSame(numb[count - 2], numb[count - 1]);
-            }
-            count--;
-        }
-        // add our dot
-        pti next = nextDot[descr.at(numb[0]).leftmost];
-        nextDot[descr.at(numb[0]).leftmost] = ind;
-        nextDot[ind] = next;
-        worm[ind] = numb[0];
-        descr.at(numb[0]).leftmost = std::min(descr.at(numb[0]).leftmost, ind);
-        descr.at(numb[0]).dots[who - 1]++;
-    }
-    else
-    {
-        // 'isolated' dot (note: new enclosure is possible also here due to
-        // diagonal connections)
-        assert(who == 1 || who == 2);
-        pti c = (lastWormNo[who - 1] += CONST_WORM_INCR);
-        assert(descr.find(c) == descr.end());
-        worm[ind] = c;
-        nextDot[ind] = ind;
-        auto &dsc = descr[c];
-        // WormDescr dsc;
-        dsc.dots[0] = (who == 1);
-        dsc.dots[1] = (who == 2);
-        dsc.leftmost = ind;
-        dsc.group_id = c;
-        dsc.safety = 0;
-        // descr.insert({c, std::move(dsc)});
-    }
-    // update safety info
-    {
-        int dist = coord.dist[ind];
-        if (dist == 0)
-        {
-            if (descr.at(worm[ind]).safety == 1)
-            {
-                update_soft_safety =
-                    safety_soft
-                        .getUpdateValueForAllMargins();  // we made something
-                                                         // completely secure
-            }
-            descr.at(worm[ind]).safety = WormDescr::SAFE_VALUE;
-            for (int i = 0; i < 4; i++)
-            {
-                pti nb = ind + coord.nb4[i];
-                if (coord.dist[nb] == 1 and worm[nb])
-                {
-                    descr.at(worm[nb])
-                        .safety--;  // it may happen that worm[nb]==worm[ind],
-                                    // but we may safely decrease SAFE_VALUE by
-                                    // one
-                    if (descr.at(worm[nb]).safety == 1)
-                    {
-                        update_safety_dame =
-                            true;  // worm at nb stopped being safe
-                        update_soft_safety =
-                            safety_soft.getUpdateValueForAllMargins();
-                    }
-                    break;
-                }
-            }
-            if (update_soft_safety != safety_soft.getUpdateValueForAllMargins())
-            {
-                update_soft_safety =
-                    safety_soft.getUpdateValueForMarginsContaining(
-                        ind);  // needed when played on the edge
-            }
-        }
-        else if (dist == 1)
-        {
-            bool was_unsafe_and_nonisolated =
-                nonisolated and !descr.at(worm[ind]).isSafe();
-            auto safety_level_before = descr.at(worm[ind]).safety;
-            for (int i = 0; i < 4; i++)
-            {
-                pti nb = ind + coord.nb4[i];
-                if (coord.dist[nb] == 0 and worm[nb] == 0)
-                {
-                    descr.at(worm[ind])
-                        .safety++;  // without break, because of the 4 corner
-                                    // places (1,1), etc. which are close to the
-                                    // edge from 2 sides
-                }
-            }
-            if (was_unsafe_and_nonisolated and descr.at(worm[ind]).isSafe())
-                update_safety_dame = true;
-            if (nonisolated and safety_level_before < 2 and
-                safety_level_before < descr.at(worm[ind]).safety)
-            {
-                update_soft_safety = safety_soft.getUpdateValueForAllMargins();
-            }
-            else
-            {
-                if (update_soft_safety !=
-                    safety_soft.getUpdateValueForAllMargins())
-                {
-                    update_soft_safety =
-                        safety_soft.getUpdateValueForMarginsContaining(
-                            ind);  // needed when played on the edge
-                }
-            }
-        }
-    }
-    // check diag neighbours
-    pti cm[4];
-    int top = 0;
-    pti our_group_id = descr.at(worm[ind]).group_id;
-    for (int i = 0; i < 8; i += 2)
-    {
-        pti nb = ind + coord.nb8[i];
-        if (whoseDotMarginAt(nb) == who and worm[nb] != worm[ind])
-        {
-            // connection!
-            if (descr.at(worm[nb]).group_id != our_group_id)
-            {
-                for (int j = 0; j < top; j++)
-                {
-                    if (cm[j] == descr.at(worm[nb]).group_id) goto check_ok;
-                }
-                cm[top++] = descr.at(worm[nb]).group_id;
-            check_ok:;
-            }
-            // add to neighbours if needed
-            if (std::find(descr.at(worm[ind]).neighb.begin(),
-                          descr.at(worm[ind]).neighb.end(),
-                          worm[nb]) == descr.at(worm[ind]).neighb.end())
-            {
-                descr.at(worm[ind]).neighb.push_back(worm[nb]);
-                descr.at(worm[nb]).neighb.push_back(worm[ind]);
-            }
-        }
-    }
-    while (top >= 1)
-    {
-        for (auto &d : descr)
-        {
-            if (d.second.group_id == cm[top - 1])
-                d.second.group_id = our_group_id;
-        }
-        connectionsRenameGroup(our_group_id, cm[top - 1]);
-        top--;
-    }
-
-    connectionsRecalculateNeighb(ind, who);
+    const bool update_safety_dame =
+        sg.placeDot(x, y, who, notInTerrOrEncl, atari_neighb_code,
+                    isInBorder_ind_who, isInBorder_ind_opp, update_soft_safety);
     checkThreats_postDot(to_check, ind, who);
     checkThreats2moves_postDot(to_check2m, ind, who);
 
@@ -4945,9 +4602,9 @@ void Game::placeDot(int x, int y, int who)
 
 void Game::show() const
 {
-    //  std::cerr << coord.showBoard(worm);  // worm.data()); ?
-    std::cerr << coord.showColouredBoardWithDots(worm);
-    std::cerr << "Score: " << score[0].show() << "; " << score[1].show()
+    //  std::cerr << coord.showBoard(sg.worm);  // sg.worm.data()); ?
+    std::cerr << coord.showColouredBoardWithDots(sg.worm);
+    std::cerr << "Score: " << sg.score[0].show() << "; " << sg.score[1].show()
               << std::endl;
 }
 
@@ -4955,8 +4612,9 @@ void Game::show(const std::vector<pti> &moves) const
 {
     auto col_getter = [&](int x, int y)
     {
-        int value =
-            (worm[coord.ind(x, y)] == 0) ? 0 : (worm[coord.ind(x, y)] % 4);
+        int value = (sg.worm[coord.ind(x, y)] == 0)
+                        ? 0
+                        : (sg.worm[coord.ind(x, y)] % 4);
         if (value == 0)
         {
             pti what = coord.ind(x, y);
@@ -4996,14 +4654,14 @@ void Game::showSvg(const std::string &filename,
 void Game::showConnections()
 {
     std::cerr << "Player 1" << std::endl;
-    std::cerr << coord.showBoard(connects[0]);
+    std::cerr << coord.showBoard(getConnects(0));
     std::cerr << "Player 2" << std::endl;
-    std::cerr << coord.showBoard(connects[1]);
+    std::cerr << coord.showBoard(getConnects(1));
 }
 
 void Game::showGroupsId()
 {
-    for (auto &d : descr)
+    for (auto &d : sg.descr)
     {
         std::cerr << d.first << "->" << d.second.group_id << "  ";
     }
@@ -5042,8 +4700,8 @@ std::vector<pti> Game::getPatt3extraValues() const
     {
         if (whoseDotMarginAt(i) == 0)
         {
-            global::patt3_extra.setValues(values, worm, pattern3_at[i], i,
-                                          nowMoves);
+            global::patt3_extra.setValues(values, sg.worm, pattern3_at[i], i,
+                                          sg.nowMoves);
             // auto symm_value = global::patt3_symm.getValue(pattern3_at[i], 1);
             // if (values[i] < symm_value) values[i] = symm_value;
         }
@@ -5073,7 +4731,7 @@ void Game::showPattern3extra()
 
 Enclosure Game::findSimpleEnclosure(pti point, pti mask, pti value)
 {
-    return findSimpleEnclosure(worm, point, mask, value);
+    return findSimpleEnclosure(sg.worm, point, mask, value);
 }
 
 Enclosure Game::findSimpleEnclosure(std::vector<pti> &tab, pti point, pti mask,
@@ -5167,7 +4825,7 @@ Enclosure Game::findSimpleEnclosure(std::vector<pti> &tab, pti point, pti mask,
 
 Enclosure Game::findNonSimpleEnclosure(pti point, pti mask, pti value)
 {
-    return findNonSimpleEnclosure(worm, point, mask, value);
+    return findNonSimpleEnclosure(sg.worm, point, mask, value);
 }
 
 Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
@@ -5179,14 +4837,14 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
 {
     std::array<pti, Coord::maxSize> stack;
     stack[0] = point;
-    tab[point] |= MASK_MARK;
+    tab[point] |= sg.MASK_MARK;
     int stackSize = 1;
     // std::vector<uint8_t> tab(coord.getSize(), 0);
     pti leftmost = Coord::maxSize;
-    mask |= MASK_MARK;
-    //  Cleanup<std::vector<pti>&, pti> cleanup(tab, ~MASK_MARK);
+    mask |= sg.MASK_MARK;
+    //  Cleanup<std::vector<pti>&, pti> cleanup(tab, ~sg.MASK_MARK);
     CleanupUsingList<std::vector<pti> &, pti> cleanup(
-        tab, ~(MASK_MARK | MASK_BORDER));
+        tab, ~(sg.MASK_MARK | sg.MASK_BORDER));
     cleanup.push(point);
     //  int border_count = 0;
     do
@@ -5197,19 +4855,19 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
             pti nb = ind + coord.nb4[i];
             if ((tab[nb] & mask) == value)
             {
-                if ((tab[nb] & MASK_BORDER) == 0)
+                if ((tab[nb] & sg.MASK_BORDER) == 0)
                 {  // a border dot not yet visited?
-                    tab[nb] |= MASK_BORDER;
+                    tab[nb] |= sg.MASK_BORDER;
                     cleanup.push(nb);
                     // border_count++;
                     if (nb < leftmost) leftmost = nb;
                 }
             }
-            else if ((tab[nb] & MASK_MARK) == 0)
+            else if ((tab[nb] & sg.MASK_MARK) == 0)
             {
                 if (coord.dist[nb] > 0)
                 {  // interior point on the board (and not on the edge)
-                    tab[nb] |= MASK_MARK;
+                    tab[nb] |= sg.MASK_MARK;
                     stack[stackSize++] = nb;
                     cleanup.push(nb);
                 }
@@ -5230,14 +4888,14 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
         stack[1] +
         coord.nb8[direction];  // stack[2] = coord.findNextOnRight(stack[1],
                                // stack[0]);
-    tab[stack[0]] |= MASK_MARK;
-    tab[stack[1]] |= MASK_MARK;
+    tab[stack[0]] |= sg.MASK_MARK;
+    tab[stack[1]] |= sg.MASK_MARK;
     int top = 2;
     do
     {
         // check if current point is on the border, if not, take next
         // (clockwise)
-        while ((tab[stack[top]] & MASK_BORDER) == 0)
+        while ((tab[stack[top]] & sg.MASK_BORDER) == 0)
         {
             direction++;
             assert(stack[top - 1] + coord.nb8[direction] ==
@@ -5250,14 +4908,14 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
         }
         if (stack[top] == stack[0])  // enclosure found
             break;
-        if (tab[stack[top]] & MASK_MARK)
+        if (tab[stack[top]] & sg.MASK_MARK)
         {
             // this point has been already visited, go back to the last visit of
             // that point and try next neighbour
             pti loop_pt = stack[top];
             top--;
             pti prev_pt = stack[top];
-            while (stack[top] != loop_pt) tab[stack[top--]] &= ~MASK_MARK;
+            while (stack[top] != loop_pt) tab[stack[top--]] &= ~sg.MASK_MARK;
             // now we are again at loop_pt which has been already unMARKed
             direction = coord.findDirectionNo(loop_pt, prev_pt) + 1;
             assert(loop_pt + coord.nb8[direction] ==
@@ -5271,7 +4929,7 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
         else
         {
             // visit the point
-            tab[stack[top]] |= MASK_MARK;
+            tab[stack[top]] |= sg.MASK_MARK;
             top++;
             direction =
                 (direction + 5) &
@@ -5297,8 +4955,8 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
       int tt = cleanup.count - top;
       interior.reserve(cleanup.count - top);  // reserve exact memory for
     interior for (int i=0; i<cleanup.count; i++) if ((tab[cleanup.list[i]] &
-    (MASK_MARK | MASK_BORDER)) != (MASK_MARK | MASK_BORDER)) {  // interior
-    point interior.push_back(cleanup.list[i]);
+    (sg.MASK_MARK | sg.MASK_BORDER)) != (sg.MASK_MARK | sg.MASK_BORDER)) {  //
+    interior point interior.push_back(cleanup.list[i]);
         }
       assert(tt == interior.size());
       } else */
@@ -5308,16 +4966,16 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
             40);  // reserve memory for interior found so far + border + 40
                   // (arbitrary const), which should be enough in most cases
         for (int i = 0; i < cleanup.count; i++)
-            if ((tab[cleanup.list[i]] & (MASK_MARK | MASK_BORDER)) !=
-                (MASK_MARK | MASK_BORDER))
+            if ((tab[cleanup.list[i]] & (sg.MASK_MARK | sg.MASK_BORDER)) !=
+                (sg.MASK_MARK | sg.MASK_BORDER))
             {  // interior point
                 interior.push_back(cleanup.list[i]);
                 for (int j = 0; j < 4; j++)
                 {
                     pti nb = cleanup.list[i] + coord.nb4[j];
-                    if ((tab[nb] & (MASK_MARK | MASK_BORDER)) == 0)
+                    if ((tab[nb] & (sg.MASK_MARK | sg.MASK_BORDER)) == 0)
                     {
-                        tab[nb] |= MASK_MARK;
+                        tab[nb] |= sg.MASK_MARK;
                         cleanup.push(nb);
                     }
                 }
@@ -5330,7 +4988,7 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
 
 Enclosure Game::findEnclosure(pti point, pti mask, pti value)
 {
-    return findEnclosure(worm, point, mask, value);
+    return findEnclosure(sg.worm, point, mask, value);
 }
 
 Enclosure Game::findEnclosure(std::vector<pti> &tab, pti point, pti mask,
@@ -5347,13 +5005,13 @@ Enclosure Game::findEnclosure(std::vector<pti> &tab, pti point, pti mask,
 
 Enclosure Game::findEnclosure_notOptimised(pti point, pti mask, pti value)
 {
-    return findEnclosure_notOptimised(worm, point, mask, value);
+    return findEnclosure_notOptimised(sg.worm, point, mask, value);
 }
 
 Enclosure Game::findEnclosure_notOptimised(std::vector<pti> &tab, pti point,
                                            pti mask, pti value) const
 // tries to enclose 'point' using dots given by (tab[...] & mask) == value
-// All points in 'tab' should have zero bits MASK_MARK and MASK_BORDER.
+// All points in 'tab' should have zero bits sg.MASK_MARK and sg.MASK_BORDER.
 // TODO: check whether using an array is really efficient, maybe vector +
 // std::move would be better
 {
@@ -5384,14 +5042,14 @@ Enclosure Game::findEnclosure_notOptimised(std::vector<pti> &tab, pti point,
     }
     std::array<pti, Coord::maxSize> stack;
     stack[0] = point;
-    tab[point] |= MASK_MARK;
+    tab[point] |= sg.MASK_MARK;
     int stackSize = 1;
     // std::vector<uint8_t> tab(coord.getSize(), 0);
     pti leftmost = Coord::maxSize;
-    mask |= MASK_MARK;
-    //  Cleanup<std::vector<pti>&, pti> cleanup(tab, ~MASK_MARK);
+    mask |= sg.MASK_MARK;
+    //  Cleanup<std::vector<pti>&, pti> cleanup(tab, ~sg.MASK_MARK);
     CleanupUsingList<std::vector<pti> &, pti> cleanup(
-        tab, ~(MASK_MARK | MASK_BORDER));
+        tab, ~(sg.MASK_MARK | sg.MASK_BORDER));
     cleanup.push(point);
     do
     {
@@ -5401,18 +5059,18 @@ Enclosure Game::findEnclosure_notOptimised(std::vector<pti> &tab, pti point,
             pti nb = ind + coord.nb4[i];
             if ((tab[nb] & mask) == value)
             {
-                if ((tab[nb] & MASK_BORDER) == 0)
+                if ((tab[nb] & sg.MASK_BORDER) == 0)
                 {  // a border dot not yet visited?
-                    tab[nb] |= MASK_BORDER;
+                    tab[nb] |= sg.MASK_BORDER;
                     cleanup.push(nb);
                     if (nb < leftmost) leftmost = nb;
                 }
             }
-            else if ((tab[nb] & MASK_MARK) == 0)
+            else if ((tab[nb] & sg.MASK_MARK) == 0)
             {
                 if (coord.dist[nb] > 0)
                 {  // interior point on the board (and not on the edge)
-                    tab[nb] |= MASK_MARK;
+                    tab[nb] |= sg.MASK_MARK;
                     stack[stackSize++] = nb;
                     cleanup.push(nb);
                 }
@@ -5429,34 +5087,34 @@ Enclosure Game::findEnclosure_notOptimised(std::vector<pti> &tab, pti point,
     stack[0] = leftmost + coord.NE;
     stack[1] = leftmost;
     stack[2] = coord.findNextOnRight(stack[1], stack[0]);
-    tab[stack[0]] |= MASK_MARK;
-    tab[stack[1]] |= MASK_MARK;
+    tab[stack[0]] |= sg.MASK_MARK;
+    tab[stack[1]] |= sg.MASK_MARK;
     int top = 2;
     do
     {
         // check if current point is on the border, if not, take next
         // (clockwise)
-        while ((tab[stack[top]] & MASK_BORDER) == 0)
+        while ((tab[stack[top]] & sg.MASK_BORDER) == 0)
         {
             stack[top] = coord.findNextOnRight(stack[top - 1], stack[top]);
         }
         if (stack[top] == stack[0])  // enclosure found
             break;
-        if (tab[stack[top]] & MASK_MARK)
+        if (tab[stack[top]] & sg.MASK_MARK)
         {
             // this point has been already visited, go back to the last visit of
             // that point and try next neighbour
             pti loop_pt = stack[top];
             top--;
             pti prev_pt = stack[top];
-            while (stack[top] != loop_pt) tab[stack[top--]] &= ~MASK_MARK;
+            while (stack[top] != loop_pt) tab[stack[top--]] &= ~sg.MASK_MARK;
             // now we are again at loop_pt which has been already unMARKed
             stack[++top] = coord.findNextOnRight(loop_pt, prev_pt);
         }
         else
         {
             // visit the point
-            tab[stack[top]] |= MASK_MARK;
+            tab[stack[top]] |= sg.MASK_MARK;
             top++;
             stack[top] = coord.findNextOnRight(stack[top - 1], stack[top - 2]);
         }
@@ -5472,16 +5130,16 @@ Enclosure Game::findEnclosure_notOptimised(std::vector<pti> &tab, pti point,
         cleanup.count);  // reserve memory for interior found so far + border,
                          // which should be enough in most cases
     for (int i = 0; i < cleanup.count; i++)
-        if ((tab[cleanup.list[i]] & (MASK_MARK | MASK_BORDER)) !=
-            (MASK_MARK | MASK_BORDER))
+        if ((tab[cleanup.list[i]] & (sg.MASK_MARK | sg.MASK_BORDER)) !=
+            (sg.MASK_MARK | sg.MASK_BORDER))
         {  // interior point
             interior.push_back(cleanup.list[i]);
             for (int j = 0; j < 4; j++)
             {
                 pti nb = cleanup.list[i] + coord.nb4[j];
-                if ((tab[nb] & (MASK_MARK | MASK_BORDER)) == 0)
+                if ((tab[nb] & (sg.MASK_MARK | sg.MASK_BORDER)) == 0)
                 {
-                    tab[nb] |= MASK_MARK;
+                    tab[nb] |= sg.MASK_MARK;
                     cleanup.push(nb);
                 }
             }
@@ -5519,7 +5177,7 @@ std::vector<pti> Game::findImportantMoves(pti who)
         }  // > to sort descending
     };
     std::vector<PointValue> moves;
-    moves.reserve(coord.wlkx * coord.wlky - history.size() + 2);
+    moves.reserve(coord.wlkx * coord.wlky - sg.getHistory().size() + 2);
     for (int p = coord.first + 1; p < coord.last; p++)
     {
         if (whoseDotMarginAt(p) == 0 and threats[0].is_in_terr[p] == 0 and
@@ -5528,8 +5186,8 @@ std::vector<pti> Game::findImportantMoves(pti who)
         {
             float opp_value, our_value, opp_value2;
             CleanupOneVar<pti> worm_where_cleanup0(
-                &worm[p], who);  //  worm[where0] = who;  with restored old
-                                 //  value (0) by destructor
+                &sg.worm[p], who);  //  worm[where0] = who;  with restored old
+                                    //  value (0) by destructor
             CleanupUsingListOfValues<decltype(pattern3_at) &, pattern3_t>
                 pattern3_cleanup(pattern3_at);
             {
@@ -5546,7 +5204,7 @@ std::vector<pti> Game::findImportantMoves(pti who)
                 opp_value = floodFillCost(3 - who);
             }
             {
-                worm[p] = 3 - who;
+                sg.worm[p] = 3 - who;
                 // change patterns in the neighbourhood of ind
                 pattern3_at[p] = getPattern3_at(p);
                 for (int i = 0; i < 8; i++)
@@ -5922,111 +5580,13 @@ Enclosure Game::findInterior(std::vector<pti> border) const
     return Enclosure(std::move(interior), std::move(border));
 }
 
-void Game::wormMergeAny(pti dst, pti src)
-// merge worm number 'src' to 'dst',
-{
-    if ((dst & MASK_DOT) == (src & MASK_DOT))
-        wormMergeSame(dst, src);
-    else
-        wormMergeOther(dst, src);
-}
-
-void Game::wormMergeOther(pti dst, pti src)
-// note: removing (src) may disconnect some other worms,
-//  but this is NOT recalculated. So after removing all enemy worms
-//  one must check again which are connected. However, neighbour's list is
-//  updated.
-{
-    if ((dst & MASK_DOT) == 1)
-    {
-        score[0].dots += descr.at(src).dots[1];
-        score[1].dots -= descr.at(src).dots[0];
-    }
-    else
-    {
-        score[0].dots -= descr.at(src).dots[1];
-        score[1].dots += descr.at(src).dots[0];
-    }
-    // remove (src) from all its former neighbours
-    for (auto n : descr.at(src).neighb)
-    {
-        descr.at(n).neighb.erase(std::find(descr.at(n).neighb.begin(),
-                                           descr.at(n).neighb.end(), src));
-    }
-    wormMerge_common(dst, src);
-}
-
-void Game::wormMergeSame(pti dst, pti src)
-{
-    WormDescr &descr_src = descr.at(src);
-    WormDescr &descr_dst = descr.at(dst);
-    for (auto n : descr_src.neighb)
-    {
-        if (n == dst ||  // remove (src) from (n)==(dst)'s neighbours, note: src
-                         // is not always a neighbour of dst
-            std::find(descr_dst.neighb.begin(), descr_dst.neighb.end(), n) !=
-                descr_dst.neighb.end())
-        {  // n was already a neighbour of (dst), so just remove (src) as n's
-           // neighbour
-            descr.at(n).neighb.erase(std::find(descr.at(n).neighb.begin(),
-                                               descr.at(n).neighb.end(), src));
-        }
-        else
-        {
-            // n!=dst was not a neighbour of (dst), so replace (src) to (dst) as
-            // n's neighbour and add (n) as a new dst's neighbour
-            std::replace(descr.at(n).neighb.begin(), descr.at(n).neighb.end(),
-                         src, dst);
-            descr_dst.neighb.push_back(n);
-        }
-    }
-    // if (dst) and (src) were in different groups, merge them
-    if (descr_src.group_id != descr_dst.group_id)
-    {
-        pti old_gid = descr_src.group_id;
-        pti new_gid = descr_dst.group_id;
-        for (auto &d : descr)
-        {
-            if (d.second.group_id == old_gid) d.second.group_id = new_gid;
-        }
-        connectionsRenameGroup(new_gid, old_gid);
-    }
-    // common part
-    wormMerge_common(dst, src);
-}
-
-void Game::wormMerge_common(pti dst, pti src)
-// common part of MergeOther and MergeSame
-{
-    WormDescr &descr_src = descr.at(src);
-    WormDescr &descr_dst = descr.at(dst);
-    pti leftmost = descr_src.leftmost;
-    pti x = leftmost;
-    do
-    {
-        worm[x] = dst;
-        x = nextDot[x];
-    } while (x != leftmost);
-    descr_dst.dots[0] += descr_src.dots[0];
-    descr_dst.dots[1] += descr_src.dots[1];
-    pti n = nextDot[descr_dst.leftmost];
-    nextDot[descr_dst.leftmost] = nextDot[descr_src.leftmost];
-    nextDot[descr_src.leftmost] = n;
-    descr_dst.leftmost = std::min(descr_dst.leftmost, leftmost);
-    descr_dst.safety +=
-        descr_src
-            .safety;  // note: this is possible only when safety has at least 32
-                      // bits, otherwise we should check for overflow
-    descr.erase(src);
-}
-
 void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
 // remove_it_from_threats == true: 'encl' has been already marked as TO_REMOVE
 // in threats and will be removed
 //   == false:  if 'encl' is in threats, it has to be found.
 {
-    const pti worm_no = worm[encl.getBorderElement()];
-    const int who = (worm_no & MASK_DOT);
+    const pti worm_no = sg.worm[encl.getBorderElement()];
+    const int who = (worm_no & sg.MASK_DOT);
     bool is_inside_terr = true, is_inside_terr_or_encl = true,
          is_inside_some_encl = false, is_in_our_terr_or_encl = true;
     const uint64_t encl_zobr = encl.zobristKey(who);
@@ -6042,33 +5602,36 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
         {
             // this worm was singular
             singular_worms.insert(
-                {leftmost, descr.at(worm[leftmost]).dots[who - 1]});
+                {leftmost, sg.descr.at(sg.worm[leftmost]).dots[who - 1]});
         }
         else
         {
             some_worms_were_not_singular = true;
         }
     };
-    updateSingInfo(descr.at(worm_no).leftmost);
+    updateSingInfo(sg.descr.at(worm_no).leftmost);
     for (auto &p : encl.border)
     {
-        if (worm[p] != worm_no)
+        if (sg.worm[p] != worm_no)
         {
             // new worm on the border, merge it
-            updateSingInfo(descr.at(worm[p]).leftmost);
-            if ((descr.at(worm[p]).safety <= 1 ||
-                 descr.at(worm_no).safety <= 1) and
-                (descr.at(worm[p]).safety + descr.at(worm_no).safety >= 2))
+            updateSingInfo(sg.descr.at(sg.worm[p]).leftmost);
+            if ((sg.descr.at(sg.worm[p]).safety <= 1 ||
+                 sg.descr.at(worm_no).safety <= 1) and
+                (sg.descr.at(sg.worm[p]).safety + sg.descr.at(worm_no).safety >=
+                 2))
             {
                 update_safety_dame = true;
             }
-            if ((descr.at(worm[p]).safety <= 1 ||
-                 descr.at(worm_no).safety <= 1) and
-                (descr.at(worm[p]).safety + descr.at(worm_no).safety >= 1))
+            if ((sg.descr.at(sg.worm[p]).safety <= 1 ||
+                 sg.descr.at(worm_no).safety <= 1) and
+                (sg.descr.at(sg.worm[p]).safety + sg.descr.at(worm_no).safety >=
+                 1))
             {
-                update_soft_safety = safety_soft.getUpdateValueForAllMargins();
+                update_soft_safety =
+                    sg.safety_soft.getUpdateValueForAllMargins();
             }
-            wormMergeSame(worm_no, worm[p]);
+            sg.wormMergeSame(worm_no, sg.worm[p]);
         }
         if (isInTerr(p, 3 - who) == 0)
         {
@@ -6104,45 +5667,45 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
     stack.reserve(coord.last + 1);
     for (auto &p : encl.interior)
     {
-        if (worm[p] == 0)
+        if (sg.worm[p] == 0)
         {
             empty_count++;
             if (first)
             {
-                nextDot[last] = p;
+                sg.nextDot[last] = p;
                 last = p;
             }
             else
             {
                 first = last = p;
             }
-            worm[p] = worm_no;
+            sg.worm[p] = worm_no;
         }
-        else if (worm[p] != worm_no)
+        else if (sg.worm[p] != worm_no)
         {
-            if ((worm[p] & MASK_DOT) != who)
+            if ((sg.worm[p] & sg.MASK_DOT) != who)
             {
-                enemy_dots += descr[worm[p]].dots[2 - who];
-                if (descr[worm[p]].neighb.size() > 1)
+                enemy_dots += sg.descr[sg.worm[p]].dots[2 - who];
+                if (sg.descr[sg.worm[p]].neighb.size() > 1)
                 {
                     // append if not there
                     if (std::find(gids_to_delete.begin(), gids_to_delete.end(),
-                                  descr[worm[p]].group_id) ==
+                                  sg.descr[sg.worm[p]].group_id) ==
                         gids_to_delete.end())
-                        gids_to_delete.push_back(descr[worm[p]].group_id);
+                        gids_to_delete.push_back(sg.descr[sg.worm[p]].group_id);
                 }
-                wormMergeOther(worm_no, worm[p]);
+                sg.wormMergeOther(worm_no, sg.worm[p]);
             }
             else
-                wormMergeSame(worm_no, worm[p]);
+                sg.wormMergeSame(worm_no, sg.worm[p]);
         }
     }
     // add the empty interior points, if any
     if (first)
     {
-        pti next = nextDot[encl.getBorderElement()];
-        nextDot[encl.getBorderElement()] = first;
-        nextDot[last] = next;
+        pti next = sg.nextDot[encl.getBorderElement()];
+        sg.nextDot[encl.getBorderElement()] = first;
+        sg.nextDot[last] = next;
         if (is_inside_terr_or_encl)
         {
             assert(isInTerr(first, 3 - who) > 0 ||
@@ -6159,14 +5722,14 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
     // recalculate opponents groups, if needed
     if (!gids_to_delete.empty())
     {
-        for (auto &d : descr)
+        for (auto &d : sg.descr)
         {
             if (std::find(gids_to_delete.begin(), gids_to_delete.end(),
                           d.second.group_id) != gids_to_delete.end())
                 d.second.group_id = 0;
         }
         // go
-        for (auto &d : descr)
+        for (auto &d : sg.descr)
         {
             if (d.second.group_id == 0)
             {
@@ -6177,10 +5740,10 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
                 {
                     pti cmp = stack.back();
                     stack.pop_back();
-                    for (auto n : descr.at(cmp).neighb)
-                        if (descr.at(n).group_id == 0)
+                    for (auto n : sg.descr.at(cmp).neighb)
+                        if (sg.descr.at(n).group_id == 0)
                         {
-                            descr.at(n).group_id = id;
+                            sg.descr.at(n).group_id = id;
                             stack.push_back(n);
                         }
                 }
@@ -6417,15 +5980,15 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
     // remove connections
     for (auto &p : encl.interior)
     {
-        connects[0][p] = OneConnection();
-        connects[1][p] = OneConnection();
+        sg.connectionsReset(p, 1);
+        sg.connectionsReset(p, 2);
         // check diagonal neighbours outside the enclosure
         for (int i = 0; i < 8; i += 2)
         {  // +=2, to visit only diagonal neighb.
             pti nb = p + coord.nb8[i];
             if (stack[nb] == 0)
             {
-                connectionsRecalculatePoint(nb, 3 - who);
+                sg.connectionsRecalculatePoint(nb, 3 - who);
             }
         }
     }
@@ -6435,13 +5998,13 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
         {
             for (int j = 0; j < 4; j++)
             {
-                if (connects[2 - who][ind].groups_id[j] == 0) break;
+                if (sg.getConnects(2 - who)[ind].groups_id[j] == 0) break;
                 if (std::find(gids_to_delete.begin(), gids_to_delete.end(),
-                              connects[2 - who][ind].groups_id[j]) !=
+                              sg.getConnects(2 - who)[ind].groups_id[j]) !=
                     gids_to_delete.end())
                 {
-                    connectionsRecalculateConnect(ind, 3 - who);
-                    // connectionsRecalculatePoint(ind, 3-who);
+                    sg.connectionsRecalculateConnect(ind, 3 - who);
+                    // sg.connectionsRecalculatePoint(ind, 3-who);
                     break;
                 }
             }
@@ -6461,11 +6024,11 @@ std::pair<int, int> Game::countTerritory(int now_moves) const
     const int ct_COUNTED = 0x40;
     assert(((ct_B | ct_W | ct_NOT_TERR_B | ct_NOT_TERR_W | ct_TERR_B |
              ct_TERR_W | ct_COUNTED) &
-            (MASK_MARK | MASK_BORDER)) ==
-           0);  // MASK_MARK and _BORDER should be different
+            (sg.MASK_MARK | sg.MASK_BORDER)) ==
+           0);  // sg.MASK_MARK and _BORDER should be different
     //
     std::vector<pti> marks(coord.getSize(), 0);
-    for (int i = coord.first; i <= coord.last; i++) marks[i] = whoseDotAt(i);
+    for (int i = coord.first; i <= coord.last; i++) marks[i] = sg.whoseDotAt(i);
     floodFillExterior(marks, ct_NOT_TERR_B, ct_B);
     floodFillExterior(marks, ct_NOT_TERR_W, ct_W);
     // remove B dots inside W terr, and vice versa, they cannot be used as
@@ -6520,15 +6083,16 @@ std::pair<int, int> Game::countTerritory(int now_moves) const
         {
             for (pti ind : e.interior)
             {
-                if ((worm[ind] & MASK_DOT) == 2 and
-                    (marks[descr.at(worm[ind]).leftmost] & ct_COUNTED) == 0)
+                if ((sg.worm[ind] & sg.MASK_DOT) == 2 and
+                    (marks[sg.descr.at(sg.worm[ind]).leftmost] & ct_COUNTED) ==
+                        0)
                 {
                     // take it
-                    delta_score[0] += descr.at(worm[ind]).dots[1];
-                    delta_score[1] -= descr.at(worm[ind]).dots[0];
-                    marks[descr.at(worm[ind]).leftmost] |= ct_COUNTED;
+                    delta_score[0] += sg.descr.at(sg.worm[ind]).dots[1];
+                    delta_score[1] -= sg.descr.at(sg.worm[ind]).dots[0];
+                    marks[sg.descr.at(sg.worm[ind]).leftmost] |= ct_COUNTED;
                 }
-                else if ((worm[ind] & MASK_DOT) == 0 and
+                else if ((sg.worm[ind] & sg.MASK_DOT) == 0 and
                          (marks[ind] & ct_TERR_B) == 0)
                 {
                     delta_score[2]++;
@@ -6552,15 +6116,16 @@ std::pair<int, int> Game::countTerritory(int now_moves) const
         {
             for (pti ind : e.interior)
             {
-                if ((worm[ind] & MASK_DOT) == 1 and
-                    (marks[descr.at(worm[ind]).leftmost] & ct_COUNTED) == 0)
+                if ((sg.worm[ind] & sg.MASK_DOT) == 1 and
+                    (marks[sg.descr.at(sg.worm[ind]).leftmost] & ct_COUNTED) ==
+                        0)
                 {
                     // take it
-                    delta_score[1] += descr.at(worm[ind]).dots[0];
-                    delta_score[0] -= descr.at(worm[ind]).dots[1];
-                    marks[descr.at(worm[ind]).leftmost] |= ct_COUNTED;
+                    delta_score[1] += sg.descr.at(sg.worm[ind]).dots[0];
+                    delta_score[0] -= sg.descr.at(sg.worm[ind]).dots[1];
+                    marks[sg.descr.at(sg.worm[ind]).leftmost] |= ct_COUNTED;
                 }
-                else if ((worm[ind] & MASK_DOT) == 0 and
+                else if ((sg.worm[ind] & sg.MASK_DOT) == 0 and
                          (marks[ind] & ct_TERR_W) == 0)
                 {
                     delta_score[3]++;
@@ -6603,7 +6168,7 @@ std::pair<int, int> Game::countTerritory(int now_moves) const
     }
     //
     // std::cerr << "Terr-delta-score: " << delta << std::endl;
-    return {(score[0].dots - score[1].dots) + delta, small_score};
+    return {(sg.score[0].dots - sg.score[1].dots) + delta, small_score};
 }
 
 /// Simple function for counting territory, assuming pools of other players do
@@ -6623,14 +6188,14 @@ std::pair<int, int> Game::countTerritory_simple(int now_moves) const
                 // one pool inside other, use the other function
                 return countTerritory(now_moves);
             }
-            if (worm[ind])
+            if (sg.worm[ind])
             {
                 if (whoseDotMarginAt(ind) == 2 and
-                    marks.find(worm[ind]) == marks.end())
+                    marks.find(sg.worm[ind]) == marks.end())
                 {
-                    marks.insert(worm[ind]);
-                    delta_score[0] += descr.at(worm[ind]).dots[1];
-                    delta_score[1] -= descr.at(worm[ind]).dots[0];
+                    marks.insert(sg.worm[ind]);
+                    delta_score[0] += sg.descr.at(sg.worm[ind]).dots[1];
+                    delta_score[1] -= sg.descr.at(sg.worm[ind]).dots[0];
                 }
             }
             else
@@ -6640,14 +6205,14 @@ std::pair<int, int> Game::countTerritory_simple(int now_moves) const
         }
         else if (threats[1].is_in_terr[ind] > 0)
         {
-            if (worm[ind])
+            if (sg.worm[ind])
             {
                 if (whoseDotMarginAt(ind) == 1 and
-                    marks.find(worm[ind]) == marks.end())
+                    marks.find(sg.worm[ind]) == marks.end())
                 {
-                    marks.insert(worm[ind]);
-                    delta_score[1] += descr.at(worm[ind]).dots[0];
-                    delta_score[0] -= descr.at(worm[ind]).dots[1];
+                    marks.insert(sg.worm[ind]);
+                    delta_score[1] += sg.descr.at(sg.worm[ind]).dots[0];
+                    delta_score[0] -= sg.descr.at(sg.worm[ind]).dots[1];
                 }
             }
             else
@@ -6686,11 +6251,11 @@ std::pair<int, int> Game::countTerritory_simple(int now_moves) const
     // std::cerr << "Terr-delta-score: " << delta << std::endl;
 #ifndef NDEBUG
     auto ct_score = countTerritory(now_moves);
-    if ((score[0].dots - score[1].dots) + delta != ct_score.first or
+    if ((sg.score[0].dots - sg.score[1].dots) + delta != ct_score.first or
         small_score != ct_score.second)
     {
         show();
-        std::cerr << "res = " << (score[0].dots - score[1].dots) + delta
+        std::cerr << "res = " << (sg.score[0].dots - sg.score[1].dots) + delta
                   << ", should be = " << ct_score.first << std::endl;
         std::cerr << "delta_score: " << delta_score[0] << ", " << delta_score[1]
                   << ", " << delta_score[2] << ", " << delta_score[3]
@@ -6714,7 +6279,7 @@ std::pair<int, int> Game::countTerritory_simple(int now_moves) const
         // assert(0);
     }
 #endif
-    return {(score[0].dots - score[1].dots) + delta, small_score};
+    return {(sg.score[0].dots - sg.score[1].dots) + delta, small_score};
 }
 
 /// Counts:
@@ -6747,10 +6312,10 @@ std::pair<int16_t, int16_t> Game::countDotsTerrInEncl(const Enclosure &encl,
         if (whoseDotMarginAt(p) == 0)
             ++terr;
         else if (whoseDotMarginAt(p) == who and
-                 counted.find(worm[p]) == counted.end())
+                 counted.find(sg.worm[p]) == counted.end())
         {
-            counted.insert(worm[p]);
-            count += descr.at(worm[p]).dots[who - 1];
+            counted.insert(sg.worm[p]);
+            count += sg.descr.at(sg.worm[p]).dots[who - 1];
         }
     }
     return std::make_pair(count, terr);
@@ -6916,13 +6481,14 @@ void Game::makeSgfMove(const std::string &m, int who)
         /*
         std::vector<pti> list_of_moves;
         for (int i=0; i<coord.maxSize; i++) {
-          list_of_moves.push_back(worm[i] & MASK_DOT);
+          list_of_moves.push_back(worm[i] & sg.MASK_DOT);
           } */
         // generateListOfMoves(nullptr, who);
-        // auto it = history.end();
+        // auto it = sg.getHistory().end();
         //--it;
-        // Move m = choosePattern3Move((*it) & history_move_MASK, (*(it-1)) &
-        // history_move_MASK, 3-who); Move m = chooseAnyMove(3-who);
+        // Move m = choosePattern3Move((*it) & sg.getHistory()_move_MASK,
+        // (*(it-1)) & sg.getHistory()_move_MASK, 3-who); Move m =
+        // chooseAnyMove(3-who);
 #ifndef NDEBUG
         /*
         if (m.ind) {
@@ -6961,10 +6527,10 @@ void Game::makeMove(const Move &m)
         {
             makeEnclosure(*encl, true);
         }
-        if (not m.enclosures.empty()) history.setEnclosureInLastMove();
+        if (not m.enclosures.empty()) sg.setEnclosureInLastMove();
         const uint32_t atari_neighb_code =
             threats[2 - m.who].getAtariNeighbCode(m.ind);
-        history.xorAtariNeigbhCodeInLastMove(atari_neighb_code);
+        sg.xorAtariNeigbhCodeInLastMove(atari_neighb_code);
         if (must_surround)
         {
             int corner_right_bottom = coord.ind(coord.wlkx - 2, coord.wlky - 2);
@@ -6973,7 +6539,7 @@ void Game::makeMove(const Move &m)
             {
                 if (isInTerr(i, m.who) and whoseDotMarginAt(i) == opponent)
                 {
-                    Enclosure encl = findEnclosure(i, MASK_DOT, m.who);
+                    Enclosure encl = findEnclosure(i, sg.MASK_DOT, m.who);
                     if (!encl.isEmpty())
                     {
                         show();
@@ -6987,11 +6553,11 @@ void Game::makeMove(const Move &m)
                 }
             }
         }
-        safety_soft.updateAfterMove(this, update_soft_safety, m.ind);
+        sg.safety_soft.updateAfterMove(&sg, update_soft_safety, m.ind);
         update_soft_safety = 0;
         assert(checkSoftSafetyCorrectness());
         recalculatePatt3Values();
-        nowMoves ^= 3;
+        sg.nowMoves ^= 3;
     }
 }
 
@@ -7008,17 +6574,17 @@ void Game::makeMoveWithPointsToEnclose(
         for (const auto &e : to_enclose)
         {
             Enclosure encl =
-                findEnclosure(coord.sgfToPti(e), MASK_DOT, nowMoves);
+                findEnclosure(coord.sgfToPti(e), sg.MASK_DOT, sg.nowMoves);
             if (!encl.isEmpty())
             {
                 makeEnclosure(encl, true);
             }
         }
-        safety_soft.updateAfterMove(this, update_soft_safety, m.ind);
+        sg.safety_soft.updateAfterMove(&sg, update_soft_safety, m.ind);
         update_soft_safety = 0;
         assert(checkSoftSafetyCorrectness());
         recalculatePatt3Values();
-        nowMoves ^= 3;
+        sg.nowMoves ^= 3;
     }
 }
 
@@ -7054,7 +6620,7 @@ pti &Game::isInBorder(pti ind, int who)
 
 bool Game::isDameOnEdge(pti i, int who) const
 {
-    if (safety_soft.isDameFor(who, i)) return true;
+    if (sg.safety_soft.isDameFor(who, i)) return true;
     const int x = coord.x[i];
     const int y = coord.y[i];
     const bool left = possible_moves.left;
@@ -7065,26 +6631,29 @@ bool Game::isDameOnEdge(pti i, int who) const
     if (x == 0)
     {
         if (left ||
-            (worm[i + coord.E] and descr.at(worm[i + coord.E]).isSafe()) ||
+            (sg.worm[i + coord.E] and
+             sg.descr.at(sg.worm[i + coord.E]).isSafe()) ||
             (y == 0 || y == coord.wlky - 1))
             return true;
     }
     else if (x == coord.wlkx - 1)
     {
         if (right ||
-            (worm[i + coord.W] and descr.at(worm[i + coord.W]).isSafe()) ||
+            (sg.worm[i + coord.W] and
+             sg.descr.at(sg.worm[i + coord.W]).isSafe()) ||
             (y == 0 || y == coord.wlky - 1))
             return true;
     }
     if (y == 0)
     {
-        if (top || (worm[i + coord.S] and descr.at(worm[i + coord.S]).isSafe()))
+        if (top || (sg.worm[i + coord.S] and
+                    sg.descr.at(sg.worm[i + coord.S]).isSafe()))
             return true;
     }
     else if (y == coord.wlky - 1)
     {
-        if (bottom ||
-            (worm[i + coord.N] and descr.at(worm[i + coord.N]).isSafe()))
+        if (bottom || (sg.worm[i + coord.N] and
+                       sg.descr.at(sg.worm[i + coord.N]).isSafe()))
             return true;
     }
     return false;
@@ -7154,8 +6723,9 @@ NonatomicMovestats Game::priorsForInterestingMoves_cut_or_connect(bool is_root,
 NonatomicMovestats Game::priorsForDistanceFromLastMoves(bool is_root,
                                                         int i) const
 {
-    int dist = std::min(coord.distBetweenPts_1(i, history.getLast()),
-                        coord.distBetweenPts_1(i, history.getLastButOne()));
+    int dist =
+        std::min(coord.distBetweenPts_1(i, sg.getHistory().getLast()),
+                 coord.distBetweenPts_1(i, sg.getHistory().getLastButOne()));
     if (dist <= 4)
     {
         const int n_won = (6 - dist);
@@ -7252,8 +6822,8 @@ NonatomicMovestats Game::priorsForLadderExtension(bool is_root, int i,
         std::tie(v_diag, v_keima) = iter->second;
     }
     if (whoseDotMarginAt(i + v_keima) != who) return {};
-    const auto group_id = descr.at(worm[i + v_diag]).group_id;
-    if (descr.at(worm[i + v_keima]).group_id != group_id) return {};
+    const auto group_id = sg.descr.at(sg.worm[i + v_diag]).group_id;
+    if (sg.descr.at(sg.worm[i + v_keima]).group_id != group_id) return {};
     const pti v_defend = (v_diag + v_keima) / 3;
     const pti v_side = v_diag - v_defend;
     // here we have a shape of the type
@@ -7266,7 +6836,7 @@ NonatomicMovestats Game::priorsForLadderExtension(bool is_root, int i,
     krb::PointsSet ladder_breakers;
     const auto status = checkLadderStep(
         i + v_defend, ladder_breakers, -v_side, -v_defend,
-        descr.at(worm[i + v_defend]).group_id, false, 3 - who, 0);
+        sg.descr.at(sg.worm[i + v_defend]).group_id, false, 3 - who, 0);
     const int attacker_wins = 1;
     if (status == attacker_wins)
     {
@@ -7346,7 +6916,7 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
     for (int i = coord.first; i <= coord.last; i++)
     {
         // if (coord.dist[i] < 0) continue;
-        if (worm[i]) continue;
+        if (sg.worm[i]) continue;
         if (is_root)
         {
             out.str("");
@@ -7420,7 +6990,7 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
             {
                 int min_terr_size =
                     threats[2 - who].getMinAreaOfThreatEnclosingPoint(i);
-                if (connects[who - 1][i].groups_id[0] == 0)
+                if (sg.getConnects(who - 1)[i].groups_id[0] == 0)
                 {
                     // dot does not touch any our dot
                     const int loss =
@@ -7480,12 +7050,12 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                             priors += lostSimulations(25);
                             if (is_root) out << "notborder=-25 ";
 
-                            if (connects[who - 1][i].groups_id[0] == 0)
+                            if (sg.getConnects(who - 1)[i].groups_id[0] == 0)
                             {  // does not touch our dots
                                 priors += lostSimulations(30);
                                 if (is_root) out << "andiso=-30 ";
                             }
-                            if (connects[2 - who][i].groups_id[0] == 0)
+                            if (sg.getConnects(2 - who)[i].groups_id[0] == 0)
                             {  // does not touch opp's dots
                                 priors += lostSimulations(30);
                                 if (is_root) out << " andiso2=-30 ";
@@ -7944,14 +7514,14 @@ Move Game::chooseAtariResponse(pti lastMove, int who, pti forbidden_place)
 /// This function selects enclosures using Game:::chooseRandomEncl().
 Move Game::chooseSoftSafetyResponse(int who, pti forbidden_place)
 {
-    auto responses = safety_soft.getCurrentlyAddedSugg();
+    auto responses = sg.safety_soft.getCurrentlyAddedSugg();
     return selectMoveRandomlyFrom(responses[who - 1], who, forbidden_place);
 }
 
 /// This function selects enclosures using Game:::chooseRandomEncl().
 Move Game::chooseSoftSafetyContinuation(int who, pti forbidden_place)
 {
-    auto responses = safety_soft.getPreviouslyAddedSugg();
+    auto responses = sg.safety_soft.getPreviouslyAddedSugg();
     return selectMoveRandomlyFrom(responses[who - 1], who, forbidden_place);
 }
 
@@ -7971,7 +7541,7 @@ Move Game::selectMoveRandomlyFrom(const std::vector<pti> &moves, int who,
     for (auto move : moves)
     {
         if (move == forbidden_place) continue;
-        if (safety_soft.isDameFor(who, move)) continue;
+        if (sg.safety_soft.isDameFor(who, move)) continue;
         if ((isInEncl(move, 3 - who) == 0 and isInTerr(move, 3 - who) == 0) or
             isInBorder(move, who))
             moves_not_in_atari.push_back(move);
@@ -8112,7 +7682,7 @@ std::vector<pti> Game::getSafetyMoves(int /*who*/, pti forbidden_place)
                 auto whose = whoseDotMarginAt(p);
                 if (whoseDotMarginAt(p - vside) + whose == 3 and
                     whoseDotMarginAt(p + vside) == 0 and
-                    descr.at(worm[p - vside]).safety <= 1 and
+                    sg.descr.at(sg.worm[p - vside]).safety <= 1 and
                     whoseDotMarginAt(p + vside + vnorm) != whose and
                     already_saved.find(p + vside) == already_saved.end())
                 //    .
@@ -8128,7 +7698,7 @@ std::vector<pti> Game::getSafetyMoves(int /*who*/, pti forbidden_place)
                 }
                 else if (whoseDotMarginAt(p + vside) + whose == 3 and
                          whoseDotMarginAt(p - vside) == 0 and
-                         descr.at(worm[p + vside]).safety <= 1 and
+                         sg.descr.at(sg.worm[p + vside]).safety <= 1 and
                          whoseDotMarginAt(p - vside + vnorm) != whose and
                          already_saved.find(p - vside) == already_saved.end())
                 //    .
@@ -8144,8 +7714,9 @@ std::vector<pti> Game::getSafetyMoves(int /*who*/, pti forbidden_place)
                 }
             }
 
-            if (whoseDotMarginAt(p) != 0 and descr.at(worm[p]).safety == 1 and
-                safety_soft.getSafetyOf(p) <= 0.99f)
+            if (whoseDotMarginAt(p) != 0 and
+                sg.descr.at(sg.worm[p]).safety == 1 and
+                sg.safety_soft.getSafetyOf(p) <= 0.99f)
             {
                 if (whoseDotMarginAt(p + vnorm) == 0)
                 {
@@ -8217,7 +7788,7 @@ Move Game::chooseAnyMove(int who, pti forbidden_place)
     {
         if (whoseDotMarginAt(i) == 0)
         {
-            if (((connects[who - 1][i].groups_id[0] == 0) and
+            if (((sg.getConnects(who - 1)[i].groups_id[0] == 0) and
                  (isInTerr(i, who) > 0 || isInTerr(i, 3 - who) > 0)) or
                 i == forbidden_place)
             {
@@ -8255,9 +7826,9 @@ std::vector<pti> Game::getGoodTerrMoves(int who) const
          i < possible_moves.lists[PossibleMovesConsts::LIST_TERRM].size(); ++i)
     {
         auto p = possible_moves.lists[PossibleMovesConsts::LIST_TERRM][i];
-        if ((connects[who - 1][p].groups_id[0] == 0 and
+        if ((sg.getConnects(who - 1)[p].groups_id[0] == 0 and
              (isInTerr(p, 3 - who) > 0 || isInEncl(p, 3 - who) > 0)) ||
-            (connects[2 - who][p].groups_id[0] == 0 and
+            (sg.getConnects(2 - who)[p].groups_id[0] == 0 and
              (isInTerr(p, who) > 0 || isInEncl(p, who) > 0)))
         {
             continue;
@@ -8428,7 +7999,7 @@ Move Game::chooseLastGoodReply(int who, pti forbidden_place)
 {
     Move move;
     move.who = who;
-    move.ind = history.getLastGoodReplyFor(who);
+    move.ind = sg.getHistory().getLastGoodReplyFor(who);
     if (whoseDotMarginAt(move.ind) != 0 or move.ind == forbidden_place)
     {
         move.ind = 0;
@@ -8482,8 +8053,8 @@ Move Game::getLastMove() const
 {
     // we do not get last enclosure, but this does not matter
     Move m;
-    m.ind = history.getLast();
-    m.who = (nowMoves ^ 3);
+    m.ind = sg.getHistory().getLast();
+    m.who = (sg.nowMoves ^ 3);
     return m;
 }
 
@@ -8491,8 +8062,8 @@ Move Game::getLastButOneMove() const
 {
     // we do not get last enclosure, but this does not matter
     Move m;
-    m.ind = history.getLastButOne();
-    m.who = nowMoves;
+    m.ind = sg.getHistory().getLastButOne();
+    m.who = sg.nowMoves;
     return m;
 }
 
@@ -8503,8 +8074,8 @@ std::pair<pti, pti> Game::checkLadderToFindBadOrGoodMoves() const
 // ladder), otherwise, current player should play forced_move and then the other
 // not at forbidden
 {
-    int opponent = 3 - nowMoves;
-    uint16_t last_move_no = history.size();
+    int opponent = 3 - sg.nowMoves;
+    uint16_t last_move_no = sg.getHistory().size();
     const int min_value_threshold = 3;
     for (auto thr_it = threats[opponent - 1].threats.rbegin();
          thr_it != threats[opponent - 1].threats.rend(); ++thr_it)
@@ -8512,12 +8083,12 @@ std::pair<pti, pti> Game::checkLadderToFindBadOrGoodMoves() const
         if (thr_it->hist_size != last_move_no) return {0, 0};
         if (thr_it->type & ThreatConsts::TERR) continue;
         if (thr_it->where != 0 and
-            coord.distBetweenPts_infty(thr_it->where, history.getLast()) ==
-                1 and
+            coord.distBetweenPts_infty(thr_it->where,
+                                       sg.getHistory().getLast()) == 1 and
             thr_it->opp_dots >= min_value_threshold)
         {
             const auto [status, next_att, next_def] =
-                checkLadder(nowMoves, thr_it->where);
+                checkLadder(sg.nowMoves, thr_it->where);
             const int ESC_WINS = -1, ATT_WINS = 1;
             if (status == ESC_WINS)
             {
@@ -8556,12 +8127,12 @@ real_t Game::randomPlayout()
                 // prev player played non-working ladder
                 Move forced_move;
                 forced_move.ind = forced;
-                forced_move.who = nowMoves;
+                forced_move.who = sg.nowMoves;
                 dame_moves_so_far = 0;
                 makeMove(getRandomEncl(forced_move));
                 /*
                 std::cout << "---- Non-working ladder played at " <<
-                coord.showPt(history.getLast()) <<
+                coord.showPt(sg.getHistory().getLast()) <<
                   ", forced move: " << coord.showPt(forced) << ", forbidden: "
                 <<  coord.showPt(forbidden) << '\n'; show();
                 */
@@ -8571,32 +8142,32 @@ real_t Game::randomPlayout()
             {
                 // maybe prev player tried to defend working ladder?
                 const auto [status, next_att, next_def] =
-                    checkLadder(3 - nowMoves, history.getLast());
+                    checkLadder(3 - sg.nowMoves, sg.getHistory().getLast());
                 const int ESC_WINS = -1, ATT_WINS = 1;
                 if (status == ATT_WINS)
                 {
                     Move forced_move;
                     forced_move.ind = next_att;
-                    forced_move.who = nowMoves;
+                    forced_move.who = sg.nowMoves;
                     dame_moves_so_far = 0;
                     makeMove(getRandomEncl(forced_move));
-                    if (not isInEncl(next_def, 3 - nowMoves))
+                    if (not isInEncl(next_def, 3 - sg.nowMoves))
                         forbidden_place = next_def;
                     std::cout
                         << "-*-*-* Working ladder defended at "
-                        << coord.showPt(history.getLast())
+                        << coord.showPt(sg.getHistory().getLast())
                         << ", forced move: " << coord.showPt(forced_move.ind)
                         << ", forbidden: " << coord.showPt(forbidden_place)
                         << '\n';
                     show();
                     continue;
                 }
-                if (status == ESC_WINS and not isInEncl(next_att, nowMoves))
+                if (status == ESC_WINS and not isInEncl(next_att, sg.nowMoves))
                 {
                     forbidden_place = next_att;
                     std::cout
                         << "-*-*-*%^%^ Non-working ladder defended at "
-                        << coord.showPt(history.getLast())
+                        << coord.showPt(sg.getHistory().getLast())
                         << ", forbidden: " << coord.showPt(forbidden_place)
                         << '\n';
                     show();
@@ -8606,7 +8177,7 @@ real_t Game::randomPlayout()
         int number = di(engine);
         if ((number & 0x10000) != 0)  // probability 1/2
         {
-            m = chooseLastGoodReply(nowMoves, forbidden_place);
+            m = chooseLastGoodReply(sg.nowMoves, forbidden_place);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
@@ -8617,7 +8188,7 @@ real_t Game::randomPlayout()
         }
         if ((number & 0xc00) != 0)
         {
-            m = chooseAtariResponse(history.getLast(), nowMoves,
+            m = chooseAtariResponse(sg.getHistory().getLast(), sg.nowMoves,
                                     forbidden_place);
             if (m.ind != 0)
             {
@@ -8632,7 +8203,7 @@ real_t Game::randomPlayout()
         }
         if ((number & 0xc000) != 0)
         {
-            m = chooseSoftSafetyResponse(nowMoves, forbidden_place);
+            m = chooseSoftSafetyResponse(sg.nowMoves, forbidden_place);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
@@ -8647,7 +8218,7 @@ real_t Game::randomPlayout()
 
         if ((number & 0x300) != 0)
         {
-            m = choosePattern3Move(history.getLast(), 0, nowMoves,
+            m = choosePattern3Move(sg.getHistory().getLast(), 0, sg.nowMoves,
                                    forbidden_place);
             if (m.ind != 0)
             {
@@ -8667,7 +8238,7 @@ real_t Game::randomPlayout()
 
         if ((number & 0x2000) != 0)
         {
-            m = chooseSoftSafetyContinuation(nowMoves, forbidden_place);
+            m = chooseSoftSafetyContinuation(sg.nowMoves, forbidden_place);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
@@ -8682,8 +8253,8 @@ real_t Game::randomPlayout()
 
         if ((number & 0x4) != 0)
         {
-            m = choosePattern3Move(0, history.getLastButOne(), nowMoves,
-                                   forbidden_place);
+            m = choosePattern3Move(0, sg.getHistory().getLastButOne(),
+                                   sg.nowMoves, forbidden_place);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
@@ -8701,7 +8272,7 @@ real_t Game::randomPlayout()
         }
         if ((number & 0x2) != 0)
         {
-            m = chooseAtariMove(nowMoves, forbidden_place);
+            m = chooseAtariMove(sg.nowMoves, forbidden_place);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
@@ -8716,7 +8287,7 @@ real_t Game::randomPlayout()
         }
         if ((number & 0x80) != 0)
         {  // probability 1/2, could be 3/4 by changing 0x80 to 0xc0
-            m = chooseInterestingMove(nowMoves, forbidden_place);
+            m = chooseInterestingMove(sg.nowMoves, forbidden_place);
             if (m.ind != 0)
             {
 #ifdef DEBUG_SGF
@@ -8752,7 +8323,7 @@ real_t Game::randomPlayout()
         }
         if ((number & 0x1) != 0)
         {  // probability 1/2
-            m = chooseSafetyMove(nowMoves, forbidden_place);
+            m = chooseSafetyMove(sg.nowMoves, forbidden_place);
             if (m.ind != 0)
             {
                 dame_moves_so_far = 0;
@@ -8766,9 +8337,9 @@ real_t Game::randomPlayout()
         }
         /*
         if ((number & 0x10) != 0) {  // probability 1/2, could be 3/4 by
-    changing 0x10 to 0x30 m = choosePatt3extraMove(nowMoves, forbidden_place);
-    if (m.ind != 0) { dame_moves_so_far = 0; makeMove(m); forbidden_place = 0;
-    #ifdef DEBUG_SGF
+    changing 0x10 to 0x30 m = choosePatt3extraMove(sg.nowMoves,
+    forbidden_place); if (m.ind != 0) { dame_moves_so_far = 0; makeMove(m);
+    forbidden_place = 0; #ifdef DEBUG_SGF
             sgf_tree.addComment(std::string("ext"));
     #endif
             continue;
@@ -8777,7 +8348,7 @@ real_t Game::randomPlayout()
         */
         /*
         if ((number & 0xc) != 0) {
-          m = chooseInfluenceMove(nowMoves, forbidden_place);
+          m = chooseInfluenceMove(sg.nowMoves, forbidden_place);
           if (m.ind != 0) {
             dame_moves_so_far = 0;
             makeMove(m);
@@ -8789,7 +8360,7 @@ real_t Game::randomPlayout()
           }
         }
         */
-        m = chooseAnyMove_pm(nowMoves, forbidden_place);
+        m = chooseAnyMove_pm(sg.nowMoves, forbidden_place);
         if (m.ind != 0)
         {
             makeMove(m);
@@ -8807,7 +8378,7 @@ real_t Game::randomPlayout()
         if (dame_moves_so_far >= 2) break;
     }
     // std::cerr << std::endl;
-    auto [res, res_small] = countTerritory_simple(nowMoves);
+    auto [res, res_small] = countTerritory_simple(sg.nowMoves);
     real_t win_value;
     if (res == 0)
     {
@@ -8879,7 +8450,7 @@ int Game::checkDame(pti p) const
                 pti nb = p + coord.nb4[i];
                 if (coord.dist[nb] == 1)
                 {
-                    if (worm[nb] and descr.at(worm[nb]).isSafe())
+                    if (sg.worm[nb] and sg.descr.at(sg.worm[nb]).isSafe())
                         return PossibleMovesConsts::DAME;
                     break;
                 }
@@ -8898,7 +8469,7 @@ int Game::checkDame(pti p) const
 void Game::possibleMoves_updateSafety(pti p)
 {
     assert(coord.dist[p] == 1);
-    if (worm[p] != 0)
+    if (sg.worm[p] != 0)
     {
         for (int i = 0; i < 4; i++)
         {
@@ -8906,7 +8477,7 @@ void Game::possibleMoves_updateSafety(pti p)
             if (coord.dist[nb] == 0 and whoseDotMarginAt(nb) == 0)
             {
                 possible_moves.changeMove(nb,
-                                          descr.at(worm[p]).isSafe()
+                                          sg.descr.at(sg.worm[p]).isSafe()
                                               ? PossibleMovesConsts::DAME
                                               : PossibleMovesConsts::NEUTRAL);
             }
@@ -8921,12 +8492,12 @@ void Game::possibleMoves_updateSafetyDame()
         pti p = coord.ind(0, 1);
         for (int y = coord.wlky - 2; y > 0; --y)
         {
-            if (worm[p + coord.E] != 0 and whoseDotMarginAt(p) == 0)
+            if (sg.worm[p + coord.E] != 0 and whoseDotMarginAt(p) == 0)
             {
-                possible_moves.changeMove(p,
-                                          descr.at(worm[p + coord.E]).isSafe()
-                                              ? PossibleMovesConsts::DAME
-                                              : PossibleMovesConsts::NEUTRAL);
+                possible_moves.changeMove(
+                    p, sg.descr.at(sg.worm[p + coord.E]).isSafe()
+                           ? PossibleMovesConsts::DAME
+                           : PossibleMovesConsts::NEUTRAL);
             }
             p += coord.S;
         }
@@ -8936,12 +8507,12 @@ void Game::possibleMoves_updateSafetyDame()
         pti p = coord.ind(coord.wlkx - 1, 1);
         for (int y = coord.wlky - 2; y > 0; --y)
         {
-            if (worm[p + coord.W] != 0 and whoseDotMarginAt(p) == 0)
+            if (sg.worm[p + coord.W] != 0 and whoseDotMarginAt(p) == 0)
             {
-                possible_moves.changeMove(p,
-                                          descr.at(worm[p + coord.W]).isSafe()
-                                              ? PossibleMovesConsts::DAME
-                                              : PossibleMovesConsts::NEUTRAL);
+                possible_moves.changeMove(
+                    p, sg.descr.at(sg.worm[p + coord.W]).isSafe()
+                           ? PossibleMovesConsts::DAME
+                           : PossibleMovesConsts::NEUTRAL);
             }
             p += coord.S;
         }
@@ -8951,12 +8522,12 @@ void Game::possibleMoves_updateSafetyDame()
         pti p = coord.ind(1, 0);
         for (int x = coord.wlkx - 2; x > 0; --x)
         {
-            if (worm[p + coord.S] != 0 and whoseDotMarginAt(p) == 0)
+            if (sg.worm[p + coord.S] != 0 and whoseDotMarginAt(p) == 0)
             {
-                possible_moves.changeMove(p,
-                                          descr.at(worm[p + coord.S]).isSafe()
-                                              ? PossibleMovesConsts::DAME
-                                              : PossibleMovesConsts::NEUTRAL);
+                possible_moves.changeMove(
+                    p, sg.descr.at(sg.worm[p + coord.S]).isSafe()
+                           ? PossibleMovesConsts::DAME
+                           : PossibleMovesConsts::NEUTRAL);
             }
             p += coord.E;
         }
@@ -8966,12 +8537,12 @@ void Game::possibleMoves_updateSafetyDame()
         pti p = coord.ind(1, coord.wlky - 1);
         for (int x = coord.wlkx - 2; x > 0; --x)
         {
-            if (worm[p + coord.N] != 0 and whoseDotMarginAt(p) == 0)
+            if (sg.worm[p + coord.N] != 0 and whoseDotMarginAt(p) == 0)
             {
-                possible_moves.changeMove(p,
-                                          descr.at(worm[p + coord.N]).isSafe()
-                                              ? PossibleMovesConsts::DAME
-                                              : PossibleMovesConsts::NEUTRAL);
+                possible_moves.changeMove(
+                    p, sg.descr.at(sg.worm[p + coord.N]).isSafe()
+                           ? PossibleMovesConsts::DAME
+                           : PossibleMovesConsts::NEUTRAL);
             }
             p += coord.E;
         }
@@ -8982,7 +8553,7 @@ void Game::possibleMoves_updateSafetyDame()
 bool Game::isDame_directCheck(pti p, int who) const
 {
     if (coord.dist[p] == 0 and checkBorderMove(p, who) < 0) return true;
-    if (safety_soft.isDameFor(who, p)) return true;
+    if (sg.safety_soft.isDameFor(who, p)) return true;
     return isDame_directCheck_symm(p);
 }
 
@@ -9006,7 +8577,8 @@ bool Game::isDame_directCheck_symm(pti p) const
             pti nb = p + coord.nb4[i];
             if (coord.dist[nb] == 1)
             {
-                if (worm[nb] and descr.at(worm[nb]).isSafe()) return true;
+                if (sg.worm[nb] and sg.descr.at(sg.worm[nb]).isSafe())
+                    return true;
                 break;
             }
         }
@@ -9061,26 +8633,26 @@ bool Game::checkMarginsCorrectness() const
     for (int i = 1; i < coord.wlkx - 1; i++)
     {
         int ind = coord.ind(i, 0);
-        if (worm[ind] != 0 || worm[ind + coord.S] != 0) top = false;
+        if (sg.worm[ind] != 0 || sg.worm[ind + coord.S] != 0) top = false;
         ind = coord.ind(i, coord.wlky - 1);
-        if (worm[ind] != 0 || worm[ind + coord.N] != 0) bottom = false;
+        if (sg.worm[ind] != 0 || sg.worm[ind + coord.N] != 0) bottom = false;
     }
-    if (worm[coord.ind(0, 1)] || worm[coord.ind(coord.wlkx - 1, 1)])
+    if (sg.worm[coord.ind(0, 1)] || sg.worm[coord.ind(coord.wlkx - 1, 1)])
         top = false;
-    if (worm[coord.ind(0, coord.wlky - 2)] ||
-        worm[coord.ind(coord.wlkx - 1, coord.wlky - 2)])
+    if (sg.worm[coord.ind(0, coord.wlky - 2)] ||
+        sg.worm[coord.ind(coord.wlkx - 1, coord.wlky - 2)])
         bottom = false;
     for (int j = 1; j < coord.wlky - 1; j++)
     {
         int ind = coord.ind(0, j);
-        if (worm[ind] != 0 || worm[ind + coord.E] != 0) left = false;
+        if (sg.worm[ind] != 0 || sg.worm[ind + coord.E] != 0) left = false;
         ind = coord.ind(coord.wlkx - 1, j);
-        if (worm[ind] != 0 || worm[ind + coord.W] != 0) right = false;
+        if (sg.worm[ind] != 0 || sg.worm[ind + coord.W] != 0) right = false;
     }
-    if (worm[coord.ind(1, 0)] || worm[coord.ind(1, coord.wlky - 1)])
+    if (sg.worm[coord.ind(1, 0)] || sg.worm[coord.ind(1, coord.wlky - 1)])
         left = false;
-    if (worm[coord.ind(coord.wlkx - 2, 0)] ||
-        worm[coord.ind(coord.wlkx - 2, coord.wlky - 1)])
+    if (sg.worm[coord.ind(coord.wlkx - 2, 0)] ||
+        sg.worm[coord.ind(coord.wlkx - 2, coord.wlky - 1)])
         right = false;
     return (left == possible_moves.left) and (right == possible_moves.right) and
            (top == possible_moves.top) and (bottom == possible_moves.bottom);
@@ -9095,11 +8667,11 @@ bool Game::checkWormCorrectness() const
         {
             // visit this group
             WormDescr dsc;
-            test_descr.insert({worm[ind], dsc});
+            test_descr.insert({sg.worm[ind], dsc});
             std::vector<pti> stack;
             stack.push_back(ind);
             groups[ind] = ind;
-            int who = (worm[ind] & MASK_DOT);
+            int who = (sg.worm[ind] & sg.MASK_DOT);
             do
             {
                 pti p = stack.back();
@@ -9107,23 +8679,25 @@ bool Game::checkWormCorrectness() const
                 for (int i = 0; i < 8; i++)
                 {
                     pti nb = p + coord.nb8[i];
-                    if ((worm[nb] & MASK_DOT) == who)
+                    if ((sg.worm[nb] & sg.MASK_DOT) == who)
                     {
-                        if (worm[nb] != worm[p])
+                        if (sg.worm[nb] != sg.worm[p])
                         {  // diagonal connection
-                            if (test_descr.find(worm[nb]) == test_descr.end())
+                            if (test_descr.find(sg.worm[nb]) ==
+                                test_descr.end())
                             {
-                                test_descr.insert({worm[nb], dsc});
+                                test_descr.insert({sg.worm[nb], dsc});
                             }
-                            if (std::find(test_descr[worm[nb]].neighb.begin(),
-                                          test_descr[worm[nb]].neighb.end(),
-                                          worm[p]) ==
-                                test_descr[worm[nb]].neighb.end())
+                            if (std::find(
+                                    test_descr[sg.worm[nb]].neighb.begin(),
+                                    test_descr[sg.worm[nb]].neighb.end(),
+                                    sg.worm[p]) ==
+                                test_descr[sg.worm[nb]].neighb.end())
                             {
-                                test_descr.at(worm[nb]).neighb.push_back(
-                                    worm[p]);
-                                test_descr.at(worm[p]).neighb.push_back(
-                                    worm[nb]);
+                                test_descr.at(sg.worm[nb])
+                                    .neighb.push_back(sg.worm[p]);
+                                test_descr.at(sg.worm[p])
+                                    .neighb.push_back(sg.worm[nb]);
                             }
                         }
                         if (groups[nb] == 0)
@@ -9139,7 +8713,7 @@ bool Game::checkWormCorrectness() const
     // std::cerr << coord.showBoard(groups) << std::endl;
     for (auto &d : test_descr)
     {
-        if (descr.find(d.first) == descr.end())
+        if (sg.descr.find(d.first) == sg.descr.end())
         {
             std::cerr << "blad " << d.first << " nie wystepuje w descr"
                       << std::endl;
@@ -9150,38 +8724,40 @@ bool Game::checkWormCorrectness() const
     // add safety info
     for (int x = 0; x < coord.wlkx; x++)
     {
-        if (worm[coord.ind(x, 0)])
-            test_descr.at(worm[coord.ind(x, 0)]).safety = WormDescr::SAFE_VALUE;
-        if (worm[coord.ind(x, coord.wlky - 1)])
-            test_descr.at(worm[coord.ind(x, coord.wlky - 1)]).safety =
+        if (sg.worm[coord.ind(x, 0)])
+            test_descr.at(sg.worm[coord.ind(x, 0)]).safety =
+                WormDescr::SAFE_VALUE;
+        if (sg.worm[coord.ind(x, coord.wlky - 1)])
+            test_descr.at(sg.worm[coord.ind(x, coord.wlky - 1)]).safety =
                 WormDescr::SAFE_VALUE;
         if (x > 0 and x < coord.wlkx - 1)
         {
-            if (worm[coord.ind(x, 0)] == 0 and worm[coord.ind(x, 1)])
-                test_descr.at(worm[coord.ind(x, 1)]).safety++;
-            if (worm[coord.ind(x, coord.wlky - 1)] == 0 and
-                worm[coord.ind(x, coord.wlky - 2)])
-                test_descr.at(worm[coord.ind(x, coord.wlky - 2)]).safety++;
+            if (sg.worm[coord.ind(x, 0)] == 0 and sg.worm[coord.ind(x, 1)])
+                test_descr.at(sg.worm[coord.ind(x, 1)]).safety++;
+            if (sg.worm[coord.ind(x, coord.wlky - 1)] == 0 and
+                sg.worm[coord.ind(x, coord.wlky - 2)])
+                test_descr.at(sg.worm[coord.ind(x, coord.wlky - 2)]).safety++;
         }
     }
     for (int y = 0; y < coord.wlky; y++)
     {
-        if (worm[coord.ind(0, y)])
-            test_descr.at(worm[coord.ind(0, y)]).safety = WormDescr::SAFE_VALUE;
-        if (worm[coord.ind(coord.wlkx - 1, y)])
-            test_descr.at(worm[coord.ind(coord.wlkx - 1, y)]).safety =
+        if (sg.worm[coord.ind(0, y)])
+            test_descr.at(sg.worm[coord.ind(0, y)]).safety =
+                WormDescr::SAFE_VALUE;
+        if (sg.worm[coord.ind(coord.wlkx - 1, y)])
+            test_descr.at(sg.worm[coord.ind(coord.wlkx - 1, y)]).safety =
                 WormDescr::SAFE_VALUE;
         if (y > 0 and y < coord.wlky - 1)
         {
-            if (worm[coord.ind(0, y)] == 0 and worm[coord.ind(1, y)])
-                test_descr.at(worm[coord.ind(1, y)]).safety++;
-            if (worm[coord.ind(coord.wlkx - 1, y)] == 0 and
-                worm[coord.ind(coord.wlkx - 2, y)])
-                test_descr.at(worm[coord.ind(coord.wlkx - 2, y)]).safety++;
+            if (sg.worm[coord.ind(0, y)] == 0 and sg.worm[coord.ind(1, y)])
+                test_descr.at(sg.worm[coord.ind(1, y)]).safety++;
+            if (sg.worm[coord.ind(coord.wlkx - 1, y)] == 0 and
+                sg.worm[coord.ind(coord.wlkx - 2, y)])
+                test_descr.at(sg.worm[coord.ind(coord.wlkx - 2, y)]).safety++;
         }
     }
 
-    for (auto &d1 : descr)
+    for (auto &d1 : sg.descr)
     {
         // check keys
         if (test_descr.find(d1.first) == test_descr.end())
@@ -9190,7 +8766,7 @@ bool Game::checkWormCorrectness() const
             return false;
         }
         // check pairs
-        for (auto &d2 : descr)
+        for (auto &d2 : sg.descr)
         {
             bool not_in_neighb =
                 (std::find(d1.second.neighb.begin(), d1.second.neighb.end(),
@@ -9227,13 +8803,13 @@ bool Game::checkWormCorrectness() const
 bool Game::checkSoftSafetyCorrectness()
 {
     Safety s;
-    s.init(this);
+    s.init(&sg);
     bool shown = false;
     auto almost_eq = [](float x, float y)
     { return x >= y - 1e-4 and x <= y + 1e-4; };
     for (int ind = coord.first; ind <= coord.last; ind++)
     {
-        if (not almost_eq(s.getSafetyOf(ind), safety_soft.getSafetyOf(ind)))
+        if (not almost_eq(s.getSafetyOf(ind), sg.safety_soft.getSafetyOf(ind)))
         {
             if (not shown)
             {
@@ -9241,11 +8817,11 @@ bool Game::checkSoftSafetyCorrectness()
                 shown = true;
             }
             std::cerr << "bledne soft safety dla " << coord.showPt(ind)
-                      << " jest: " << safety_soft.getSafetyOf(ind)
+                      << " jest: " << sg.safety_soft.getSafetyOf(ind)
                       << ", powinno byc: " << s.getSafetyOf(ind) << std::endl;
         }
-        if (s.isDameFor(1, ind) != safety_soft.isDameFor(1, ind) or
-            s.isDameFor(2, ind) != safety_soft.isDameFor(2, ind))
+        if (s.isDameFor(1, ind) != sg.safety_soft.isDameFor(1, ind) or
+            s.isDameFor(2, ind) != sg.safety_soft.isDameFor(2, ind))
         {
             if (not shown)
             {
@@ -9253,8 +8829,8 @@ bool Game::checkSoftSafetyCorrectness()
                 shown = true;
             }
             std::cerr << "bledne is dame for dla " << coord.showPt(ind)
-                      << " jest: " << safety_soft.isDameFor(1, ind) << " "
-                      << safety_soft.isDameFor(2, ind)
+                      << " jest: " << sg.safety_soft.isDameFor(1, ind) << " "
+                      << sg.safety_soft.isDameFor(2, ind)
                       << ", powinno byc: " << s.isDameFor(1, ind) << " "
                       << s.isDameFor(2, ind) << std::endl;
         }
@@ -9293,7 +8869,7 @@ bool Game::checkThreatCorrectness()
     for (int ind = coord.first + 1; ind < coord.last; ind++)
     {
         // if (coord.dist[ind]<0) continue;
-        if (worm[ind] == 0)
+        if (sg.worm[ind] == 0)
         {
             for (int who = 1; who <= 2; who++)
             {
@@ -9301,7 +8877,7 @@ bool Game::checkThreatCorrectness()
                     Threat t;
                     // first check territory enclosing [ind]
                     t.encl = std::make_shared<Enclosure>(
-                        findEnclosure_notOptimised(ind, MASK_DOT, who));
+                        findEnclosure_notOptimised(ind, sg.MASK_DOT, who));
                     if (!t.encl->isEmpty())
                     {
                         t.type = ThreatConsts::TERR;
@@ -9319,15 +8895,16 @@ bool Game::checkThreatCorrectness()
                 {
                     Threat t;
                     // now try to put a dot here and enclose
-                    worm[ind] = who;
+                    sg.worm[ind] = who;
                     for (int j = 0; j < 4; j++)
                     {
                         pti nb = ind + coord.nb4[j];
                         if (coord.dist[nb] >= 0 and
-                            (worm[nb] & MASK_DOT) != who)
+                            (sg.worm[nb] & sg.MASK_DOT) != who)
                         {
                             t.encl = std::make_shared<Enclosure>(
-                                findEnclosure_notOptimised(nb, MASK_DOT, who));
+                                findEnclosure_notOptimised(nb, sg.MASK_DOT,
+                                                           who));
                             if (!t.encl->isEmpty() and t.encl->isInBorder(ind))
                             {
                                 t.type = ThreatConsts::ENCL;
@@ -9345,15 +8922,15 @@ bool Game::checkThreatCorrectness()
                     }
                 }
             }
-            worm[ind] = 0;
+            sg.worm[ind] = 0;
         }
         else if (coord.dist[ind] > 0)
         {
             // try to enclose it
             Threat t;
-            int who = (worm[ind] & MASK_DOT) ^ MASK_DOT;
+            int who = (sg.worm[ind] & sg.MASK_DOT) ^ sg.MASK_DOT;
             t.encl = std::make_shared<Enclosure>(
-                findEnclosure_notOptimised(ind, MASK_DOT, who));
+                findEnclosure_notOptimised(ind, sg.MASK_DOT, who));
             if (!t.encl->isEmpty())
             {
                 t.type = ThreatConsts::TERR;
@@ -9459,7 +9036,8 @@ bool Game::checkThreatCorrectness()
                                 for (auto i : t.encl->interior)
                                 {
                                     if (interior[i] == 0 and
-                                        (worm[i] & MASK_DOT) != (pl + 1) and
+                                        (sg.worm[i] & sg.MASK_DOT) !=
+                                            (pl + 1) and
                                         i != thr.second.where)
                                     {
                                         subset = false;
@@ -9547,10 +9125,11 @@ bool Game::checkThreatCorrectness()
                 if (whoseDotMarginAt(i) == 2 - pl and
                     threats[pl].is_in_encl[i] + threats[pl].is_in_terr[i] ==
                         1 and
-                    counted.find(descr.at(worm[i]).leftmost) == counted.end())
+                    counted.find(sg.descr.at(sg.worm[i]).leftmost) ==
+                        counted.end())
                 {
-                    singular += descr.at(worm[i]).dots[1 - pl];
-                    counted.insert(descr.at(worm[i]).leftmost);
+                    singular += sg.descr.at(sg.worm[i]).dots[1 - pl];
+                    counted.insert(sg.descr.at(sg.worm[i]).leftmost);
                 }
             }
             if (singular != thr.singular_dots)
@@ -9733,28 +9312,28 @@ bool Game::checkThreat2movesCorrectness()
                 pti where = thr.where;
                 pairs.insert({where0, where});
                 bool correct = false;
-                if (worm[where] == 0 and worm[where0] == 0)
+                if (sg.worm[where] == 0 and sg.worm[where0] == 0)
                 {
                     CleanupOneVar<pti> worm_where_cleanup0(
-                        &worm[where0],
-                        who);  //  worm[where0] = who;  with restored old value
-                               //  (0) by destructor
+                        &sg.worm[where0],
+                        who);  //  sg.worm[where0] = who;  with restored old
+                               //  value (0) by destructor
                     CleanupOneVar<pti> worm_where_cleanup(
-                        &worm[where],
-                        who);  //  worm[where] = who;  with restored old value
-                               //  (0) by destructor
+                        &sg.worm[where],
+                        who);  //  sg.worm[where] = who;  with restored old
+                               //  value (0) by destructor
                     int done[4] = {0, 0, 0, 0};
                     for (int j = 0; j < 4; j++)
                         if (!done[j])
                         {
                             pti nb = where + coord.nb4[j];
-                            if ((worm[nb] & MASK_DOT) != who and
+                            if ((sg.worm[nb] & sg.MASK_DOT) != who and
                                 coord.dist[nb] >= 1 and
                                 thr.encl->isInInterior(nb))
                             {
                                 Threat t;
                                 t.encl = std::make_shared<Enclosure>(
-                                    findEnclosure_notOptimised(nb, MASK_DOT,
+                                    findEnclosure_notOptimised(nb, sg.MASK_DOT,
                                                                who));
                                 if (!t.encl->isEmpty() and
                                     t.encl->isInBorder(where) and
@@ -9856,11 +9435,12 @@ bool Game::checkThreat2movesCorrectness()
 
 bool Game::checkConnectionsCorrectness()
 {
-    std::vector<OneConnection> tmp[2]{connects[0], connects[1]};
-    findConnections();
+    std::vector<OneConnection> tmp[2]{sg.getConnects(0), sg.getConnects(1)};
+    sg.findConnections();
     for (int ind = 0; ind < coord.getSize(); ind++)
     {
-        if (connects[0][ind] != tmp[0][ind] || connects[1][ind] != tmp[1][ind])
+        if (sg.getConnects(0)[ind] != tmp[0][ind] ||
+            sg.getConnects(1)[ind] != tmp[1][ind])
         {
             std::cerr << "Zla tablica connections, indeks " << ind << " = ("
                       << int(coord.x[ind]) << ", " << int(coord.y[ind]) << ")."
@@ -9886,7 +9466,8 @@ bool Game::checkConnectionsCorrectness()
             for (int g = 0; g <= 1; g++)
             {
                 for (int j = 0; j < 4; j++)
-                    std::cerr << int(connects[g][ind].groups_id[j]) << " ";
+                    std::cerr << int(sg.getConnects(g)[ind].groups_id[j])
+                              << " ";
                 if (g == 0)
                     std::cerr << ",";
                 else
@@ -10096,29 +9677,15 @@ bool Game::checkCorrectness(SgfSequence seq)
         return false;
     auto saved_komi = global::komi;
     global::komi = 0;
-    auto [ct, ct_small_score] = countTerritory_simple(nowMoves);
+    auto [ct, ct_small_score] = countTerritory_simple(sg.nowMoves);
     if (ct == res)
     {
         global::komi = saved_komi;
         return true;
     }
-    auto [ct2, ct2_small_score] = countTerritory(nowMoves);
+    auto [ct2, ct2_small_score] = countTerritory(sg.nowMoves);
     global::komi = saved_komi;
     std::cerr << "Blad, ct=" << ct << ", res=" << res << ", zwykle ct=" << ct2
               << std::endl;
     return false;
-}
-
-void Game::findConnections()
-{
-    for (int x = 0; x < coord.wlkx; x++)
-    {
-        pti ind = coord.ind(x, 0);
-        for (int y = 0; y < coord.wlky; y++)
-        {
-            connectionsRecalculatePoint(ind, 1);
-            connectionsRecalculatePoint(ind, 2);
-            ind += coord.S;
-        }
-    }
 }

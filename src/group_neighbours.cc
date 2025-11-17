@@ -34,7 +34,7 @@ GroupNeighbours::GroupNeighbours(Game& game, std::vector<uint8_t>& neighbours,
         if (game.whoseDotMarginAt(i) == 0 and
             not coord.isInNeighbourhood(i, forbidden_point))
         {
-            std::array<pti, 4> groups = game.connects[who - 1][i].groups_id;
+            std::array<pti, 4> groups = game.getConnects(who - 1)[i].groups_id;
             addPointIfItIsNeighbour(groups, group_id, neighbours, mask, i);
         }
 }

@@ -30,7 +30,7 @@
 
 #include "board.h"
 
-class Game;
+class SimpleGame;
 
 class Safety
 {
@@ -48,9 +48,10 @@ class Safety
         }
         float getSum() const { return saf[0] + saf[1] + saf[2] + saf[3]; }
     };
-    void init(Game* game);
+    void init(const SimpleGame* game);
     float getSafetyOf(pti p) const { return safety[p].getSum(); }
-    void updateAfterMove(Game* game, int what_to_update, pti last_move = 0);
+    void updateAfterMove(const SimpleGame* game, int what_to_update,
+                         pti last_move = 0);
     void updateAfterMoveWithoutAnyChangeToSafety();
     const GoodMoves& getCurrentlyAddedSugg() const;
     const GoodMoves& getPreviouslyAddedSugg() const;
@@ -60,18 +61,19 @@ class Safety
     int getUpdateValueForMarginsContaining(pti p) const;
 
    private:
-    void findMoveValues(Game* game);
-    bool computeSafety(Game* game, int what_to_update);
-    void initSafetyForMargin(Game* game, pti p, pti v, pti n,
+    void findMoveValues(const SimpleGame* game);
+    bool computeSafety(const SimpleGame* game, int what_to_update);
+    void initSafetyForMargin(const SimpleGame* game, pti p, pti v, pti n,
                              int direction_is_clockwise,
                              bool& something_changed);
     void markMoveForBoth(pti where, pti value);
     void markMoveForPlayer(int who, pti where, pti value);
     void markMovesAsOld();
     void removeOldMoves();
-    void findMoveValuesForMargin(Game* game, pti p, pti last_p, pti v, pti n,
-                                 int v_is_clockwise);
-    bool areThereNoFreePointsAtTheEdgeNearPoint(Game* game, pti p) const;
+    void findMoveValuesForMargin(const SimpleGame* game, pti p, pti last_p,
+                                 pti v, pti n, int v_is_clockwise);
+    bool areThereNoFreePointsAtTheEdgeNearPoint(const SimpleGame* game,
+                                                pti p) const;
     std::vector<Info> safety{};
     std::vector<ValueForBoth> move_value{};
     GoodMoves justAddedMoveSugg{};
