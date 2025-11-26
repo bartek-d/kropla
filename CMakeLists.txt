@@ -64,7 +64,7 @@ endif()
 
   
 add_executable(kropla src/game.cc src/game.h  src/history.cc src/history.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h
- src/simplegame.cc
+ src/simplegame.cc  src/dfs.cc
 src/kropla_main.cc src/safety.cc src/safety.h ${CNN_src})
 target_link_libraries(kropla Threads::Threads ${CNN_lib})
 target_include_directories(kropla PRIVATE src)
@@ -126,6 +126,7 @@ endif()
 add_executable(runUnitTests
   unittest/board-test.cc
   unittest/game-test.cc
+  unittest/dfs-test.cc
   unittest/history-test.cc
   unittest/utils-test.cc
   unittest/string-utils-test.cc
@@ -162,6 +163,7 @@ add_executable(runUnitTests
  src/safety.cc
  src/safety.h
  src/simplegame.cc
+ src/dfs.cc
  src/montecarlo.cc
  src/montecarlo.h
 # ${MCAFFE_src}
