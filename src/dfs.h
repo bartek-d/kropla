@@ -22,19 +22,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
 #pragma once
-#include "board.h"
-
 #include <vector>
 
+#include "board.h"
 
 class SimpleGame;
 
 struct APInfo
 {
-  pti where;
-  pti seq0;
-  pti seq1;
-  
+    pti where;
+    pti seq0;
+    pti seq1;
 };
 
 struct OnePlayerDfs
@@ -42,13 +40,10 @@ struct OnePlayerDfs
     std::vector<pti> low;
     std::vector<pti> discovery;
     std::vector<pti> seq;
-  std::vector<APInfo> aps;
- 
-  void AP(const SimpleGame& game, pti left_top, pti bottom_right);
-  pti player;  // whose player it is, that is, whose enclosures we search
-private:
-  void dfsAP_parent(const SimpleGame& game, pti left_top, pti right_bottom);
-  void dfsAP(const SimpleGame& game, pti source, pti parent);
+    std::vector<APInfo> aps;
 
+    void AP(const SimpleGame& game, pti left_top, pti bottom_right);
+    pti player;  // whose player it is, that is, whose enclosures we search
+   private:
+    void dfsAP(const SimpleGame& game, pti source, pti parent);
 };
-
