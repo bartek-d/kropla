@@ -95,6 +95,87 @@ TEST_P(DfsIsometryFixture, weFindMultipleThreats1mWithLotsOfDots)
     ASSERT_EQ(8, dfs.aps.size());
 }
 
+TEST_P(DfsIsometryFixture, weFindMultipleThreats1mFullBoard)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "ooooooo"
+        "o.oxoxo"
+        "oox..oo"
+        "oo.xxoo"
+        "o.ooooo"
+        "o.o..oo"
+        "ooooooo");
+    Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const int playerO = 1;
+    OnePlayerDfs dfs;
+    dfs.player = playerO;
+    dfs.AP(game.getSimpleGame(), coord.first, coord.last);
+    for (auto p : dfs.aps)
+    {
+        std::cout << "ap: " << coord.showPt(p.where) << std::endl;
+        std::cout << "  wnetrze: " << p.seq0 << " -- " << p.seq1 << std::endl;
+    }
+    std::cout << coord.showColouredBoard(dfs.discovery);
+    std::cout << coord.showColouredBoard(dfs.low);
+
+    ASSERT_EQ(0, dfs.aps.size());
+}
+
+TEST_P(DfsIsometryFixture, weFindMultipleThreats1mNoThreats)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "oxoxoxo"
+        "xoxoxox"
+        "oxoxoxo"
+        "xoxoxox"
+        "oxoxoxo"
+        "xoxoxox"
+        "o.o.o.o");
+    Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const int playerO = 1;
+    OnePlayerDfs dfs;
+    dfs.player = playerO;
+    dfs.AP(game.getSimpleGame(), coord.first, coord.last);
+    for (auto p : dfs.aps)
+    {
+        std::cout << "ap: " << coord.showPt(p.where) << std::endl;
+        std::cout << "  wnetrze: " << p.seq0 << " -- " << p.seq1 << std::endl;
+    }
+    std::cout << coord.showColouredBoard(dfs.discovery);
+    std::cout << coord.showColouredBoard(dfs.low);
+
+    ASSERT_EQ(0, dfs.aps.size());
+}
+
+TEST_P(DfsIsometryFixture, weFindMultipleThreats1mMany)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "oooxo.o"
+        "o.o.o.o"
+        "o.o.o.o"
+        "o.oxo.o"
+        "o.ooo.o"
+        "o.....o"
+        "ooooooo");
+    Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const int playerO = 1;
+    OnePlayerDfs dfs;
+    dfs.player = playerO;
+    dfs.AP(game.getSimpleGame(), coord.first, coord.last);
+    for (auto p : dfs.aps)
+    {
+        std::cout << "ap: " << coord.showPt(p.where) << std::endl;
+        std::cout << "  wnetrze: " << p.seq0 << " -- " << p.seq1 << std::endl;
+    }
+    std::cout << coord.showColouredBoard(dfs.discovery);
+    std::cout << coord.showColouredBoard(dfs.low);
+
+    ASSERT_EQ(15, dfs.aps.size());
+}
+
 INSTANTIATE_TEST_CASE_P(Par, DfsIsometryFixture,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
