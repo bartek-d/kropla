@@ -69,8 +69,14 @@ void OnePlayerDfs::dfsAP(const SimpleGame& game, pti source, pti parent)
     const pti offset = -128;
     if (saved_disc < -1)  // edge point, visit other edges
     {
-        const pti v = u + saved_disc - offset;
-        if (v != parent) visitPoint(v, u);
+        for (pti v = u + saved_disc - offset; v != parent;)
+        {
+            visitPoint(v, u);
+            if (discovery[v] < 0)
+                v += discovery[v] - offset;
+            else
+                break;
+        }
         const pti fakeSource = 0;
         low[u] = low[fakeSource];
     }
