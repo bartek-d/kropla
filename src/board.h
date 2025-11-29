@@ -19,8 +19,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
 
-#if !defined(__BOARD_H)
-#define __BOARD_H
+#pragma once
 
 #include <array>
 #include <cstdint>  // intXX_t types
@@ -420,4 +419,3 @@ struct Score
     std::string show() const;
 };
 
-#endif

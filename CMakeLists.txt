@@ -44,10 +44,6 @@ if(USE_CNN)
   set(CNN_src "src/get_cnn_prob.cc" "src/get_cnn_prob.h" "src/cnn_workers.cc" "src/cnn_workers.h" "src/cnn_hash_table.cc" "src/cnn_hash_table.h")
   set(CNN_lib "mtorch")  # "${TORCH_LIBRARIES}") 
   #"libcaffe"  "mklml_intel" "iomp5" "mkldnn" "${Boost_LIBRARIES}" "${Boost_SYSTEM_LIBRARY}" "${GLOG_LIBRARY}" "stdc++fs" "mtorch" "${TORCH_LIBRARIES}") 
-
-  add_executable(check_accuracy src/game.cc src/game.h src/history.cc src/history.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/check_accuracy.cc src/safety.cc src/safety.h ${CNN_src})
-  target_include_directories(check_accuracy PRIVATE src)
-  target_link_libraries(check_accuracy Threads::Threads  mtorch)
 else()
   message("Not using CNN")
   set(CNN_src "src/get_cnn_prob_dummy.cc" "src/get_cnn_prob.h")
@@ -55,16 +51,50 @@ else()
 endif()
 
 
+
+add_library(kroplalib STATIC
+   src/game.cc
+   src/game.h
+   src/history.cc
+   src/history.h
+   src/game_utils.h
+   src/group_neighbours.h
+   src/group_neighbours.cc
+   src/board.h
+   src/board.cc
+   src/sgf.cc
+   src/sgf.h
+   src/command.cc
+   src/command.h
+   src/patterns.cc
+   src/patterns.h
+   src/enclosure.cc
+   src/enclosure.h
+   src/threats.cc
+   src/threats.h
+   src/montecarlo.cc
+   src/montecarlo.h
+   src/simplegame.cc
+   src/dfs.cc
+   src/safety.cc
+   src/safety.h
+)
+
+
+if(USE_CNN)
+  add_executable(check_accuracy src/check_accuracy.cc ${CNN_src})
+  target_include_directories(check_accuracy PRIVATE src)
+  target_link_libraries(check_accuracy kroplalib Threads::Threads  mtorch)
+endif()
   
-add_executable(kropla src/game.cc src/game.h  src/history.cc src/history.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h
- src/simplegame.cc  src/dfs.cc
-src/kropla_main.cc src/safety.cc src/safety.h ${CNN_src})
-target_link_libraries(kropla Threads::Threads ${CNN_lib})
+add_executable(kropla src/kropla_main.cc  ${CNN_src})
+target_link_libraries(kropla kroplalib Threads::Threads ${CNN_lib})
 target_include_directories(kropla PRIVATE src)
 
 if( supported )
     message(STATUS "IPO / LTO enabled")
     set_property(TARGET kropla PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+    set_property(TARGET kroplalib PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
     # set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 else()
     message(STATUS "IPO / LTO not supported: <${error}>")
@@ -73,23 +103,47 @@ endif()
 message(STATUS "src: ${CNN_src}")
 message(STATUS "--lib: ${CNN_lib}")
 
-add_executable(gather src/game.cc src/game.h  src/history.cc src/history.h src/game_utils.h src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/generatedata.cc src/allpattgen.cc src/allpattgen.h  src/safety.cc src/safety.h src/montecarlo.cc src/montecarlo.h  src/simplegame.cc  ${CNN_src})
-target_link_libraries(gather Threads::Threads ${CNN_lib})
+add_executable(gather src/generatedata.cc src/allpattgen.cc src/allpattgen.h  ${CNN_src})
+target_link_libraries(gather kroplalib Threads::Threads ${CNN_lib})
 target_include_directories(gather PRIVATE src)
 
-add_executable(extract src/game.cc src/game.h src/history.cc src/history.h src/game_utils.h src/string_utils.h src/string_utils.cc src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/extract.cc src/safety.cc src/safety.h  src/gzip.cpp src/gzip.hpp ${CNN_src})
-target_link_libraries(extract Threads::Threads HighFive ${CNN_lib} ${ZLIB_LIBRARIES}  ${Boost_LIBRARIES})
+add_executable(extract src/string_utils.h src/string_utils.cc src/extract.cc src/gzip.cpp src/gzip.hpp  ${CNN_src})
+target_link_libraries(extract kroplalib Threads::Threads HighFive ${CNN_lib} ${ZLIB_LIBRARIES}  ${Boost_LIBRARIES})
 target_include_directories(extract PRIVATE src)
 
 if (USE_CNN)
   find_package(Torch REQUIRED)
-  add_executable(extracttensors src/game.cc src/game.h src/history.cc src/history.h src/game_utils.h src/string_utils.h src/string_utils.cc src/group_neighbours.h src/group_neighbours.cc src/board.h src/board.cc  src/sgf.cc  src/board.h     src/sgf.h src/command.cc   src/patterns.cc  src/command.h   src/patterns.h src/enclosure.cc src/enclosure.h src/threats.cc src/threats.h src/montecarlo.cc src/montecarlo.h src/extracttensors.cc src/safety.cc src/safety.h  src/gzip.cpp src/gzip.hpp
-"src/get_cnn_prob_dummy.cc" "src/get_cnn_prob.h")
-  target_link_libraries(extracttensors Threads::Threads ${CNN_lib} ${ZLIB_LIBRARIES}  ${Boost_LIBRARIES} "${TORCH_LIBRARIES}")
+  add_executable(extracttensors
+   src/game.cc
+   src/game.h
+   src/history.cc
+   src/history.h
+   src/game_utils.h
+   src/group_neighbours.h
+   src/group_neighbours.cc
+   src/board.h
+   src/board.cc
+   src/sgf.cc
+   src/sgf.h
+   src/command.cc
+   src/command.h
+   src/patterns.cc
+   src/patterns.h
+   src/enclosure.cc
+   src/enclosure.h
+   src/threats.cc
+   src/threats.h
+   src/montecarlo.cc
+   src/montecarlo.h
+   src/simplegame.cc
+   src/dfs.cc
+   src/safety.cc
+   src/safety.h
+   src/string_utils.h src/string_utils.cc src/extracttensors.cc src/gzip.cpp src/gzip.hpp "src/get_cnn_prob_dummy.cc" "src/get_cnn_prob.h")
+  target_link_libraries(extracttensors  Threads::Threads ${ZLIB_LIBRARIES}  ${Boost_LIBRARIES} "${TORCH_LIBRARIES}")
   target_include_directories(extracttensors PRIVATE src)
+  set_property(TARGET extracttensors PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
-
-
 
 add_subdirectory(gtest)
 enable_testing()
@@ -106,44 +160,18 @@ add_executable(runUnitTests
   unittest/extractutils-test.cc
  unittest/utils.cc
  unittest/utils.h
- src/group_neighbours.h
- src/group_neighbours.cc
- src/game.cc
- src/game.h
  src/gzip.cpp
- src/history.cc
- src/history.h 
- src/game_utils.h
  src/string_utils.h 
  src/string_utils.cc
- src/board.h
- src/board.cc
- src/sgf.cc
- src/board.h
- src/sgf.h
- src/command.cc
- src/patterns.cc
  src/allpattgen.h
  src/allpattgen.cc
- src/command.h
- src/patterns.h
- src/enclosure.cc
- src/enclosure.h
- src/threats.cc
- src/threats.h
- src/safety.cc
- src/safety.h
- src/simplegame.cc
- src/dfs.cc
- src/montecarlo.cc
- src/montecarlo.h
  ${CNN_src}
- )
+)
 
 target_compile_options(runUnitTests PUBLIC -g -O0)
 
 
-target_link_libraries(runUnitTests gtest gmock gtest_main Threads::Threads ${CNN_lib}  ${ZLIB_LIBRARIES}  ${Boost_LIBRARIES})
+target_link_libraries(runUnitTests kroplalib gtest gmock gtest_main Threads::Threads ${CNN_lib}  ${ZLIB_LIBRARIES}  ${Boost_LIBRARIES})
 target_include_directories(runUnitTests  PRIVATE ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 target_include_directories(runUnitTests PRIVATE src)
 

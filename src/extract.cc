@@ -35,7 +35,7 @@ trainign data for NN. Copyright (C) 2021, 2022 Bartek Dyda, email: bartekdyda
 #include <set>
 #include <string>
 
-#include "allpattgen.h"
+//#include "allpattgen.h"
 #include "game.h"
 #include "gzip.hpp"
 #include "patterns.h"

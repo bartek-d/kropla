@@ -21,6 +21,7 @@ Dyda, email: bartekdyda (at) protonmail (dot) com
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
+#pragma once
 
 #include <algorithm>
 #include <array>
@@ -32,7 +33,7 @@ Dyda, email: bartekdyda (at) protonmail (dot) com
 #include <set>
 #include <string>
 
-#include "allpattgen.h"
+//#include "allpattgen.h"
 #include "game.h"
 #include "gzip.hpp"
 #include "patterns.h"
