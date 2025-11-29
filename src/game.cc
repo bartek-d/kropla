@@ -310,7 +310,6 @@ const Pattern3 patt3_cost(
     },
     Pattern3::TYPE_MAX);
 
-Pattern3extra_array patt3_extra;
 Pattern52 patt52_edge({});
 Pattern52 patt52_inner({});
 int komi;
@@ -1168,270 +1167,6 @@ Game::Game(SgfSequence seq, int max_moves, bool must_surround)
         //
     });
     //  global::patt52_edge.showCode(); // <-- to precalculate
-
-    global::patt3_extra.generate({
-        // bamboo -- first move
-        "Y.."
-        "Y.."
-        "***"
-        "NN* EH",
-        "2",
-        // bamboo -- second move
-        ".Y."
-        "..."
-        "?.x"
-        "EEY NEEY NN* H",
-        "2",
-        //
-        ".Y."
-        "..."
-        "?O?"
-        "EEY NEEY NN* H",
-        "2",
-        //
-        "OX."
-        "X.."
-        "?x?"
-        "EEY NEEY NN* H",
-        "2",
-        //
-        ".Y."
-        "O.."
-        "?.?"
-        "EEY NEEY NN* H",
-        "2",
-        //
-        "OY."
-        "O.."
-        "?.?"
-        "EEY NEEY NN* H",
-        "1",
-        //
-        "OY."
-        "..."
-        "?.?"
-        "EEY NEEY NN* H",
-        "2",
-        // longer bamboo
-        "Y.."
-        "Y.."
-        "Y.."
-        "EE. EEH",
-        "2",
-        // net
-        ".x?"  // ".?? ..x"  not needed by symmetry
-        "..?"
-        "Q.."
-        "WWY SSY H",
-        "3",
-        // anti-net
-        ".o?"
-        "..?"
-        "Y.."
-        "WWQ SSQ H",
-        "3",
-        // longer net without support at SW
-        "..?"
-        "..."
-        "xQ."
-        "WWY SEE. SSEY EH",
-        "2",
-        // ...and with support at SW
-        "..?"
-        "..."
-        "YQ."
-        "WWY SEE. SSEY EH",
-        "3",
-        // anti-nets
-        "..?"
-        "..."
-        "oY."
-        "WWQ SEE. SSEQ EH",
-        "2",
-        // ...and anti-net with support at SW
-        "..?"
-        "..."
-        "QY."
-        "WWQ SEE. SSEQ EH",
-        "3",
-        // net with keima
-        "Y.?"
-        "?.."
-        "?Q."
-        "SSEY SEE. EH",
-        "3",
-        // anti-net with keima
-        "Q.?"
-        "?.."
-        "?Y."
-        "SSEQ SEE. EH",
-        "3",
-        // net with double keima
-        "Y.x"
-        "?.."
-        "?Q."
-        "EEx SEE. SSEEY EH",
-        "3",
-        // anti-net with double keima
-        "Q.o"
-        "?.."
-        "?Y."
-        "EEo SEE. SSEEQ EH",
-        "3",
-        // anti-net thanks to atari
-        "?oo"
-        "o.Q"
-        "oQY"
-        "SSEY EEY SSW. SS. H",
-        "3",
-        // the same with different configuration at N/W
-        "?Qo"
-        "Y.Q"
-        "oQY"
-        "SSEY EEY SSW. SS. H",
-        "3",
-        // the same with yet another configuration at N/W
-        "?Yo"
-        "Q.Q"
-        "oQY"
-        "SSEY EEY SSW. SS. H",
-        "3",
-        // keima
-        "?.."
-        "Y.."
-        "?O?"
-        "EE* NEH",
-        "2",
-        // 2-point extension
-        "..."
-        "..?"
-        "###"
-        "NWWY EE* NEH",
-        "1",
-        // 1-point jump
-        "..."
-        "Y.."
-        "x.."
-        "EH",
-        "1",
-        // 2-point jump
-        "..."
-        "Y.."
-        "??."
-        "SWWY WWo EE. EEH",
-        "1",  // WWx -> WWo in v136d
-        // diagonal
-        "..."
-        "..."
-        "X.."
-        "SSEx NWWx H",
-        "1",
-        // 2LM: second line moves -- moved here from patt52_inner
-        // (2LM) connecting moves (usually anti-reductions)
-        "???"
-        "..."
-        ".Q."
-        "SS# WWo SWWY EEo SEEY H",
-        "2",  // maybe it's not worth the effort...
-        //
-        "???"
-        "o.."
-        "YQ."
-        "SS# EEo SEEY H",
-        "2",
-        //
-        // "???" "o.o"	"YQY" "SS# H", "2",  -- this seems redundant, it's usual
-        // cut
-        // (2LM) another connecting moves
-        "?x?"
-        "Y.."
-        "?Q?"
-        "EEY H",
-        "2",  // could be SS#, but in fact it seems OK also apart from the edge
-        // now 5 similar with little different first line from above
-        "Yx?"
-        "..."
-        ".Q."
-        "SS# WWY EEY H",
-        "2",
-        //
-        "Q.o"
-        "..."
-        ".Q."
-        "SS# WWY EEY H",
-        "2",
-        //
-        "..."
-        "..."
-        ".Q."
-        "SS# WWY EEY H",
-        "2",
-        //
-        ".Q."
-        "..."
-        ".Q."
-        "SS# WWY EEY H",
-        "1",
-        //
-        "QYQ"
-        "..."
-        ".Q."
-        "SS# WWY EEY H",
-        "1",
-        // another one
-        // "???"   // should be more precise here
-        // "..."
-        // "YQ." "SS# WWY EEY H", "2",
-        //
-        "Q.Y"
-        "?.."
-        "###"
-        "NEEQ NH",
-        "4",  // defend Y at NE
-        //
-        "Y.Q"
-        "?.."
-        "###"
-        "NEEY EH",
-        "4",  // attack Q at NE
-        // border moves:
-        // locally good moves (usually reductions)
-        "Y.Y"
-        "x.x"
-        "###"
-        "H",
-        "2",
-        //
-        "Y.."
-        "?.."
-        "###"
-        "NEEY H",
-        "2",
-        //
-        "..."
-        "..."
-        "###"
-        "NWWY NEEY H",
-        "2",
-        // connecting edge moves
-        ".Q."
-        "..."
-        "###"
-        "NWWY NEEY H",
-        "4",
-        //
-        "YQ."
-        "?.."
-        "###"
-        "NEEY H",
-        "4",
-        //
-        "YQY"
-        "?.?"
-        "###"
-        "H",
-        "4"  // this could be a usual 3x3 pattern!
-    });
 
     for (int i = coord.first; i <= coord.last; ++i)
     {
@@ -4689,42 +4424,6 @@ void Game::showThreats2m()
     }
 }
 
-std::vector<pti> Game::getPatt3extraValues() const
-{
-    std::vector<pti> values(coord.getSize(), 0);
-    for (int i = coord.first; i <= coord.last; ++i)
-    {
-        if (whoseDotMarginAt(i) == 0)
-        {
-            global::patt3_extra.setValues(values, sg.worm, pattern3_at[i], i,
-                                          sg.nowMoves);
-            // auto symm_value = global::patt3_symm.getValue(pattern3_at[i], 1);
-            // if (values[i] < symm_value) values[i] = symm_value;
-        }
-    }
-    return values;
-}
-
-void Game::showPattern3extra()
-{
-    std::vector<pti> values = getPatt3extraValues();
-#ifdef DEBUG_SGF
-    {
-        SgfProperty prop;
-        prop.first = "LB";
-        for (int i = coord.first; i <= coord.last; ++i)
-        {
-            if (values[i] > 0)
-            {
-                prop.second.push_back(coord.indToSgf(i) + ":" +
-                                      std::to_string(values[i]));
-            }
-        }
-        if (not prop.second.empty()) sgf_tree.addProperty(prop);
-    }
-#endif
-}
-
 Enclosure Game::findSimpleEnclosure(pti point, pti mask, pti value)
 {
     return findSimpleEnclosure(sg.worm, point, mask, value);
@@ -6472,7 +6171,6 @@ void Game::makeSgfMove(const std::string &m, int who)
             }
         }
 #endif
-        showPattern3extra();
 
         /*
         std::vector<pti> list_of_moves;
@@ -6895,8 +6593,6 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
       cost_moves = findImportantMoves(who);
     }
     */
-    // get patt3extra boni
-    //  std::vector<pti> patt3extrav = getPatt3extraValues();
     // debug:
     encl_count += ml_encl_moves.size();
     opt_encl_count += ml_opt_encl_moves.size();
@@ -8005,46 +7701,6 @@ Move Game::chooseLastGoodReply(int who, pti forbidden_place)
     return getRandomEncl(move);
 }
 
-Move Game::choosePatt3extraMove(int who, pti forbidden_place)
-{
-    Move move;
-    move.who = who;
-    std::vector<pti> patt3extrav = getPatt3extraValues();
-    int sum = 0;
-    for (int i = coord.first; i <= coord.last; ++i)
-        if (patt3extrav[i])
-        {
-            if (i != forbidden_place and threats[0].is_in_encl[i] == 0 and
-                threats[0].is_in_terr[i] == 0 and
-                threats[1].is_in_encl[i] == 0 and threats[1].is_in_terr[i] == 0)
-            {
-                sum += patt3extrav[i];
-            }
-            else
-            {
-                patt3extrav[i] = 0;
-            }
-        }
-    if (sum == 0)
-    {
-        move.ind = 0;
-        return move;
-    }
-    std::uniform_int_distribution<int> di(0, sum - 1);
-    int number = di(engine);
-    for (int i = coord.first; i <= coord.last; ++i)
-    {
-        number -= patt3extrav[i];
-        if (number < 0)
-        {
-            move.ind = i;
-            return move;
-        }
-    }
-    assert(0);
-    return move;
-}
-
 Move Game::getLastMove() const
 {
     // we do not get last enclosure, but this does not matter
@@ -8331,17 +7987,6 @@ real_t Game::randomPlayout()
                 continue;
             }
         }
-        /*
-        if ((number & 0x10) != 0) {  // probability 1/2, could be 3/4 by
-    changing 0x10 to 0x30 m = choosePatt3extraMove(sg.nowMoves,
-    forbidden_place); if (m.ind != 0) { dame_moves_so_far = 0; makeMove(m);
-    forbidden_place = 0; #ifdef DEBUG_SGF
-            sgf_tree.addComment(std::string("ext"));
-    #endif
-            continue;
-          }
-        }
-        */
         /*
         if ((number & 0xc) != 0) {
           m = chooseInfluenceMove(sg.nowMoves, forbidden_place);

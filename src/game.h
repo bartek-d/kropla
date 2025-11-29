@@ -337,7 +337,6 @@ class Game
     void possibleMoves_updateSafetyDame();
     int checkInterestingMove(pti p) const;
     int checkDame(pti p) const;
-    std::vector<pti> getPatt3extraValues() const;
 
    public:
     Game() = delete;
@@ -435,7 +434,6 @@ class Game
     Move chooseAnyMove_pm(int who, pti forbidden_place);
     Move chooseInterestingMove(int who, pti forbidden_place);
     Move chooseLastGoodReply(int who, pti forbidden_place);
-    Move choosePatt3extraMove(int who, pti forbidden_place);
     Move getLastMove() const;
     Move getLastButOneMove() const;
     real_t randomPlayout();
@@ -468,7 +466,6 @@ class Game
     void showConnections();
     void showGroupsId();
     void showThreats2m();
-    void showPattern3extra();
 
     std::string showDescr(pti p) const { return sg.descr.at(p).show(); }
 
@@ -481,7 +478,6 @@ namespace global
 extern const Pattern3 patt3;
 extern const Pattern3 patt3_symm;
 extern const Pattern3 patt3_cost;
-extern Pattern3extra_array patt3_extra;
 extern Pattern52 patt52_edge;
 extern Pattern52 patt52_inner;
 extern int komi;  // added to terr points of white (i.e. > 0 -> good for white),
