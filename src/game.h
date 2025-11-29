@@ -312,8 +312,6 @@ class Game
     bool isEmptyInNeighbourhood(pti ind) const;
     pattern3_val getPattern3Value(pti ind, int who) const;
     void showPattern3Values(int who) const;
-    real_t getPattern52Value(pti ind, int who) const;
-    void showPattern52Values(int who) const;
     void pattern3recalculatePoint(pti ind);
     void recalculatePatt3Values();
     int checkLadderStep(pti x, krb::PointsSet& ladder_breakers, pti v1, pti v2,
@@ -473,8 +471,6 @@ namespace global
 {
 extern const Pattern3 patt3;
 extern const Pattern3 patt3_symm;
-extern Pattern52 patt52_edge;
-extern Pattern52 patt52_inner;
 extern int komi;  // added to terr points of white (i.e. > 0 -> good for white),
                   // komi=2 -> 1 dot
 extern int komi_ratchet;
