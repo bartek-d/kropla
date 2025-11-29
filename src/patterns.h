@@ -76,6 +76,7 @@ class Pattern3
    public:
     Pattern3();
     Pattern3(const std::vector<std::string> &vs, int type = TYPE_REPLACE);
+    Pattern3(const std::string &filename, pattern3_t v);
 
     pattern3_val getValue(pattern3_t p, int who) const;
     void generate(const std::vector<std::string> &vs, int type = TYPE_REPLACE);

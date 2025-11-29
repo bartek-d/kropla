@@ -117,6 +117,12 @@ Pattern3::Pattern3(const std::vector<std::string> &vs, int type)
     generate(vs, type);
 }
 
+Pattern3::Pattern3(const std::string &filename, pattern3_t v)
+{
+    readFromFile(filename);
+    setEmptyValue(v);
+}
+
 /// Rotates clockwise.
 pattern3_t Pattern3::rotate(pattern3_t p)
 {

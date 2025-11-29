@@ -66,7 +66,7 @@ thread_local std::stringstream Game::out;
 
 namespace global
 {
-Pattern3 patt3;
+const Pattern3 patt3(global::program_path + "patterns.bin", 0);
 const Pattern3 patt3_symm(
     {// hane pattern - enclosing hane
      "XOX"
@@ -1053,7 +1053,6 @@ Game::Game(SgfSequence seq, int max_moves, bool must_surround)
           });
     */
     // global::patt3.showCode();  <-- to precalculate
-    global::patt3.readFromFile(global::program_path + "patterns.bin");
 
     global::patt52_inner.generate({// locally bad moves (WARNING: they may be
                                    // actually good, if there are X above)
@@ -1434,7 +1433,6 @@ Game::Game(SgfSequence seq, int max_moves, bool must_surround)
         "4"  // this could be a usual 3x3 pattern!
     });
 
-    global::patt3.setEmptyValue(0);
     for (int i = coord.first; i <= coord.last; ++i)
     {
         if (coord.dist[i] == 0)
