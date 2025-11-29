@@ -22,14 +22,14 @@ email: bartekdyda (at) protonmail (dot) com
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
 
+#include <torch/torch.h>
+
+#include "extractutils.h"
 #include "game.h"
 #include "gzip.hpp"
 #include "patterns.h"
 #include "sgf.h"
 #include "string_utils.h"
-#include "extractutils.h"
-
-#include <torch/torch.h>
 
 std::set<std::string> readLines(const std::string& filename)
 {

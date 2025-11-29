@@ -479,8 +479,8 @@ class Game
 namespace global
 {
 extern Pattern3 patt3;
-extern Pattern3 patt3_symm;
-extern Pattern3 patt3_cost;
+extern const Pattern3 patt3_symm;
+extern const Pattern3 patt3_cost;
 extern Pattern3extra_array patt3_extra;
 extern Pattern52 patt52_edge;
 extern Pattern52 patt52_inner;

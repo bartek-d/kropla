@@ -418,4 +418,3 @@ struct Score
     Score() { dots = 0; /*terr=dots_in_terr=0;*/ };
     std::string show() const;
 };
-

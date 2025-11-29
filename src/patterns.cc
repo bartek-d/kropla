@@ -111,6 +111,12 @@ WildcardReplacer WildcardReplacer::operator++(
   Pattern3 class for handling 3x3 patterns
 *********************************************************************************************************/
 
+Pattern3::Pattern3() = default;
+Pattern3::Pattern3(const std::vector<std::string> &vs, int type)
+{
+    generate(vs, type);
+}
+
 /// Rotates clockwise.
 pattern3_t Pattern3::rotate(pattern3_t p)
 {
@@ -197,7 +203,7 @@ void Pattern3::addPatterns(pattern3_t p, pattern3_val value)
 }
 
 /// s should have only atoms!
-pattern3_t Pattern3::getCodeOfPattern(std::string s)
+pattern3_t Pattern3::getCodeOfPattern(const std::string &s)
 {
     pattern3_t p = 0;
     const int field_bit[9] = {12, 14, 0, 10, -1, 2, 8, 6, 4};

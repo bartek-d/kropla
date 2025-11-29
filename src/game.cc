@@ -67,8 +67,249 @@ thread_local std::stringstream Game::out;
 namespace global
 {
 Pattern3 patt3;
-Pattern3 patt3_symm;
-Pattern3 patt3_cost;
+const Pattern3 patt3_symm(
+    {// hane pattern - enclosing hane
+     "XOX"
+     ".H."
+     "?o?",
+     "6",  // note: ?O? is contained in other part
+           // keima cut
+     "?XO"
+     "OHX"
+     "???",
+     "5",
+     // 'keima' cut with two dots O on E and W
+     "?XO"
+     "OHO"
+     "...",
+     "6",
+     //
+     "?XO"
+     "OHO"
+     "O..",
+     "4",
+     //
+     "?XO"
+     "OHO"
+     "..O",
+     "4",
+     //
+     "?XO"
+     "OHO"
+     ".O.",
+     "4",
+     //
+     "?X?"
+     "OHO"
+     "?X?",
+     "7",  // more general then just keima cut
+           //
+     "?X?"
+     "OHO"
+     "X??",
+     "7",  // more general then just keima cut; contains "??X" by symmetry
+           // keima/one space jump on the edge
+     "?XO"
+     "OHx"
+     "###",
+     "6",
+     //
+     "?X?"
+     "OHO"
+     "###",
+     "6",
+     // keima cut with empty at E
+     "?XO"
+     "OH."
+     "...",
+     "5",
+     //
+     "?XO"
+     "OH."
+     "X.?",
+     "7",
+     //
+     "?XO"
+     "OH."
+     "?XX",
+     "5",
+     //
+     "?XO"
+     "OH."
+     "?XO",
+     "7",
+     //
+     "?XO"
+     "OH."
+     "?X.",
+     "6",
+     //
+     "?XO"
+     "OH."
+     "XO?",
+     "6",
+     //
+     "?XO"
+     "OH."
+     ".OX",
+     "2",  // ???
+           // bambus moves ... -- TODO
+           //
+           // cut between diagonal jump
+     "?.O"
+     ".H."
+     "O.?",
+     "5",
+     //
+     "?XO"
+     ".H."
+     "O.?",
+     "6",  // maybe too much?
+           //
+     "?XO"
+     "XH."
+     "O.O",
+     "4",
+     // two keimas
+     "X.O"
+     "OHX"
+     "???",
+     "2",
+     // cut -- warning: contains some previous shapes
+     "oOo"
+     ".H."
+     "oOo",
+     "4",
+     //
+     "?Oo"
+     "XH."
+     "?O?",
+     "6",  // 'o' in the corner to rule out bambus
+           //
+     "?O?"
+     "XHX"
+     "?O?",
+     "7",
+     //
+     "?Oo"
+     "XHO"
+     "?Oo",
+     "5",
+     // diagonal cut (contains some previous shapes)
+     "XO?"
+     "OH?"
+     "???",
+     "3"});
+
+const Pattern3 patt3_cost(
+    {
+        // our bambus
+        "X.X"
+        "XHX"
+        "???"
+        "X",
+        "0",
+        //
+        "X.."
+        "XHX"
+        "?.?"
+        "X",
+        "2",
+        //
+        "Ox?"
+        "xH?"
+        "???"
+        "X",
+        "40",
+        //
+        "O??"
+        "xH?"
+        "?x?"
+        "X",
+        "40",
+        //
+        "O??"
+        "?Hx"
+        "?x?"
+        "X",
+        "40",
+        //
+        "?Q?"
+        "xH?"
+        "???"
+        "X",
+        "100",
+        // attacker's bambus
+        "O.O"
+        "OHO"
+        "???"
+        "X",
+        "10000",
+        //
+        "O.."
+        "OHO"
+        "?.?"
+        "X",
+        "2000",
+        // keima
+        "O.?"
+        "?HQ"
+        "???"
+        "X",
+        "500",
+        //
+        "OX?"
+        "xHQ"
+        "?x?"
+        "X",
+        "270",
+        // one-point jump
+        "?.?"
+        "QHQ"
+        "?.?"
+        "X",
+        "600",
+        //
+        "?.?"
+        "QHQ"
+        "?X?"
+        "X",
+        "400",
+        //
+        "?.?"
+        "QHQ"
+        "?Q?"
+        "X",
+        "700",  // may seem unnecessary, X cannot go anywhere from the
+                // centre, but it helps to count treesize correctly
+                // diagonal
+        "O.."
+        ".H."
+        "..O"
+        "X",
+        "250",
+        //
+        "O.."
+        "XH."
+        "??O"
+        "X",
+        "200",
+        //
+        "OX?"
+        "XHx"
+        "??O"
+        "X",
+        "10",
+        //
+        "Oxx"
+        "XHX"
+        "??O"
+        "X",
+        "10",
+        //
+    },
+    Pattern3::TYPE_MAX);
+
 Pattern3extra_array patt3_extra;
 Pattern52 patt52_edge({});
 Pattern52 patt52_inner({});
@@ -813,249 +1054,6 @@ Game::Game(SgfSequence seq, int max_moves, bool must_surround)
     */
     // global::patt3.showCode();  <-- to precalculate
     global::patt3.readFromFile(global::program_path + "patterns.bin");
-
-    global::patt3_symm.generate(
-        {// hane pattern - enclosing hane
-         "XOX"
-         ".H."
-         "?o?",
-         "6",  // note: ?O? is contained in other part
-               // keima cut
-         "?XO"
-         "OHX"
-         "???",
-         "5",
-         // 'keima' cut with two dots O on E and W
-         "?XO"
-         "OHO"
-         "...",
-         "6",
-         //
-         "?XO"
-         "OHO"
-         "O..",
-         "4",
-         //
-         "?XO"
-         "OHO"
-         "..O",
-         "4",
-         //
-         "?XO"
-         "OHO"
-         ".O.",
-         "4",
-         //
-         "?X?"
-         "OHO"
-         "?X?",
-         "7",  // more general then just keima cut
-               //
-         "?X?"
-         "OHO"
-         "X??",
-         "7",  // more general then just keima cut; contains "??X" by symmetry
-               // keima/one space jump on the edge
-         "?XO"
-         "OHx"
-         "###",
-         "6",
-         //
-         "?X?"
-         "OHO"
-         "###",
-         "6",
-         // keima cut with empty at E
-         "?XO"
-         "OH."
-         "...",
-         "5",
-         //
-         "?XO"
-         "OH."
-         "X.?",
-         "7",
-         //
-         "?XO"
-         "OH."
-         "?XX",
-         "5",
-         //
-         "?XO"
-         "OH."
-         "?XO",
-         "7",
-         //
-         "?XO"
-         "OH."
-         "?X.",
-         "6",
-         //
-         "?XO"
-         "OH."
-         "XO?",
-         "6",
-         //
-         "?XO"
-         "OH."
-         ".OX",
-         "2",  // ???
-               // bambus moves ... -- TODO
-               //
-               // cut between diagonal jump
-         "?.O"
-         ".H."
-         "O.?",
-         "5",
-         //
-         "?XO"
-         ".H."
-         "O.?",
-         "6",  // maybe too much?
-               //
-         "?XO"
-         "XH."
-         "O.O",
-         "4",
-         // two keimas
-         "X.O"
-         "OHX"
-         "???",
-         "2",
-         // cut -- warning: contains some previous shapes
-         "oOo"
-         ".H."
-         "oOo",
-         "4",
-         //
-         "?Oo"
-         "XH."
-         "?O?",
-         "6",  // 'o' in the corner to rule out bambus
-               //
-         "?O?"
-         "XHX"
-         "?O?",
-         "7",
-         //
-         "?Oo"
-         "XHO"
-         "?Oo",
-         "5",
-         // diagonal cut (contains some previous shapes)
-         "XO?"
-         "OH?"
-         "???",
-         "3"});
-
-    global::patt3_cost.generate(
-        {
-            // our bambus
-            "X.X"
-            "XHX"
-            "???"
-            "X",
-            "0",
-            //
-            "X.."
-            "XHX"
-            "?.?"
-            "X",
-            "2",
-            //
-            "Ox?"
-            "xH?"
-            "???"
-            "X",
-            "40",
-            //
-            "O??"
-            "xH?"
-            "?x?"
-            "X",
-            "40",
-            //
-            "O??"
-            "?Hx"
-            "?x?"
-            "X",
-            "40",
-            //
-            "?Q?"
-            "xH?"
-            "???"
-            "X",
-            "100",
-            // attacker's bambus
-            "O.O"
-            "OHO"
-            "???"
-            "X",
-            "10000",
-            //
-            "O.."
-            "OHO"
-            "?.?"
-            "X",
-            "2000",
-            // keima
-            "O.?"
-            "?HQ"
-            "???"
-            "X",
-            "500",
-            //
-            "OX?"
-            "xHQ"
-            "?x?"
-            "X",
-            "270",
-            // one-point jump
-            "?.?"
-            "QHQ"
-            "?.?"
-            "X",
-            "600",
-            //
-            "?.?"
-            "QHQ"
-            "?X?"
-            "X",
-            "400",
-            //
-            "?.?"
-            "QHQ"
-            "?Q?"
-            "X",
-            "700",  // may seem unnecessary, X cannot go anywhere from the
-                    // centre, but it helps to count treesize correctly
-                    // diagonal
-            "O.."
-            ".H."
-            "..O"
-            "X",
-            "250",
-            //
-            "O.."
-            "XH."
-            "??O"
-            "X",
-            "200",
-            //
-            "OX?"
-            "XHx"
-            "??O"
-            "X",
-            "10",
-            //
-            "Oxx"
-            "XHX"
-            "??O"
-            "X",
-            "10",
-            //
-        },
-        Pattern3::TYPE_MAX);
 
     global::patt52_inner.generate({// locally bad moves (WARNING: they may be
                                    // actually good, if there are X above)

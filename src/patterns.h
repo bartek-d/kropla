@@ -74,6 +74,9 @@ class Pattern3
     friend class Pattern3extra_array;
 
    public:
+    Pattern3();
+    Pattern3(const std::vector<std::string> &vs, int type = TYPE_REPLACE);
+
     pattern3_val getValue(pattern3_t p, int who) const;
     void generate(const std::vector<std::string> &vs, int type = TYPE_REPLACE);
     void readFromFile(const std::string &filename);
@@ -90,7 +93,7 @@ class Pattern3
     //  should be greater than RECALCULATE
     static const int TYPE_REPLACE = 0;
     static const int TYPE_MAX = 1;
-    static pattern3_t getCodeOfPattern(std::string s);
+    static pattern3_t getCodeOfPattern(const std::string &s);
 };
 
 /********************************************************************************************************
