@@ -273,10 +273,6 @@ class Game
     //
     int floodFillExterior(std::vector<pti>& tab, pti mark_by,
                           pti stop_at) const;
-    static const constexpr float COST_INFTY = 1000.0;
-    std::vector<pti> findImportantMoves(pti who);
-    float costOfPoint(pti p, int who) const;
-    float floodFillCost(int who) const;
     std::vector<pti> findThreats_preDot(pti ind, int who);
     std::array<int, 2> findThreats2moves_preDot__getRange(pti ind, pti nb,
                                                           int i, int who) const;
@@ -477,7 +473,6 @@ namespace global
 {
 extern const Pattern3 patt3;
 extern const Pattern3 patt3_symm;
-extern const Pattern3 patt3_cost;
 extern Pattern52 patt52_edge;
 extern Pattern52 patt52_inner;
 extern int komi;  // added to terr points of white (i.e. > 0 -> good for white),
