@@ -39,7 +39,6 @@ protonmail (dot) com
 #include <string>
 #include <vector>
 
-//#include "caffe/mcaffe.h"
 //#include "torch/mtorch.h"
 #include "mcnn.h"
 
@@ -182,11 +181,6 @@ class WorkersPool : public WorkersPoolBase
     std::string config_file;
     std::string model_file_name{};
     std::string weights_file_name{};
-    enum class CnnLib
-    {
-        Caffe,
-        Torch
-    } cnn_lib{CnnLib::Caffe};
     constexpr static int DEFAULT_CNN_BOARD_SIZE = 20;
 };
 
@@ -282,13 +276,9 @@ void WorkersPool::initialiseCnn(const uint32_t wlkx)
 {
     if (cnn == nullptr)
     {
-        std::cerr << "Initialise " << wlkx << "x" << wlkx << " with "
-                  << ((cnn_lib == CnnLib::Caffe) ? "caffe" : "torch")
+        std::cerr << "Initialise " << wlkx << "x" << wlkx << " with torch"
                   << std::endl;
-        if (cnn_lib == CnnLib::Caffe)
-            cnn = buildCaffe();
-        else
-            cnn = buildTorch();
+        cnn = buildTorch();
     }
     try
     {
@@ -330,14 +320,6 @@ WorkersPool::WorkersPool(const std::string& config_file, int wlkx,
                          bool use_this_thread, std::size_t memory_needed)
     : use_this_thread{use_this_thread}, config_file{config_file}
 {
-    /*
-    if (not madeQuiet)
-        {
-          MCaffe::quiet_logs("kropla");
-          madeQuiet = true;
-        }
-    */
-    makeLogsQuiet();
     constexpr int default_n_workers = 7;
     int n_workers = default_n_workers;
     {
@@ -352,11 +334,6 @@ WorkersPool::WorkersPool(const std::string& config_file, int wlkx,
         if (model_file_name.substr(0, torch_id.length()) == torch_id)
         {
             model_file_name = model_file_name.substr(torch_id.length());
-            cnn_lib = CnnLib::Torch;
-        }
-        else
-        {
-            cnn_lib = CnnLib::Caffe;
         }
         planes = std::stoi(number_of_planes);
         if (planes != 7 and planes != 10 and planes != 20)

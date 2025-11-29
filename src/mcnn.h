@@ -48,6 +48,4 @@ class CnnProxy
                                         int psize) = 0;
 };
 
-std::unique_ptr<CnnProxy> buildCaffe();
 std::unique_ptr<CnnProxy> buildTorch();
-void makeLogsQuiet();

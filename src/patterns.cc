@@ -526,7 +526,10 @@ void Pattern3extra::parseConditions(std::string s, pattern3_val value)
                 assert(0);  // unexpected character!
         }
     }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
     while (cond_no < conditions.size()) conditions[cond_no++] = 0;
+#pragma GCC diagnostic pop
 }
 
 /********************************************************************************************************
@@ -627,7 +630,10 @@ void Pattern3extra_array::generateFromStr(const std::string &sarg,
         const std::string &s = wr.toStr();
         // std::cerr << sarg << "-->" << s << " value=" << value << std::endl;
         // here s has only atoms
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
         Pattern3full p;
+#pragma GCC diagnostic pop
         p.p3 = Pattern3::getCodeOfPattern(s);
         p.extra.parseConditions(sarg.substr(9), value);
         addPatterns(p);
