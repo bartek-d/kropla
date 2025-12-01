@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9.4)
+cmake_minimum_required(VERSION 3.23)
 
 project(kropla)
 
@@ -26,6 +26,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system iostreams)
 find_package(ZLIB REQUIRED)
+find_package(GTest REQUIRED)
 
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
@@ -145,7 +146,7 @@ if (USE_CNN)
   set_property(TARGET extracttensors PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
-add_subdirectory(gtest)
+#add_subdirectory(gtest)
 enable_testing()
 
 add_executable(runUnitTests
@@ -171,8 +172,8 @@ add_executable(runUnitTests
 target_compile_options(runUnitTests PUBLIC -g -O0)
 
 
-target_link_libraries(runUnitTests kroplalib gtest gmock gtest_main Threads::Threads ${CNN_lib}  ${ZLIB_LIBRARIES}  ${Boost_LIBRARIES})
-target_include_directories(runUnitTests  PRIVATE ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+target_link_libraries(runUnitTests kroplalib GTest::gtest GTest::gmock GTest::gtest_main Threads::Threads ${CNN_lib}  ${ZLIB_LIBRARIES}  ${Boost_LIBRARIES})
+#target_include_directories(runUnitTests  PRIVATE ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 target_include_directories(runUnitTests PRIVATE src)
 
 add_test(runUnitTests runUnitTests )
