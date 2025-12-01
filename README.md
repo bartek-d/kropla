@@ -2,13 +2,20 @@
 Kropki game engine
 
 # Building
-$ make [NDEBUG=1] [SGF=1] [CPU=native] [SPEED_TEST=1]
 
-Running 'make' builds a debug version. Run
+Clone the repo
+$ git clone git@github.com:bartek-d/kropla.git
+$ cd kropla
 
-$ make NDEBUG=1
+Init and fetch submodules
+$ git submodule init
+$ git submodule update
 
-to get an optimised program.
+Build
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make kropla
 
 # Running
 ./kropla
