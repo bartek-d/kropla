@@ -39,6 +39,7 @@ std::vector<pti> OnePlayerDfs::findBorder(const APInfo& ap)
     std::vector<pti> stack;
     stack.reserve(low.size());
     pti leftmost = seq[ap.seq0];
+    // mark our dots that are neighbours to some interior points
     for (auto pt : std::span(seq.begin() + ap.seq0, seq.begin() + ap.seq1))
         for (auto nind : coord.nb4)
         {
@@ -65,12 +66,14 @@ std::vector<pti> OnePlayerDfs::findBorder(const APInfo& ap)
     };
     if (stack_size <= 6)
     {
+        // with <=6 potential border elements, all marked dots must be at the
+        // border
         doCleanUp();
         return stack;
     }
 
     // when stack_size > 6, it is possible that some neighbours of interior will
-    // not be on border traverse the border to find minimal-area enclosure
+    // not be on border -- traverse the border to find minimal-area enclosure
     const pti before_leftmost = leftmost + coord.NE;
     stack.push_back(before_leftmost);
     stack.push_back(leftmost);
@@ -118,7 +121,7 @@ std::vector<pti> OnePlayerDfs::findBorder(const APInfo& ap)
     if (2 * stack_size + 1 == stack.size())
     {
         std::cout << "Skrot!!\n";
-        stack.erase(stack.begin() + stack_size, stack.end());
+        stack.resize(stack_size);
         return stack;
     }
     stack.pop_back();
