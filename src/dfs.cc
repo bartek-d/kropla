@@ -29,8 +29,102 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <span>
 
 #include "simplegame.h"
+
+std::vector<pti> OnePlayerDfs::findBorder(const APInfo& ap)
+{
+    auto& marks = low;
+    std::vector<pti> stack;
+    stack.reserve(low.size());
+    pti leftmost = seq[ap.seq0];
+    for (auto pt : std::span(seq.begin() + ap.seq0, seq.begin() + ap.seq1))
+        for (auto nind : coord.nb4)
+        {
+            pti n = pt + nind;
+            if (marks[n] >= 0 && discovery[n] < 0)
+            {
+                marks[n] = -1;
+                leftmost = std::min(leftmost, n);
+                std::cout << coord.showPt(n) << " & ";
+                stack.push_back(n);
+            }
+        }
+    if (ap.where)
+    {
+        stack.push_back(ap.where);
+        marks[ap.where] = -1;
+    }
+    std::cout << std::endl;
+    const auto stack_size = stack.size();
+    auto doCleanUp = [&]()
+    {
+        for (auto p : std::span(stack.begin(), stack.begin() + stack_size))
+            marks[p] = 0;
+    };
+    if (stack_size <= 6)
+    {
+        doCleanUp();
+        return stack;
+    }
+
+    // when stack_size > 6, it is possible that some neighbours of interior will
+    // not be on border traverse the border to find minimal-area enclosure
+    const pti before_leftmost = leftmost + coord.NE;
+    stack.push_back(before_leftmost);
+    stack.push_back(leftmost);
+    stack.push_back(coord.findNextOnRight(leftmost, before_leftmost));
+    marks[leftmost] = -2;
+    marks[before_leftmost] = -2;
+    do
+    {
+        // check if current point is on the border, if not, take next
+        // (clockwise)
+        while (marks[stack.back()] >= 0)
+        {
+            stack.back() =
+                coord.findNextOnRight(stack[stack.size() - 2], stack.back());
+        }
+        std::cout << "Next dot: " << coord.showPt(stack.back()) << std::endl;
+        if (stack.back() == before_leftmost)  // enclosure found
+            break;
+        if (marks[stack.back()] == -2)
+        {
+            // this point has been already visited, go back to the last visit of
+            // that point and try next neighbour
+            pti loop_pt = stack.back();
+            stack.pop_back();
+            pti prev_pt = stack.back();
+            while (stack.back() != loop_pt)
+            {
+                marks[stack.back()] = -1;
+                stack.pop_back();
+            }
+            // now we are again at loop_pt which has been already unMARKed
+            stack.push_back(coord.findNextOnRight(loop_pt, prev_pt));
+        }
+        else
+        {
+            // visit the point
+            marks[stack.back()] = -2;
+            stack.push_back(
+                coord.findNextOnRight(stack.back(), stack[stack.size() - 2]));
+        }
+    } while (stack.back() != before_leftmost);
+    doCleanUp();
+    std::cout << "stack_size: " << stack_size
+              << "  stack.size(): " << stack.size() << std::endl;
+    if (2 * stack_size + 1 == stack.size())
+    {
+        std::cout << "Skrot!!\n";
+        stack.erase(stack.begin() + stack_size, stack.end());
+        return stack;
+    }
+    stack.pop_back();
+    stack.erase(stack.begin(), stack.begin() + stack_size);
+    return stack;
+}
 
 void OnePlayerDfs::dfsAP(const SimpleGame& game, pti source, pti parent)
 {

@@ -42,8 +42,11 @@ struct OnePlayerDfs
     std::vector<pti> seq;
     std::vector<APInfo> aps;
 
-    void AP(const SimpleGame& game, pti left_top, pti bottom_right);
     pti player;  // whose player it is, that is, whose enclosures we search
+
+    void AP(const SimpleGame& game, pti left_top, pti bottom_right);
+    std::vector<pti> findBorder(const APInfo& ap);
+
    private:
     void dfsAP(const SimpleGame& game, pti source, pti parent);
 };

@@ -94,4 +94,3 @@ class Pattern3
     static const int TYPE_MAX = 1;
     static pattern3_t getCodeOfPattern(const std::string &s);
 };
-

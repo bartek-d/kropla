@@ -37,7 +37,7 @@ if(USE_CNN)
   add_subdirectory(src/torch)
 endif()   # USE_CNN
 
-
+set(ENV{HIGHFIVE_UNIT_TESTS} OFF)
 add_subdirectory(external)
 
 if(USE_CNN)

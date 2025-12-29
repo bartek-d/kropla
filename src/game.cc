@@ -1,6 +1,6 @@
 /********************************************************************************************************
  kropla -- a program to play Kropki; file game.cc -- main file.
-    Copyright (C) 2015,2016,2017,2018,2019,2020,2021 Bartek Dyda,
+    Copyright (C) 2015,2016,2017,2018,2019,2020,2021,2025 Bartek Dyda,
     email: bartekdyda (at) protonmail (dot) com
 
     Some parts are inspired by Pachi http://pachi.or.cz/
@@ -2921,7 +2921,6 @@ void Game::recalculatePatt3Values()
     }
 }
 
-
 /* checkLadderStep:
  *  x    -- position of the last dot of escaping player
  *  x+v1 -- position of the next dot of escaping player
@@ -4528,7 +4527,6 @@ Enclosure Game::findEnclosure_notOptimised(std::vector<pti> &tab, pti point,
     return Enclosure(std::move(interior),
                      std::vector<pti>(&stack[0], &stack[top + 1]));
 }
-
 
 int Game::floodFillExterior(std::vector<pti> &tab, pti mark_by,
                             pti stop_at) const
