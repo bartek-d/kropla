@@ -2565,13 +2565,15 @@ void Game::addThreat(Threat &&t, int who)
                               sg.descr.at(sg.worm[i]).leftmost) ==
                         counted_worms.end())
                 {
-                    auto threat = threats[who - 1]
-                        .findThreatWhichContains(i);
+                    auto threat = threats[who - 1].findThreatWhichContains(i);
                     threat->singular_dots -=
                         sg.descr.at(sg.worm[i]).dots[2 - who];
-                    // next line is a workaround, it may be that the singular dots were not counted
-                    // -- not completely correct to assume that now it should be 0, if it became negative
-                    threat->singular_dots = std::max(threat->singular_dots, pti{0});
+                    // next line is a workaround, it may be that the singular
+                    // dots were not counted
+                    // -- not completely correct to assume that now it should be
+                    // 0, if it became negative
+                    threat->singular_dots =
+                        std::max(threat->singular_dots, pti{0});
                     counted_worms.push_back(sg.descr.at(sg.worm[i]).leftmost);
                 }
                 [[fallthrough]];

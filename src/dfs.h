@@ -38,26 +38,22 @@ struct APInfo
 
 struct OnePlayerDfs
 {
-  /*
-    discovery:
-       -1 == player dot or territory
-      > 0 == opponent's dot or empty point outside player's territory
-        0 == outside RECTANGLE
-      discovery.size() == coord.getSize()
-      exception: discovery[top-left-corner] == 1, but the corner is irrelevant anyway
-    seq:
-       seq[0] == 0 -- fake source
-       seq[1], ..., seq[N] -- subsequently discovered points
-      Invariants:
-       discovery[seq[k]] == k
-       discovery.size() < coord.getSize()
-    low:
-      == 0 for player dot, territory, or outside RECTANGLE
-      > 0  for opp's dot or empty point outside player's territory
-      Exception: low[top-left-corner] > 0, but the corner is irrelevant anyway
-      Used only to find aps, and then used as a buffer.
-      low.size() == coord.getSize()
-   */
+    /*
+      discovery:
+         -1 == player dot or territory
+        > 0 == opponent's dot or empty point outside player's territory
+          0 == outside RECTANGLE
+        discovery.size() == coord.getSize()
+        exception: discovery[top-left-corner] == 1, but the corner is irrelevant
+      anyway seq: seq[0] == 0 -- fake source seq[1], ..., seq[N] -- subsequently
+      discovered points Invariants: discovery[seq[k]] == k discovery.size() <
+      coord.getSize() low:
+        == 0 for player dot, territory, or outside RECTANGLE
+        > 0  for opp's dot or empty point outside player's territory
+        Exception: low[top-left-corner] > 0, but the corner is irrelevant anyway
+        Used only to find aps, and then used as a buffer.
+        low.size() == coord.getSize()
+     */
     std::vector<pti> low;
     std::vector<pti> discovery;
     std::vector<pti> seq;
@@ -70,7 +66,9 @@ struct OnePlayerDfs
 
     std::vector<Enclosure> findAllEnclosures();
 
-    bool checkInvariants(const SimpleGame& game, pti left_top, pti bottom_right) const;
+    bool checkInvariants(const SimpleGame& game, pti left_top,
+                         pti bottom_right) const;
+
    private:
     void dfsAP(const SimpleGame& game, pti source, pti parent);
 };
