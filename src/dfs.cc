@@ -241,14 +241,15 @@ void OnePlayerDfs::AP(const SimpleGame& game, pti left_top, pti bottom_right)
         // std::cout << coord.showPt(i) << std::endl;
         discovery[i] = offset + coord.N;
     }
-    // std::cout << "discovery at start:\n"
-    //         << coord.showColouredBoard(discovery) << std::endl;
+      //std::cout << "discovery at start:\n"
+      //       << coord.showColouredBoard(discovery) << std::endl;
 
     pti fakeSource = 0;
     low[fakeSource] = discovery[fakeSource] = seq.size();
     seq.push_back(fakeSource);
 
     dfsAP(game, left_top, fakeSource);
+    assert(checkInvariants(game, left_top, bottom_right));
 }
 
 std::vector<Enclosure> OnePlayerDfs::findAllEnclosures()
@@ -309,4 +310,96 @@ std::vector<Enclosure> OnePlayerDfs::findAllEnclosures()
         encls.emplace_back(std::move(interior), std::move(border));
     }
     return encls;
+}
+
+bool OnePlayerDfs::checkInvariants(const SimpleGame& game, pti left_top, pti bottom_right) const
+{
+  /*
+    discovery:
+       -1 == player dot or territory
+      > 0 == opponent's dot or empty point outside player's territory
+        0 == outside RECTANGLE
+      discovery.size() == coord.getSize()
+    seq:
+       seq[0] == 0 -- fake source
+       seq[1], ..., seq[N] -- subsequently discovered points
+      Invariants:
+       discovery[seq[k]] == k
+       discovery.size() < coord.getSize()
+    low:
+      == 0 for player dot, territory, or outside RECTANGLE
+      > 0  for opp's dot or empty point outside player's territory
+      Used only to find aps, and then used as a buffer.
+      low.size() == coord.getSize()
+  */
+  const auto x1 = coord.x[left_top];
+  const auto y1 = coord.y[left_top];
+  const auto x2 = coord.x[bottom_right];
+  const auto y2 = coord.y[bottom_right];
+  auto insideRectangle = [=](auto i) { return (coord.x[i] >= x1 && coord.x[i] <= x2 && coord.y[i] >= y1 && coord.y[i] <= y2); };
+  auto ourDotOrOutside = [&](pti u)
+    {
+        auto what = game.whoseDotMarginAt(u);
+        return (what == SimpleGame::MASK_DOT || what == player);
+    };
+  //std::cerr << "Player: " << player << '\n' << coord.showBoard(game.worm) << std::endl;
+    
+  long int sum = 0;
+  for (int i = 0; i < coord.getSize(); ++i)
+    {
+      if (!insideRectangle(i))
+	{
+	  if (discovery[i] != 0)
+	    {
+	      std::cerr << "discovery[" << coord.showPt(i) << "] != 0\n" << coord.showColouredBoard(discovery)
+                                  << std::endl; 
+	      return false;
+	    }
+	  if (low[i] != 0) {
+	      std::cerr << "low[" << coord.showPt(i) << "] != 0\n" << coord.showColouredBoard(low)
+                                  << std::endl; 
+
+	    return false;
+	  }
+	}
+      else
+	{
+	  if (i != left_top)  // left_top is exceptional
+	    {
+	      if (discovery[i] == 0) {
+		std::cerr << "discovery[" << coord.showPt(i) << "] == 0\n" << coord.showColouredBoard(discovery)
+			  << std::endl; 
+		return false;
+	      }
+	      if (discovery[i] > 0 && ourDotOrOutside(i)) {
+		std::cerr << "discovery[" << coord.showPt(i) << "] > 0\n" << coord.showColouredBoard(discovery)
+			  << std::endl; 
+		return false;
+	      }
+	      if (low[i] > 0 && ourDotOrOutside(i)) {
+		std::cerr << "low[" << coord.showPt(i) << "] > 0\n" << coord.showColouredBoard(low)
+			  << std::endl; 
+		return false;
+	      }
+	    }
+	  if (discovery[i] > static_cast<pti>(seq.size())) {
+	    return false;
+	  }
+	  if (discovery[i] > 0) sum += discovery[i];
+	}
+    }
+  long int expected_sum = seq.size() * (seq.size() - 1) / 2;
+  if (sum != expected_sum) {
+    std::cerr << "Sum: " << sum << " seq.size() == " << seq.size() << std::endl;
+    std::cerr << "discovery:\n" << coord.showColouredBoard(discovery)
+	      << std::endl; 
+    return false;
+  }
+  for (std::size_t i = 0; i < seq.size(); ++i)
+    {
+      if (seq[i] < 0 || seq[i] >= coord.getSize()) return false;
+      if (discovery[seq[i]] != static_cast<int>(i)) return false;
+    }
+  if (seq[0] != 0) return false;
+  return true;
 }
