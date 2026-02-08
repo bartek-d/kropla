@@ -48,7 +48,7 @@ std::vector<pti> OnePlayerDfs::findBorder(const APInfo& ap)
             {
                 marks[n] = -1;
                 leftmost = std::min(leftmost, n);
-                std::cout << coord.showPt(n) << " & ";
+                // std::cout << coord.showPt(n) << " & ";
                 stack.push_back(n);
             }
         }
@@ -56,8 +56,9 @@ std::vector<pti> OnePlayerDfs::findBorder(const APInfo& ap)
     {
         stack.push_back(ap.where);
         marks[ap.where] = -1;
+        leftmost = std::min(leftmost, ap.where);
     }
-    std::cout << std::endl;
+    // std::cout << std::endl;
     const auto stack_size = stack.size();
     auto doCleanUp = [&]()
     {
@@ -80,6 +81,10 @@ std::vector<pti> OnePlayerDfs::findBorder(const APInfo& ap)
     stack.push_back(coord.findNextOnRight(leftmost, before_leftmost));
     marks[leftmost] = -2;
     marks[before_leftmost] = -2;
+
+    // std::cout << "Marks przed przejsciem brzegu:\n" <<
+    // coord.showColouredBoard(marks) << std::endl;
+
     do
     {
         // check if current point is on the border, if not, take next
@@ -89,7 +94,7 @@ std::vector<pti> OnePlayerDfs::findBorder(const APInfo& ap)
             stack.back() =
                 coord.findNextOnRight(stack[stack.size() - 2], stack.back());
         }
-        std::cout << "Next dot: " << coord.showPt(stack.back()) << std::endl;
+        // std::cout << "Next dot: " << coord.showPt(stack.back()) << std::endl;
         if (stack.back() == before_leftmost)  // enclosure found
             break;
         if (marks[stack.back()] == -2)
@@ -116,11 +121,21 @@ std::vector<pti> OnePlayerDfs::findBorder(const APInfo& ap)
         }
     } while (stack.back() != before_leftmost);
     doCleanUp();
-    std::cout << "stack_size: " << stack_size
-              << "  stack.size(): " << stack.size() << std::endl;
+
+    /*
+    if (std::any_of(marks.begin(), marks.end(), [](auto el) { return el < 0; }))
+      {
+        std::cout << "Nieposprzatane!\n";
+        std::cout << coord.showColouredBoard(marks) << std::endl;
+        std::cout << coord.showColouredBoard(discovery) << std::endl;
+        std::cout << "AP: " << coord.showPt(ap.where) << " seq: " << ap.seq0 <<
+    " - " << ap.seq1 << std::endl; throw 3;
+        } */
+    // std::cout << "stack_size: " << stack_size
+    //           << "  stack.size(): " << stack.size() << std::endl;
     if (2 * stack_size + 1 == stack.size())
     {
-        std::cout << "Skrot!!\n";
+        //    std::cout << "Skrot!!\n";
         stack.resize(stack_size);
         return stack;
     }
@@ -215,19 +230,19 @@ void OnePlayerDfs::AP(const SimpleGame& game, pti left_top, pti bottom_right)
             current_bottom += coord.E;
         }
     }
-    std::cout << "discovery at start:\n"
-              << coord.showColouredBoard(discovery) << std::endl;
+    // std::cout << "discovery at start:\n"
+    //         << coord.showColouredBoard(discovery) << std::endl;
     // top row
     for (auto i = left_top + coord.E; i <= bottom_right; i += coord.E)
         discovery[i] = offset + coord.W;
     // right column
     for (auto i = bottom_right + delta + coord.W; i <= bottom_right; ++i)
     {
-        std::cout << coord.showPt(i) << std::endl;
+        // std::cout << coord.showPt(i) << std::endl;
         discovery[i] = offset + coord.N;
     }
-    std::cout << "discovery at start:\n"
-              << coord.showColouredBoard(discovery) << std::endl;
+    // std::cout << "discovery at start:\n"
+    //         << coord.showColouredBoard(discovery) << std::endl;
 
     pti fakeSource = 0;
     low[fakeSource] = discovery[fakeSource] = seq.size();
@@ -236,7 +251,62 @@ void OnePlayerDfs::AP(const SimpleGame& game, pti left_top, pti bottom_right)
     dfsAP(game, left_top, fakeSource);
 }
 
-struct Dfs
+std::vector<Enclosure> OnePlayerDfs::findAllEnclosures()
 {
-    std::array<OnePlayerDfs, 2> dfs;
-};
+    std::vector<Enclosure> encls;
+    encls.reserve(aps.size());
+    auto& marks = low;
+    for (const auto& ap : aps)
+    {
+        auto border = findBorder(ap);
+        std::vector<pti> interior(seq.begin() + ap.seq0, seq.begin() + ap.seq1);
+        if (interior.size() > 6)
+        {
+            // std::cout << coord.showColouredBoard(marks) << std::endl;
+            for (auto el : border) marks[el] = -1;
+            for (auto el : interior) marks[el] = -1;
+            //		std::cout << coord.showColouredBoard(marks) <<
+            //std::endl;
+
+            for (std::size_t i = 0; i < interior.size(); ++i)
+            {
+                for (auto nind : coord.nb4)
+                {
+                    pti n = interior[i] + nind;
+                    try
+                    {
+                        if (marks.at(n) >= 0)
+                        {
+                            marks[n] = -1;
+                            interior.push_back(n);
+                        }
+                    }
+                    catch (...)
+                    {
+                        std::cout << coord.showColouredBoard(discovery)
+                                  << std::endl;
+                        std::cout << coord.showColouredBoard(marks)
+                                  << std::endl;
+                        std::cout << "AP: " << coord.showPt(ap.where)
+                                  << " seq: " << ap.seq0 << " - " << ap.seq1
+                                  << std::endl;
+                        std::cout << "Wnetrze: ";
+                        for (auto el : interior)
+                            std::cout << " " << coord.showPt(el);
+                        std::cout << "\nBrzeg: ";
+                        for (auto el : border)
+                            std::cout << " " << coord.showPt(el);
+                        std::cout << std::endl;
+                        throw;
+                    };
+                }
+            }
+            // cleanup
+            for (auto p : border) marks[p] = 0;
+            for (auto p : interior) marks[p] = 0;
+        }
+        // add enclosure
+        encls.emplace_back(std::move(interior), std::move(border));
+    }
+    return encls;
+}

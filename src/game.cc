@@ -44,6 +44,7 @@
 
 #include "board.h"
 #include "command.h"
+#include "dfs.h"
 #include "enclosure.h"
 #include "game.h"
 #include "group_neighbours.h"
@@ -5472,6 +5473,7 @@ void Game::makeSgfMove(const std::string &m, int who)
     }
 
     assert(checkThreatCorrectness());
+    assert(checkThreatWithDfs());
     assert(checkThreat2movesCorrectness());
     assert(checkWormCorrectness());
     assert(checkConnectionsCorrectness());
@@ -8266,6 +8268,45 @@ bool Game::checkThreatCorrectness()
     }
 
     return !shown;
+}
+
+bool Game::checkThreatWithDfs()
+{
+    for (int pl = 0; pl < 2; ++pl)
+    {
+        const int who = pl + 1;
+        OnePlayerDfs dfs;
+        dfs.player = who;
+        dfs.AP(getSimpleGame(), coord.first, coord.last);
+        auto allEncls = dfs.findAllEnclosures();
+        std::set<std::pair<std::set<pti>, std::set<pti>>> dfsEncls;
+        std::set<std::pair<std::set<pti>, std::set<pti>>> thrEncls;
+        for (const auto &encl : allEncls)
+            dfsEncls.emplace(
+                std::set<pti>(encl.interior.begin(), encl.interior.end()),
+                std::set<pti>(encl.border.begin(), encl.border.end()));
+        for (const Threat &thr : threats[pl].threats)
+        {
+            // in DFS, we don't find territories (yet)
+            if (thr.type & ThreatConsts::TERR) continue;
+            // in DFS, we don't find enclorues inside territories	(yet)
+            if (threats[pl].is_in_terr[thr.where]) continue;
+            thrEncls.emplace(std::set<pti>(thr.encl->interior.begin(),
+                                           thr.encl->interior.end()),
+                             std::set<pti>(thr.encl->border.begin(),
+                                           thr.encl->border.end()));
+        }
+        // check
+        if (dfsEncls != thrEncls)
+        {
+            std::cerr << "*** DFS nie zgadza sie z threats dla gracza " << who
+                      << " !!!!!!!!!!!!! ****" << std::endl
+                      << coord.showFullBoard(threats[pl].is_in_border)
+                      << std::endl;
+            return false;
+        }
+    }
+    return true;
 }
 
 bool Game::checkThreat2movesCorrectness()

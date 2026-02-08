@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "board.h"
+#include "enclosure.h"
 
 class SimpleGame;
 
@@ -46,6 +47,8 @@ struct OnePlayerDfs
 
     void AP(const SimpleGame& game, pti left_top, pti bottom_right);
     std::vector<pti> findBorder(const APInfo& ap);
+
+    std::vector<Enclosure> findAllEnclosures();
 
    private:
     void dfsAP(const SimpleGame& game, pti source, pti parent);

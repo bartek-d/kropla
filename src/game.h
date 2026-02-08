@@ -442,6 +442,7 @@ class Game
     bool checkWormCorrectness() const;
     bool checkSoftSafetyCorrectness();
     bool checkThreatCorrectness();
+    bool checkThreatWithDfs();
     bool checkThreat2movesCorrectness();
     bool checkConnectionsCorrectness();
     bool checkPossibleMovesCorrectness() const;
