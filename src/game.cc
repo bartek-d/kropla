@@ -2524,14 +2524,14 @@ void Game::addThreat(Threat &&t, int who)
         if (t.type & ThreatConsts::TERR)
         {
             assert(i >= coord.first and i <= coord.last and
-                   i < threats[who - 1].is_in_terr.size());
+                   i < static_cast<pti>(threats[who - 1].is_in_terr.size()));
             ++isInTerr(i, who);
         }
         else
         {
             assert(t.type & ThreatConsts::ENCL);
             assert(i >= coord.first and i <= coord.last and
-                   i < threats[who - 1].is_in_encl.size());
+                   i < static_cast<pti>(threats[who - 1].is_in_encl.size()));
             ++isInEncl(i, who);
         }
         switch (isInTerr(i, who) + isInEncl(i, who))
@@ -2565,10 +2565,13 @@ void Game::addThreat(Threat &&t, int who)
                               sg.descr.at(sg.worm[i]).leftmost) ==
                         counted_worms.end())
                 {
-                    threats[who - 1]
-                        .findThreatWhichContains(i)
-                        ->singular_dots -=
+                    auto threat = threats[who - 1]
+                        .findThreatWhichContains(i);
+                    threat->singular_dots -=
                         sg.descr.at(sg.worm[i]).dots[2 - who];
+                    // next line is a workaround, it may be that the singular dots were not counted
+                    // -- not completely correct to assume that now it should be 0, if it became negative
+                    threat->singular_dots = std::max(threat->singular_dots, pti{0});
                     counted_worms.push_back(sg.descr.at(sg.worm[i]).leftmost);
                 }
                 [[fallthrough]];
@@ -2590,7 +2593,7 @@ void Game::addThreat(Threat &&t, int who)
     {
         pti i = *it;
         assert(i >= coord.first and i <= coord.last and
-               i < threats[who - 1].is_in_border.size());
+               i < static_cast<pti>(threats[who - 1].is_in_border.size()));
         ++isInBorder(i, who);
         if (isInEncl(i, 3 - who) || isInTerr(i, 3 - who))
         {
