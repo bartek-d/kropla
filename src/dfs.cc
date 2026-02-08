@@ -252,6 +252,142 @@ void OnePlayerDfs::AP(const SimpleGame& game, pti left_top, pti bottom_right)
     assert(checkInvariants(game, left_top, bottom_right));
 }
 
+void OnePlayerDfs::dfsAPinsideTerr(const SimpleGame& game, pti source,
+                                   pti parent, pti root)
+{
+    auto u = source;
+    low[u] = discovery[u] = seq.size();
+    seq.push_back(u);
+
+    auto ourDotAt = [&](pti u)
+    {
+        auto what = game.whoseDotMarginAt(u);
+        return what == player;
+    };
+    auto visitPoint = [&](pti v, pti u)
+    {
+        if (ourDotAt(v)) return;
+        if (discovery[v] < 0)
+        {
+            const auto time_before_node = static_cast<pti>(seq.size());
+            dfsAPinsideTerr(game, v, u, root);
+            if (discovery[u] <= low[v] && u != root &&
+                game.whoseDotMarginAt(u) == 0)
+            {
+                // ap found
+                aps.push_back(APInfo{.where = u,
+                                     .seq0 = time_before_node,
+                                     .seq1 = static_cast<pti>(seq.size())});
+            }
+            low[u] = std::min(low[u], low[v]);
+        }
+        else  // if (discovery[u] >= 0)
+        {
+            low[u] = std::min(low[u], discovery[v]);
+        }
+    };
+
+    APInfo last_subtree{.where = root, .seq0 = 0, .seq1 = 0};
+    int subtrees_before = 0;
+    for (auto i = 0u; i < 4u; ++i)
+    {
+        pti v = u + coord.nb4[i];
+        if (v == parent) continue;
+        pti last_discovery = seq.size();
+        visitPoint(v, u);
+        if (u == root && seq.size() > last_discovery)
+        {
+            switch (subtrees_before)
+            {
+                case 0:
+                    last_subtree.seq0 = last_discovery;
+                    last_subtree.seq1 = seq.size();
+                    break;
+                case 1:
+                    aps.push_back(last_subtree);
+                    [[fallthrough]];
+                default:
+                    last_subtree.seq0 = last_discovery;
+                    last_subtree.seq1 = seq.size();
+                    aps.push_back(last_subtree);
+            }
+            ++subtrees_before;
+        }
+    }
+}
+
+void OnePlayerDfs::findTerritoriesAndEnclosuresInside(const SimpleGame& game,
+                                                      pti left_top,
+                                                      pti bottom_right)
+{
+    // note: AP has to be called first
+    auto ourDotAt = [&](pti u)
+    {
+        auto what = game.whoseDotMarginAt(u);
+        return what == player;
+    };
+
+    const auto height = coord.y[bottom_right] - coord.y[left_top];
+    for (auto top_row = left_top; top_row < bottom_right; top_row += coord.E)
+        for (pti y = 0; y <= height; ++y)
+        {
+            pti ind = top_row + y;
+            if (discovery[ind] < 0 && !ourDotAt(ind))
+            {
+                const pti fakeSource = 0;
+                const auto startOfTerr = seq.size();
+                const auto previousAPs = aps.size();
+                dfsAPinsideTerr(game, ind, fakeSource, ind);
+                const auto endOfTerr = seq.size();
+                // double the APs
+                const auto currentAPs = aps.size();
+                if (currentAPs > previousAPs)
+                {
+                    pti last_where = aps[previousAPs].where;
+                    std::size_t currentStart = discovery[last_where];
+                    std::size_t augmentedSeq = startOfTerr;
+                    for (std::size_t a = previousAPs; a < currentAPs; ++a)
+                    {
+                        if (aps[a].where != last_where)
+                        {
+                            auto currentEnd = aps[a - 1].seq1;
+                            // subtrees span [currentStart, currentEnd), and the whole terr is [startOfTerr, endOfTerr)
+                            if (currentStart == startOfTerr)
+                                aps.push_back(APInfo{.where = last_where,
+                                                     .seq0 = currentEnd,
+                                                     .seq1 = endOfTerr});
+                            else if (currentEnd == endOfTerr)
+                                aps.push_back(APInfo{.where = last_where,
+                                                     .seq0 = startOfTerr,
+                                                     .seq1 = currentStart});
+                            else
+                            {
+                                // augmentation is needed
+                                if (augmentedSeq < currentStart)
+                                {
+                                    for (auto i = augmentedSeq;
+                                         i < currentStart; ++i)
+                                        seq.push_back(seq[i]);
+                                    augmentedSeq = currentStart;
+                                }
+                                aps.push_back(APInfo{.where = last_where,
+                                                     .seq0 = currentEnd,
+                                                     .seq1 = endOfTerr +
+                                                             currentStart -
+                                                             startOfTerr});
+                            }
+                            last_where = aps[a].where;
+                            currentStart = discovery[last_where];
+                        }
+                    }
+                }
+                // territory AP
+                aps.push_back(
+                    APInfo{.where = 0, .seq0 = startOfTerr, .seq1 = endOfTerr});
+            }
+        }
+}
+
 std::vector<Enclosure> OnePlayerDfs::findAllEnclosures()
 {
     std::vector<Enclosure> encls;
@@ -315,24 +451,6 @@ std::vector<Enclosure> OnePlayerDfs::findAllEnclosures()
 bool OnePlayerDfs::checkInvariants(const SimpleGame& game, pti left_top,
                                    pti bottom_right) const
 {
-    /*
-      discovery:
-         -1 == player dot or territory
-        > 0 == opponent's dot or empty point outside player's territory
-          0 == outside RECTANGLE
-        discovery.size() == coord.getSize()
-      seq:
-         seq[0] == 0 -- fake source
-         seq[1], ..., seq[N] -- subsequently discovered points
-        Invariants:
-         discovery[seq[k]] == k
-         discovery.size() < coord.getSize()
-      low:
-        == 0 for player dot, territory, or outside RECTANGLE
-        > 0  for opp's dot or empty point outside player's territory
-        Used only to find aps, and then used as a buffer.
-        low.size() == coord.getSize()
-    */
     const auto x1 = coord.x[left_top];
     const auto y1 = coord.y[left_top];
     const auto x2 = coord.x[bottom_right];

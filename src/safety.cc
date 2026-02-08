@@ -388,7 +388,7 @@ void Safety::updateAfterMove(const SimpleGame* game, int what_to_update,
         game->getSafetyOf(last_move) >= 2 and
         areThereNoFreePointsAtTheEdgeNearPoint(game, last_move))
     {  // it would be possible to optimise also when there are free points, by
-       // adding dame by hand / removing now dame moves
+        // adding dame by hand / removing now dame moves
         updateAfterMoveWithoutAnyChangeToSafety();
         markMoveForBoth(last_move, 0);
     }

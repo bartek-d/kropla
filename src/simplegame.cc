@@ -368,7 +368,7 @@ void SimpleGame::wormMergeSame(pti dst, pti src)
             std::find(descr_dst.neighb.begin(), descr_dst.neighb.end(), n) !=
                 descr_dst.neighb.end())
         {  // n was already a neighbour of (dst), so just remove (src) as n's
-           // neighbour
+            // neighbour
             descr.at(n).neighb.erase(std::find(descr.at(n).neighb.begin(),
                                                descr.at(n).neighb.end(), src));
         }

@@ -1093,7 +1093,7 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
         }
         else if (count == 1)
         {  // and dots>1)  we could check if there's more than 1 our dot in the
-           // neighbourhood, as only then we need to check
+            // neighbourhood, as only then we need to check
             // maybe it's just one dot, then interior will be the same
             int gdots = 0;
             for (int j = 0; j < 8; j++)
@@ -2148,7 +2148,7 @@ void Game::checkThreat2moves_encl(Threat *thr, pti where0, int who)
                         t[j].zobrist_key = t[j].encl->zobristKey(who);
                         if (t[j].zobrist_key == thr->zobrist_key)
                         {  // our old threat is still valid --> this is in
-                           // addThreat2moves
+                            // addThreat2moves
                             thr->type &= ~ThreatConsts::TO_REMOVE;
                             break;
                         }
@@ -2222,7 +2222,7 @@ void Game::checkThreats2moves_postDot(std::vector<pti> &newthr, pti ind,
             {
                 if (t.where == ind || t.isShortcut(ind))
                 {  //   || t.encl->checkShortcut(t2.where0, ind) ||
-                   //   t.encl->checkShortcut(t.where, ind)) {
+                    //   t.encl->checkShortcut(t.where, ind)) {
                     /*
                     if (t.where != ind and (t.encl->checkShortcut(t2.where0,
                     ind) || t.encl->checkShortcut(t.where, ind)) !=
@@ -2548,7 +2548,7 @@ void Game::addThreat(Threat &&t, int who)
                 }
                 if (isInBorder(i, 3 - who) >= 1)
                 {  // note: it may be an empty place, but still in_border (play
-                   // here for ENCL)
+                    // here for ENCL)
                     for (auto &ot : threats[2 - who].threats)
                     {
                         if (ot.encl->isInBorder(i))
@@ -2580,7 +2580,7 @@ void Game::addThreat(Threat &&t, int who)
             default:
                 if (isInBorder(i, 3 - who) >= 1)
                 {  // note: it may be an empty place, but still in_border (play
-                   // here for ENCL)
+                    // here for ENCL)
                     for (auto &ot : threats[2 - who].threats)
                     {
                         if (ot.encl->isInBorder(i))
@@ -3699,7 +3699,7 @@ void Game::rollout(Treenode *node, int /*depth*/)
                 if (ch->move.enclosures.empty() or
                     (amafboard[ch->move.ind] & amaf_ENCL_BORDER))
                 {  // we want to avoid situation when in ch there is enclosure,
-                   // but in amaf not (anymore?)
+                    // but in amaf not (anymore?)
                     int count = amafboard[ch->move.ind] >> distance_rave_SHIFT;
                     ch->amaf.playouts += count;
                     ch->amaf.value_sum =
@@ -3710,7 +3710,7 @@ void Game::rollout(Treenode *node, int /*depth*/)
                      (amafboard[ch->move.ind] & distance_rave_MASK) ==
                          3 - ch->move.who)
             {  // inside encl, == 0 possible when there was enclosure in the
-               // generateListOfMoves-playout phase
+                // generateListOfMoves-playout phase
                 // v114+: add also losses for playing inside opp's (reduced)
                 // territory -- sometimes
                 //  there is an opp terr which always may be reduced, then opp
@@ -4158,9 +4158,9 @@ Enclosure Game::findSimpleEnclosure(std::vector<pti> &tab, pti point, pti mask,
             if (coord.dist[nb] <= 0)
             {  // (added in v138)
                 return empty_enclosure;
-                ;  // nb is on the edge or outside; TODO: then in fact there'd
-                   // be no enclosure at all, no need to check for the
-                   // non-simple one
+                ;   // nb is on the edge or outside; TODO: then in fact there'd
+                    // be no enclosure at all, no need to check for the
+                    // non-simple one
             }
             if ((tab[nb + coord.nb4[direction]] & mask) == value and
                 (tab[nb + coord.nb4[(direction + 1) & 3]] & mask) == value and
@@ -4285,11 +4285,9 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
             direction++;
             assert(stack[top - 1] + coord.nb8[direction] ==
                    coord.findNextOnRight(stack[top - 1], stack[top]));
-            stack[top] =
-                stack[top - 1] +
-                coord.nb8[direction];  // stack[top] =
-                                       // coord.findNextOnRight(stack[top-1],
-                                       // stack[top]);
+            stack[top] = stack[top - 1] + coord.nb8[direction];  // stack[top] =
+                // coord.findNextOnRight(stack[top-1],
+                // stack[top]);
         }
         if (stack[top] == stack[0])  // enclosure found
             break;
@@ -4305,11 +4303,9 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
             direction = coord.findDirectionNo(loop_pt, prev_pt) + 1;
             assert(loop_pt + coord.nb8[direction] ==
                    coord.findNextOnRight(loop_pt, prev_pt));
-            stack[++top] =
-                loop_pt +
-                coord.nb8[direction];  // stack[++top] =
-                                       // coord.findNextOnRight(loop_pt,
-                                       // prev_pt);
+            stack[++top] = loop_pt + coord.nb8[direction];  // stack[++top] =
+                // coord.findNextOnRight(loop_pt,
+                // prev_pt);
         }
         else
         {
@@ -4321,11 +4317,9 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
                 7;  // coord.findDirectionNo(stack[top-1], stack[top-2]) + 1;
             assert(stack[top - 1] + coord.nb8[direction] ==
                    coord.findNextOnRight(stack[top - 1], stack[top - 2]));
-            stack[top] =
-                stack[top - 1] +
-                coord.nb8[direction];  // stack[top] =
-                                       // coord.findNextOnRight(stack[top-1],
-                                       // stack[top-2]);
+            stack[top] = stack[top - 1] + coord.nb8[direction];  // stack[top] =
+                // coord.findNextOnRight(stack[top-1],
+                // stack[top-2]);
         }
     } while (stack[top] != stack[0]);
     // now the enclosure is kept in stack[0..top], it has also (MARK | BORDER)
@@ -5810,8 +5804,8 @@ NonatomicMovestats Game::priorsForThreats(bool is_root, bool is_in_opp_te,
             threats[2 - who].numberOfDotsToBeEnclosedIn2mAfterPlayingAt(i);
         if (opp_can_enclose)
         {  // and threats[2-who].is_in_terr[t.where0]==0 and
-           // threats[2-who].is_in_encl[t.where0]==0 -- this is
-           // above (!is_in_opp_te)
+            // threats[2-who].is_in_encl[t.where0]==0 -- this is
+            // above (!is_in_opp_te)
             int num = 5 + std::min(opp_can_enclose, 15);
             value += wonSimulations(num);
             if (is_root) out << "thr2mopp=" << num << " ";
@@ -6644,7 +6638,7 @@ Move Game::choosePattern3Move(pti move0, pti move1, int who,
                 {
                     if (isEmptyInDirection(m, i))
                     {  // in particular,  whoseDotMarginAt(m + 2*coord.nb4[i])
-                       // == 0
+                        // == 0
                         pti nb = m + 2 * coord.nb4[i];
                         assert(coord.dist[nb] >= 0);
                         auto v = pattern3_value[who - 1][nb];

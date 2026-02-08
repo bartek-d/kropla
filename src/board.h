@@ -262,10 +262,10 @@ template <typename Container>
 std::string Coord::showColouredBoardWithDots(Container const &b)
 {
     std::stringstream out;
-    std::string ascii_dots[4] = {
-        "\u2027 ", "\u25cf ", "\u25cf ",
-        "\u25cf "};  // \u2022 = 'BULLET'  \u25cf = Black
-                     // Circle, \u2027 = Hyphenation Point
+    std::string ascii_dots[4] =
+        {"\u2027 ", "\u25cf ", "\u25cf ",
+         "\u25cf "};  // \u2022 = 'BULLET'  \u25cf = Black
+                      // Circle, \u2027 = Hyphenation Point
     for (int y = -2; y < wlky; y++)
     {
         for (int x = -1; x < wlkx; x++)
@@ -325,10 +325,10 @@ std::string Coord::showColouredBoardWithDotsAndDebugMoves(ColourGetter col_get,
                                                           StringGetter str_get)
 {
     std::stringstream out;
-    std::string ascii_dots[4] = {
-        "\u2027 ", "\u25cf ", "\u25cf ",
-        "\u25cf "};  // \u2022 = 'BULLET'  \u25cf = Black
-                     // Circle, \u2027 = Hyphenation Point
+    std::string ascii_dots[4] =
+        {"\u2027 ", "\u25cf ", "\u25cf ",
+         "\u25cf "};  // \u2022 = 'BULLET'  \u25cf = Black
+                      // Circle, \u2027 = Hyphenation Point
     for (int y = -2; y < wlky; y++)
     {
         for (int x = -1; x < wlkx; x++)
