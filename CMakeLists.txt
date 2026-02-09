@@ -11,7 +11,7 @@ include(clang-format.cmake)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT supported OUTPUT error)
 
-add_compile_options(-g -Wall -Wextra -Wpedantic -O3 -msse3 -march=native)
+add_compile_options(-g -Wall -Wextra -Wpedantic -O0 -msse3 -march=native)
 #set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Wpedantic -O3 -msse3 -march=native")
 #add_definitions(-DNDEBUG)  # -DSPEED_TEST -DDEBUG_SGF
 

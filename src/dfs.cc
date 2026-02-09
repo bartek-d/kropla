@@ -271,10 +271,19 @@ void OnePlayerDfs::dfsAPinsideTerr(const SimpleGame& game, pti source,
         {
             const auto time_before_node = static_cast<pti>(seq.size());
             dfsAPinsideTerr(game, v, u, root);
+
+            std::cout << "Odwiedzam " << coord.showPt(v) << " idąc od "
+                      << coord.showPt(u) << std::endl;
+            std::cout << "Discovery:\n"
+                      << coord.showBoard(discovery) << std::endl;
+            std::cout << "Low:\n" << coord.showBoard(low) << std::endl;
             if (discovery[u] <= low[v] && u != root &&
                 game.whoseDotMarginAt(u) == 0)
             {
                 // ap found
+                std::cout << "AP found at " << coord.showPt(u)
+                          << " interior size: " << seq.size() - time_before_node
+                          << std::endl;
                 aps.push_back(APInfo{.where = u,
                                      .seq0 = time_before_node,
                                      .seq1 = static_cast<pti>(seq.size())});
@@ -343,41 +352,51 @@ void OnePlayerDfs::findTerritoriesAndEnclosuresInside(const SimpleGame& game,
                 const auto currentAPs = aps.size();
                 if (currentAPs > previousAPs)
                 {
+                    std::sort(aps.begin() + previousAPs, aps.end(),
+                              [](const auto& ap1, const auto& ap2)
+                              { return ap1.where < ap2.where; });
                     pti last_where = aps[previousAPs].where;
                     std::size_t currentStart = discovery[last_where];
                     std::size_t augmentedSeq = startOfTerr;
-                    for (std::size_t a = previousAPs; a < currentAPs; ++a)
+                    for (std::size_t a = previousAPs; a <= currentAPs; ++a)
                     {
-                        if (aps[a].where != last_where)
+                        if (a == currentAPs || aps[a].where != last_where)
                         {
                             auto currentEnd = aps[a - 1].seq1;
                             // subtrees span [currentStart, currentEnd), and the whole terr is [startOfTerr, endOfTerr)
-                            if (currentStart == startOfTerr)
-                                aps.push_back(APInfo{.where = last_where,
-                                                     .seq0 = currentEnd,
-                                                     .seq1 = endOfTerr});
-                            else if (currentEnd == endOfTerr)
-                                aps.push_back(APInfo{.where = last_where,
-                                                     .seq0 = startOfTerr,
-                                                     .seq1 = currentStart});
-                            else
+                            if (currentEnd - currentStart <
+                                endOfTerr - startOfTerr)
                             {
-                                // augmentation is needed
-                                if (augmentedSeq < currentStart)
+                                if (currentStart == startOfTerr)
+                                    aps.push_back(APInfo{.where = last_where,
+                                                         .seq0 = currentEnd,
+                                                         .seq1 = endOfTerr});
+                                else if (currentEnd == endOfTerr)
+                                    aps.push_back(APInfo{.where = last_where,
+                                                         .seq0 = startOfTerr,
+                                                         .seq1 = currentStart});
+                                else
                                 {
-                                    for (auto i = augmentedSeq;
-                                         i < currentStart; ++i)
-                                        seq.push_back(seq[i]);
-                                    augmentedSeq = currentStart;
+                                    // augmentation is needed
+                                    if (augmentedSeq < currentStart)
+                                    {
+                                        for (auto i = augmentedSeq;
+                                             i < currentStart; ++i)
+                                            seq.push_back(seq[i]);
+                                        augmentedSeq = currentStart;
+                                    }
+                                    aps.push_back(APInfo{.where = last_where,
+                                                         .seq0 = currentEnd,
+                                                         .seq1 = endOfTerr +
+                                                                 currentStart -
+                                                                 startOfTerr});
                                 }
-                                aps.push_back(APInfo{.where = last_where,
-                                                     .seq0 = currentEnd,
-                                                     .seq1 = endOfTerr +
-                                                             currentStart -
-                                                             startOfTerr});
                             }
-                            last_where = aps[a].where;
-                            currentStart = discovery[last_where];
+                            if (a < currentAPs)
+                            {
+                                last_where = aps[a].where;
+                                currentStart = discovery[last_where];
+                            }
                         }
                     }
                 }

@@ -332,7 +332,52 @@ TEST_P(DfsIsometryFixture, weFindThreatsInsideTerr)
         std::cout << coord.showPt(dfs.seq[i]) << '\t';
         if (i % 10 == 9) std::cout << std::endl;
     }
-    ASSERT_EQ(3, dfs.aps.size());
+    ASSERT_EQ(21, dfs.aps.size());
+}
+
+TEST_P(DfsIsometryFixture, weFindThreatsInsideTerrAlsoWhenLefttopPointIsAThreat)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "ooooooo"
+        "o..xx.o"
+        "o.ooooo"
+        "o.o...."
+        ".o....."
+        "......."
+        ".......");
+    Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const int playerO = 1;
+    OnePlayerDfs dfs;
+    dfs.player = playerO;
+    dfs.AP(game.getSimpleGame(), coord.first, coord.last);
+    dfs.findTerritoriesAndEnclosuresInside(game.getSimpleGame(), coord.first,
+                                           coord.last);
+
+    for (auto p : dfs.aps)
+    {
+        std::cout << "ap: " << coord.showPt(p.where) << std::endl;
+        std::cout << "  wnetrze: " << p.seq0 << " -- " << p.seq1 << std::endl;
+        dfs.findBorder(p);  // to check cleaning up
+                            /*
+        if (p.where == coord.sgfToPti(applyIsometry("dc", isometry, coord)))
+        {
+            const auto border = dfs.findBorder(p);
+            const std::size_t expectedSize = 20;
+            EXPECT_EQ(expectedSize, border.size());
+            for (auto b : border) std::cout << coord.showPt(b) << " -- ";
+            std::cout << std::endl;
+        }
+	*/
+    }
+    std::cout << coord.showColouredBoard(dfs.discovery);
+    std::cout << coord.showColouredBoard(dfs.low);
+    for (std::size_t i = 0; i < dfs.seq.size(); ++i)
+    {
+        std::cout << coord.showPt(dfs.seq[i]) << '\t';
+        if (i % 10 == 9) std::cout << std::endl;
+    }
+    ASSERT_EQ(7, dfs.aps.size());
 }
 
 INSTANTIATE_TEST_CASE_P(Par, DfsIsometryFixture,
