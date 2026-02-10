@@ -267,7 +267,7 @@ void Pattern3::generateFromStr(const std::string &sarg, pattern3_val value)
 
 pattern3_val Pattern3::getValue(pattern3_t p, int who) const
 {
-    assert(p >= 0 && p < PATTERN3_SIZE);
+    assert(p < PATTERN3_SIZE);
     if (who == 1)
         return values[p];
     else

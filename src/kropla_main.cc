@@ -102,6 +102,10 @@ std::string sgf185253(
 
 int main(int argc, char* argv[])
 {
+#ifndef NDEBUG
+    std::cout << "Debug version - assertions ON" << std::endl;
+#endif
+
     auto getDirectory = [](std::string s)
     { return s.substr(0, s.find_last_of('/') + 1); };
     global::program_path = getDirectory(argv[0]);

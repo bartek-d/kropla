@@ -302,7 +302,7 @@ void OnePlayerDfs::dfsAPinsideTerr(const SimpleGame& game, pti source,
     {
         pti v = u + coord.nb4[i];
         if (v == parent) continue;
-        pti last_discovery = seq.size();
+        const auto last_discovery = seq.size();
         visitPoint(v, u);
         if (u == root && seq.size() > last_discovery)
         {
@@ -344,10 +344,10 @@ void OnePlayerDfs::findTerritoriesAndEnclosuresInside(const SimpleGame& game,
             if (discovery[ind] < 0 && !ourDotAt(ind))
             {
                 const pti fakeSource = 0;
-                const auto startOfTerr = seq.size();
+                const pti startOfTerr = seq.size();
                 const auto previousAPs = aps.size();
                 dfsAPinsideTerr(game, ind, fakeSource, ind);
-                const auto endOfTerr = seq.size();
+                const pti endOfTerr = seq.size();
                 // double the APs
                 const auto currentAPs = aps.size();
                 if (currentAPs > previousAPs)
@@ -356,13 +356,13 @@ void OnePlayerDfs::findTerritoriesAndEnclosuresInside(const SimpleGame& game,
                               [](const auto& ap1, const auto& ap2)
                               { return ap1.where < ap2.where; });
                     pti last_where = aps[previousAPs].where;
-                    std::size_t currentStart = discovery[last_where];
-                    std::size_t augmentedSeq = startOfTerr;
+                    pti currentStart = discovery[last_where];
+                    pti augmentedSeq = startOfTerr;
                     for (std::size_t a = previousAPs; a <= currentAPs; ++a)
                     {
                         if (a == currentAPs || aps[a].where != last_where)
                         {
-                            auto currentEnd = aps[a - 1].seq1;
+                            pti currentEnd = aps[a - 1].seq1;
                             // subtrees span [currentStart, currentEnd), and the whole terr is [startOfTerr, endOfTerr)
                             if (currentEnd - currentStart <
                                 endOfTerr - startOfTerr)
@@ -385,11 +385,12 @@ void OnePlayerDfs::findTerritoriesAndEnclosuresInside(const SimpleGame& game,
                                             seq.push_back(seq[i]);
                                         augmentedSeq = currentStart;
                                     }
-                                    aps.push_back(APInfo{.where = last_where,
-                                                         .seq0 = currentEnd,
-                                                         .seq1 = endOfTerr +
+                                    aps.push_back(APInfo{
+                                        .where = last_where,
+                                        .seq0 = currentEnd,
+                                        .seq1 = static_cast<pti>(endOfTerr +
                                                                  currentStart -
-                                                                 startOfTerr});
+                                                                 startOfTerr)});
                                 }
                             }
                             if (a < currentAPs)
