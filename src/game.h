@@ -366,7 +366,7 @@ class Game
         const Move& m, const std::vector<std::string>& to_enclose);
     bool isDotAt(pti ind) const { return sg.isDotAt(ind); }
     int whoseDotMarginAt(pti ind) const { return sg.whoseDotMarginAt(ind); }
-    int whoseDotAt(pti ind) const { return whoseDotAt(ind); }
+    int whoseDotAt(pti ind) const { return sg.whoseDotAt(ind); }
 
     pti isInTerr(pti ind, int who) const;
     pti isInEncl(pti ind, int who) const;

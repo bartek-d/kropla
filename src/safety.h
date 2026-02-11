@@ -30,7 +30,7 @@
 
 #include "board.h"
 
-class SimpleGame;
+struct SimpleGame;
 
 class Safety
 {

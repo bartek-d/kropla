@@ -27,8 +27,8 @@
 #include <sstream>
 #include <vector>
 
-typedef int16_t pti;  // point int, i.e., int suitable for coordinates
-typedef float real_t;
+using pti = int16_t;  // point int, i.e., int suitable for coordinates
+using real_t = float;
 
 /********************************************************************************************************
   Colour constants.
@@ -57,7 +57,6 @@ const std::string white_b = "\033[47m";
 *********************************************************************************************************/
 class Svg
 {
-    int xx, yy;
     int margin, grid;
     int sizex, sizey;
     std::string svg_prefix, svg_bkgrd, svg_grid, svg_dots, svg_suffix;

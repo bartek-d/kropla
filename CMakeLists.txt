@@ -17,9 +17,7 @@ add_compile_options(-g -Wall -Wextra -Wpedantic -O0 -msse3 -march=native)
 
 #set(CMAKE_CXX_FLAGS "-s -static-libstdc++ -static-libgcc -Wall -std=c++17 -O3 -DNDEBUG -march=sandybridge")
 
-unset(USE_CNN)
-#option(USE_CNN "Use CNN for kropla" ON)
-set(USE_CNN ON)
+option(USE_CNN "Use CNN for kropla" ON)
 message("Using CNN: " ${USE_CNN})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -176,4 +174,4 @@ target_link_libraries(runUnitTests kroplalib GTest::gtest GTest::gmock GTest::gt
 #target_include_directories(runUnitTests  PRIVATE ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 target_include_directories(runUnitTests PRIVATE src)
 
-add_test(runUnitTests runUnitTests )
+add_test(NAME runUnitTests COMMAND runUnitTests)

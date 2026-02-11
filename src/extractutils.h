@@ -384,8 +384,8 @@ void gatherDataFromPosition(CompressedDataCont& compressed_data,
     const unsigned max_isometry = 1;  // do not apply isometries for tensors!
     for (unsigned isometry = 0; isometry < max_isometry; ++isometry)
     {
-        Datum<compressed_data.moves_used_v, compressed_data.planes_v,
-              compressed_data.bsizex_v, compressed_data.bsizey_v>
+        Datum<CompressedDataCont::moves_used_v, CompressedDataCont::planes_v,
+              CompressedDataCont::bsizex_v, CompressedDataCont::bsizey_v>
             datum;
         auto& data = datum.boards;  // collector.getCurrentArray();
         for (int x = 0; x < compressed_data.bsizex_v; ++x)

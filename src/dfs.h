@@ -27,7 +27,7 @@
 #include "board.h"
 #include "enclosure.h"
 
-class SimpleGame;
+struct SimpleGame;
 
 struct APInfo
 {
