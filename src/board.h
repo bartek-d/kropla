@@ -33,24 +33,24 @@ using real_t = float;
 /********************************************************************************************************
   Colour constants.
 *********************************************************************************************************/
-const std::string colour_off = "\033[0m";
-const std::string black = "\033[30m";
-const std::string red = "\033[31m";
-const std::string green = "\033[32m";
-const std::string yellow = "\033[33m";
-const std::string blue = "\033[34m";
-const std::string magenta = "\033[35m";
-const std::string cyan = "\033[36m";
-const std::string white = "\033[37m";
+constexpr const char* colour_off = "\033[0m";
+constexpr const char* black = "\033[30m";
+constexpr const char* red = "\033[31m";
+constexpr const char* green = "\033[32m";
+constexpr const char* yellow = "\033[33m";
+constexpr const char* blue = "\033[34m";
+constexpr const char* magenta = "\033[35m";
+constexpr const char* cyan = "\033[36m";
+constexpr const char* white = "\033[37m";
 // background colours:
-const std::string black_b = "\033[40m";
-const std::string red_b = "\033[41m";
-const std::string green_b = "\033[42m";
-const std::string yellow_b = "\033[43m";
-const std::string blue_b = "\033[44m";
-const std::string magenta_b = "\033[45m";
-const std::string cyan_b = "\033[46m";
-const std::string white_b = "\033[47m";
+constexpr const char* black_b = "\033[40m";
+constexpr const char* red_b = "\033[41m";
+constexpr const char* green_b = "\033[42m";
+constexpr const char* yellow_b = "\033[43m";
+constexpr const char* blue_b = "\033[44m";
+constexpr const char* magenta_b = "\033[45m";
+constexpr const char* cyan_b = "\033[46m";
+constexpr const char* white_b = "\033[47m";
 
 /********************************************************************************************************
   Svg class for showing pretty diagrams

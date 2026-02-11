@@ -3848,7 +3848,6 @@ void Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure>> &encl_moves,
     }
     // sort enclosure according to priority_value
     std::sort(ml_priority_vect.begin(), ml_priority_vect.end());
-    auto encl_zobrists_0 = encl_zobrists.back();
     for (auto it = ml_priority_vect.begin(); it != ml_priority_vect.end(); ++it)
     {
         if (it->priority_value > ThrInfoConsts::MINF)
@@ -3888,7 +3887,6 @@ void Game::getEnclMoves(std::vector<std::shared_ptr<Enclosure>> &encl_moves,
             if (it->priority_value > 0)
             {
                 encl_moves.push_back(it->thr_pointer->encl);
-                encl_zobrists_0 ^= it->thr_pointer->zobrist_key;
             }
             else
             {
@@ -4362,7 +4360,7 @@ Enclosure Game::findNonSimpleEnclosure(std::vector<pti> &tab, pti point,
     }
     // std::sort(interior.begin(), interior.end());
     return Enclosure(std::move(interior),
-                     std::move(std::vector<pti>(&stack[0], &stack[top + 1])));
+                     std::vector<pti>(&stack[0], &stack[top + 1]));
 }
 
 Enclosure Game::findEnclosure(pti point, pti mask, pti value)
@@ -7016,7 +7014,7 @@ Move Game::chooseInterestingMove(int who, pti forbidden_place)
     Move move;
     move.who = who;
     int which_list = InterestingMovesConsts::LIST_0;
-    assert(
+    static_assert(
         InterestingMovesConsts::LIST_0 + 1 == InterestingMovesConsts::LIST_1 and
         InterestingMovesConsts::LIST_1 + 1 == InterestingMovesConsts::LIST_2 and
         InterestingMovesConsts::LIST_2 + 1 ==
