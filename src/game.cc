@@ -7654,7 +7654,7 @@ bool Game::checkWormCorrectness() const
         if (isDotAt(ind) and groups[ind] == 0)
         {
             // visit this group
-            WormDescr dsc;
+            WormDescr dsc{};
             test_descr.insert({sg.worm[ind], dsc});
             std::vector<pti> stack;
             stack.push_back(ind);

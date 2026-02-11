@@ -38,8 +38,8 @@ enum class LayerType {
 struct LayerInfo
 {
   LayerType layer_type;
-  int kernels;  // tylko dla conv, TODO: zmienic na variant
-  int size;     // tylko dla conv
+  int kernels{};  // tylko dla conv, TODO: zmienic na variant
+  int size{};     // tylko dla conv
 };
 
 std::ostream& operator<<(std::ostream& os, const LayerInfo& l)
@@ -160,7 +160,7 @@ bool MTorch::is_ready() const
 { return (net != nullptr); }
 
 void MTorch::load(const std::string& model_file, const std::string& weights_file,
-		  int default_size)
+		  int /*default_size*/)
 {
   auto [in_channels, netdef] = read_cnn_def(model_file);
   std::cerr << "netdef: " << netdef << '\n';
@@ -169,7 +169,7 @@ void MTorch::load(const std::string& model_file, const std::string& weights_file
   net->eval();
 }
 
-void MTorch::init(int size, const std::string& model_file,
+void MTorch::init(int /*size*/, const std::string& model_file,
 		  const std::string& weights_file, int default_size)
 {
   if (not is_ready())
@@ -186,12 +186,12 @@ std::vector<float> MTorch::get_data(float* data, int size, int planes,
   result.resize(size * size);
 
   float sum = 0.0;
-  for (int i=0; i< result.size(); ++i) {
+  for (std::size_t i=0; i< result.size(); ++i) {
     result[i] =  std::exp(prediction[0][0][i].item<float>());
     sum += result[i];
   }
 
-  for (int i = 0; i < result.size(); i++)
+  for (std::size_t i = 0; i < result.size(); i++)
     {
       result[i] /= sum;
     }
