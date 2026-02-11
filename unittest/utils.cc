@@ -51,7 +51,7 @@ std::string constructSgfFromGameBoard(const std::string &board)
     return oss.str();
 }
 
-std::string applyIsometry(const std::string sgfCoord, unsigned isometry,
+std::string applyIsometry(const std::string& sgfCoord, unsigned isometry,
                           Coord &coord)
 {
     std::string result{};

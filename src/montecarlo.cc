@@ -807,7 +807,7 @@ std::string MonteCarlo::findBestMoveMT(Game &pos, int threads, int iter_count,
 void getSgfAndMsec(std::string &s, int &msec)
 {
     // remove parameter(s) at the end
-    std::size_t last_paren = s.rfind(")");
+    std::size_t last_paren = s.rfind(')');
     if (last_paren != std::string::npos)
     {
         std::string params = s.substr(last_paren + 1);
@@ -846,7 +846,7 @@ void play_engine(Game &game, std::string &s, int threads_count, int iter_count,
                              end_time - start_time)
                              .count()
                       << " mikros" << std::endl;
-            std::cout << s.substr(0, s.rfind(")")) << best_move << ")"
+            std::cout << s.substr(0, s.rfind(')')) << best_move << ")"
                       << std::endl;
         }
 
@@ -863,7 +863,7 @@ void play_engine(Game &game, std::string &s, int threads_count, int iter_count,
         getSgfAndMsec(n, msec);
 
         if (s.substr(0, s.length() - 1) == n.substr(0, s.length() - 1) and
-            n.find(";", s.length() - 1) != std::string::npos)
+            n.find(';', s.length() - 1) != std::string::npos)
         {
             // the same beginning, add new moves
             game.show();

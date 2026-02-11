@@ -8329,7 +8329,7 @@ bool Game::checkThreat2movesCorrectness()
                 show();
                 std::cerr << "where0 = " << coord.showPt(where0) << std::endl;
                 std::cerr << "Threats: " << std::endl;
-                for (auto t : thr2.thr_list) std::cerr << t.show();
+                for (const auto &t : thr2.thr_list) std::cerr << t.show();
                 return false;
             }
             for (auto &thr : thr2.thr_list)
@@ -8437,7 +8437,7 @@ bool Game::checkThreat2movesCorrectness()
                 std::cerr << "where0 = " << coord.showPt(where0)
                           << ", err = " << err << std::endl;
                 std::cerr << "Threats: " << std::endl;
-                for (auto t : thr2.thr_list) std::cerr << t.show();
+                for (const auto& t : thr2.thr_list) std::cerr << t.show();
                 return false;
             }
         }

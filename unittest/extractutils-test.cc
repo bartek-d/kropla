@@ -194,7 +194,7 @@ TEST(ExtractUtilsTest, getMovesFromSgfNodePropertyLB)
     }
     {
         auto res = getMovesFromSgfNodePropertyLB(seq.at(seq.size() - 2));
-        for (auto el : res)
+        for (const auto& el : res)
             std::cout << el.first.show() << " --> " << el.second << '\n';
         ASSERT_EQ(4, res.size());
         EXPECT_EQ(coord.sgfToPti("ll"), res[0].first.ind);
