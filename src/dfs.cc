@@ -339,6 +339,19 @@ void OnePlayerDfs::adjustDiscoveryAndAPs(std::size_t previousAPs)
 // x 2 4 x
 // x 3 x
 //   x
+//
+// Another example:
+//     x
+//   x 4 x
+// x 6 3 2 x
+//   x 5 1 x
+//     x x
+// After rearragement:
+//     x
+//   x 4 x
+// x 5 3 2 x
+//   x 6 1 x
+//     x x
 {
     pti last_where = -1;
     std::cout
@@ -346,80 +359,87 @@ void OnePlayerDfs::adjustDiscoveryAndAPs(std::size_t previousAPs)
     const pti endOfTerr = seq.size();
     for (std::size_t a = previousAPs; a < aps.size(); ++a)
     {
+        bool rearragement_needed = false;
+        pti expected_seq_start{};
         if (aps[a].where != last_where)
         {
             // first AP at this point
             last_where = aps[a].where;
-            const pti seq_where = discovery[last_where];
-            if (aps[a].seq0 != seq_where + 1)
-            {
-                // rearragement needed
-                // are there some other APs with the same point? if so, take the end
-                // range1 as the last seq1
-                std::cout << "Discovery BEFORE change:\n"
-                          << coord.showBoard(discovery) << std::endl;
+            expected_seq_start = discovery[last_where] + 1;
+            rearragement_needed = (aps[a].seq0 != expected_seq_start);
+        }
+        else
+        {
+            expected_seq_start = aps[a - 1].seq1;
+            rearragement_needed = (aps[a].seq0 != expected_seq_start);
+        }
+        if (rearragement_needed)
+        {
+            // rearragement needed
+            // are there some other APs with the same point? if so, take the end
+            // range1 as the last seq1
+            std::cout << "Discovery BEFORE change:\n"
+                      << coord.showBoard(discovery) << std::endl;
 
-                auto findLastSeq1WithThisWhere = [&]()
+            auto findLastSeq1WithThisWhere = [&]()
+            {
+                auto lastSeq1 = aps[a].seq1;
+                for (auto j = a + 1; j < aps.size(); ++j)
                 {
-                    auto lastSeq1 = aps[a].seq1;
-                    for (auto j = a + 1; j < aps.size(); ++j)
-                    {
-                        if (aps[j].where != last_where) break;
-                        assert(aps[j].seq0 == lastSeq1);
-                        lastSeq1 = aps[j].seq1;
-                    }
-                    return lastSeq1;
-                };
-                const pti range1 = findLastSeq1WithThisWhere();
-                const pti offsetMinus = aps[a].seq0 - (seq_where + 1);
-                const pti offsetPlus = range1 - aps[a].seq0;
-                const pti range0 = seq_where + 1;
-                const pti middle = aps[a].seq0;
-                std::cout << "aps[" << a
-                          << "]: (seq0, seq1, seq_where) = " << aps[a].seq0
-                          << ", " << aps[a].seq1 << ", " << seq_where << '\n';
-                std::cout << "ranges: " << range0 << ", " << middle << ", "
-                          << range1 << std::endl;
-                std::cout << "offsets: -" << offsetMinus << " +" << offsetPlus
-                          << std::endl;
-                // discovery with values in [range0, range1) have to be changed:
-                // those in [range0, middle) by +offsetPlus, those in [middle, seq1) by -offsetMinus
-                for (auto i = range0; i < middle; ++i)
-                {
-                    discovery[seq[i]] += offsetPlus;
-                    seq.push_back(seq[i]);
+                    if (aps[j].where != last_where) break;
+                    assert(aps[j].seq0 == lastSeq1);
+                    lastSeq1 = aps[j].seq1;
                 }
-                for (auto i = middle; i < range1; ++i)
-                {
-                    discovery[seq[i]] -= offsetMinus;
-                    seq[i - offsetMinus] = seq[i];
-                }
-                std::copy(seq.begin() + endOfTerr, seq.end(),
-                          seq.begin() + (range1 - offsetMinus));
-                seq.resize(endOfTerr);
-                // now change this and subsequent APs
-                auto adjust = [=](pti i) -> pti
-                {
-                    if (i < range0 || i >= range1) return i;
-                    if (i < middle) return i + offsetPlus;
-                    return i - offsetMinus;
-                };
-                std::cout << "Discovery:\n"
-                          << coord.showBoard(discovery) << std::endl;
-                for (auto k = a; k < aps.size(); ++k)
-                {
-                    std::cout << "aps[" << k
-                              << "]: (seq0, seq1, where) = " << aps[k].seq0
-                              << ", " << aps[k].seq1 << ", " << aps[k].where
-                              << '\n';
-                    auto len = aps[k].seq1 - aps[k].seq0;
-                    aps[k].seq0 = adjust(aps[k].seq0);
-                    aps[k].seq1 = aps[k].seq0 + len;
-                    std::cout << "aps[" << k
-                              << "]: (seq0, seq1, where) = " << aps[k].seq0
-                              << ", " << aps[k].seq1 << ", " << aps[k].where
-                              << '\n';
-                }
+                return lastSeq1;
+            };
+            const pti range1 = findLastSeq1WithThisWhere();
+            const pti offsetMinus = aps[a].seq0 - expected_seq_start;
+            const pti offsetPlus = range1 - aps[a].seq0;
+            const pti range0 = expected_seq_start;
+            const pti middle = aps[a].seq0;
+            std::cout << "aps[" << a
+                      << "]: (seq0, seq1, exp_seq_start) = " << aps[a].seq0
+                      << ", " << aps[a].seq1 << ", " << expected_seq_start
+                      << '\n';
+            std::cout << "ranges: " << range0 << ", " << middle << ", "
+                      << range1 << std::endl;
+            std::cout << "offsets: -" << offsetMinus << " +" << offsetPlus
+                      << std::endl;
+            // discovery with values in [range0, range1) have to be changed:
+            // those in [range0, middle) by +offsetPlus, those in [middle, seq1) by -offsetMinus
+            for (auto i = range0; i < middle; ++i)
+            {
+                discovery[seq[i]] += offsetPlus;
+                seq.push_back(seq[i]);
+            }
+            for (auto i = middle; i < range1; ++i)
+            {
+                discovery[seq[i]] -= offsetMinus;
+                seq[i - offsetMinus] = seq[i];
+            }
+            std::copy(seq.begin() + endOfTerr, seq.end(),
+                      seq.begin() + (range1 - offsetMinus));
+            seq.resize(endOfTerr);
+            // now change this and subsequent APs
+            auto adjust = [=](pti i) -> pti
+            {
+                if (i < range0 || i >= range1) return i;
+                if (i < middle) return i + offsetPlus;
+                return i - offsetMinus;
+            };
+            std::cout << "Discovery:\n"
+                      << coord.showBoard(discovery) << std::endl;
+            for (auto k = a; k < aps.size(); ++k)
+            {
+                std::cout << "aps[" << k
+                          << "]: (seq0, seq1, where) = " << aps[k].seq0 << ", "
+                          << aps[k].seq1 << ", " << aps[k].where << '\n';
+                auto len = aps[k].seq1 - aps[k].seq0;
+                aps[k].seq0 = adjust(aps[k].seq0);
+                aps[k].seq1 = aps[k].seq0 + len;
+                std::cout << "aps[" << k
+                          << "]: (seq0, seq1, where) = " << aps[k].seq0 << ", "
+                          << aps[k].seq1 << ", " << aps[k].where << '\n';
             }
         }
     }
