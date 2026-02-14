@@ -239,6 +239,157 @@ TEST_P(DfsIsometryFixture, weFindAThreatWithComplicatedBorder2)
     ASSERT_EQ(4, dfs.aps.size());
 }
 
+TEST_P(DfsIsometryFixture, weFindAThreatWithComplicatedBorder2OnALargerBoard)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "..........."
+        "..........."
+        "..oooxooo.."
+        "..o.oxo.o.."
+        "..o.....o.."
+        "..o.oxo.o.."
+        "..o.ooo.o.."
+        "..o.....o.."
+        "..ooooooo.."
+        "..........."
+        "...........");
+    Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const int playerO = 1;
+    OnePlayerDfs dfs;
+    dfs.player = playerO;
+    dfs.AP(game.getSimpleGame(), coord.first, coord.last);
+    for (auto p : dfs.aps)
+    {
+        dfs.findBorder(p);  // to check cleaning up
+        if (p.where == coord.sgfToPti(applyIsometry("fe", isometry, coord)))
+        {
+            const auto border = dfs.findBorder(p);
+            const std::size_t expectedSize = (p.seq1 - p.seq0 == 1) ? 4 : 20;
+            EXPECT_EQ(expectedSize, border.size());
+        }
+    }
+
+    const std::set<std::set<pti>> expectedInteriors{
+        getSetOfPoints("dd de df dg dh ee ef eg eh ff fg fh ge gf gg gh hd he "
+                       "hf hg hh fe fd fc",
+                       isometry, coord),
+        getSetOfPoints(
+            "dd de df dg dh ee ef eg eh ff fg fh ge gf gg gh hd he hf hg hh",
+            isometry, coord),
+        getSetOfPoints("dd", isometry, coord),
+        getSetOfPoints("hd", isometry, coord),
+        getSetOfPoints("ff", isometry, coord),
+    };
+    const auto enclosures = dfs.findAllEnclosures();
+    for (const auto &encl : enclosures)
+        EXPECT_TRUE(expectedInteriors.contains(
+            std::set<pti>(encl.interior.begin(), encl.interior.end())));
+
+    ASSERT_EQ(5, dfs.aps.size());
+}
+
+TEST_P(DfsIsometryFixture,
+       weFindAThreatWithComplicatedBorder2OnALargerBoardWithMargin)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "..........."
+        "..........."
+        "..oooxooo.."
+        "..o.oxo.o.."
+        "..o.....o.."
+        "..o.oxo.o.."
+        "..o.ooo.o.."
+        "..o.....o.."
+        "..ooooooo.."
+        "..........."
+        "...........");
+    Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const int playerO = 1;
+    OnePlayerDfs dfs;
+    dfs.player = playerO;
+    dfs.AP(game.getSimpleGame(), coord.ind(1, 1),
+           coord.ind(coord.wlkx - 2, coord.wlky - 2));
+    for (auto p : dfs.aps)
+    {
+        dfs.findBorder(p);  // to check cleaning up
+        if (p.where == coord.sgfToPti(applyIsometry("fe", isometry, coord)))
+        {
+            const auto border = dfs.findBorder(p);
+            const std::size_t expectedSize = (p.seq1 - p.seq0 == 1) ? 4 : 20;
+            EXPECT_EQ(expectedSize, border.size());
+        }
+    }
+
+    const std::set<std::set<pti>> expectedInteriors{
+        getSetOfPoints("dd de df dg dh ee ef eg eh ff fg fh ge gf gg gh hd he "
+                       "hf hg hh fe fd fc",
+                       isometry, coord),
+        getSetOfPoints(
+            "dd de df dg dh ee ef eg eh ff fg fh ge gf gg gh hd he hf hg hh",
+            isometry, coord),
+        getSetOfPoints("dd", isometry, coord),
+        getSetOfPoints("hd", isometry, coord),
+        getSetOfPoints("ff", isometry, coord),
+    };
+    const auto enclosures = dfs.findAllEnclosures();
+    for (const auto &encl : enclosures)
+        EXPECT_TRUE(expectedInteriors.contains(
+            std::set<pti>(encl.interior.begin(), encl.interior.end())));
+
+    ASSERT_EQ(5, dfs.aps.size());
+}
+
+TEST_P(DfsIsometryFixture,
+       weFindAThreatWithComplicatedBorder2OnALargerBoardWithMargin2)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "..........."
+        "..........."
+        "..oooxooo.."
+        "..o.oxo.o.."
+        "..o.....o.."
+        "..o.oxo.o.."
+        "..o.ooo.o.."
+        "..o.....o.."
+        "..ooooooo.."
+        "..........."
+        "...........");
+    Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const int playerO = 1;
+    OnePlayerDfs dfs;
+    dfs.player = playerO;
+    dfs.AP(game.getSimpleGame(), coord.ind(2, 2),
+           coord.ind(coord.wlkx - 3, coord.wlky - 3));
+    for (auto p : dfs.aps)
+    {
+        dfs.findBorder(p);  // to check cleaning up
+        if (p.where == coord.sgfToPti(applyIsometry("fe", isometry, coord)))
+        {
+            const auto border = dfs.findBorder(p);
+            const std::size_t expectedSize = (p.seq1 - p.seq0 == 1) ? 4 : 20;
+            EXPECT_EQ(expectedSize, border.size());
+        }
+    }
+
+    const std::set<std::set<pti>> expectedInteriors{
+        getSetOfPoints(
+            "dd de df dg dh ee ef eg eh ff fg fh ge gf gg gh hd he hf hg hh",
+            isometry, coord),
+        getSetOfPoints("dd", isometry, coord),
+        getSetOfPoints("hd", isometry, coord),
+        getSetOfPoints("ff", isometry, coord),
+    };
+    const auto enclosures = dfs.findAllEnclosures();
+    for (const auto &encl : enclosures)
+        EXPECT_TRUE(expectedInteriors.contains(
+            std::set<pti>(encl.interior.begin(), encl.interior.end())));
+
+    ASSERT_EQ(4, dfs.aps.size());
+}
+
 TEST_P(DfsIsometryFixture, weFindAThreatWithComplicatedBorder3)
 {
     const unsigned isometry = GetParam();
