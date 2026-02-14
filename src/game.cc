@@ -8278,22 +8278,35 @@ bool Game::checkThreatWithDfs()
         dfs.findTerritoriesAndEnclosuresInside(getSimpleGame(), coord.first,
                                                coord.last);
         auto allEncls = dfs.findAllEnclosures();
-        std::set<std::pair<std::set<pti>, std::set<pti>>> dfsEncls;
-        std::set<std::pair<std::set<pti>, std::set<pti>>> thrEncls;
+        struct EnclSet
+        {
+            std::set<pti> interior;
+            std::set<pti> border;
+            pti where;
+            bool operator==(const EnclSet &other) const
+            {
+                return std::tie(interior, border) ==
+                       std::tie(other.interior, other.border);
+            }
+            bool operator<(const EnclSet &other) const
+            {
+                return std::tie(interior, border) <
+                       std::tie(other.interior, other.border);
+            }
+        };
+        std::set<EnclSet> dfsEncls;
+        std::set<EnclSet> thrEncls;
         for (const auto &encl : allEncls)
             dfsEncls.emplace(
                 std::set<pti>(encl.interior.begin(), encl.interior.end()),
-                std::set<pti>(encl.border.begin(), encl.border.end()));
+                std::set<pti>(encl.border.begin(), encl.border.end()), 0);
         for (const Threat &thr : threats[pl].threats)
         {
-            // in DFS, we don't find territories (yet)
-            //if (thr.type & ThreatConsts::TERR) continue;
-            // in DFS, we don't find enclorues inside territories	(yet)
-            //if (threats[pl].is_in_terr[thr.where]) continue;
-            thrEncls.emplace(std::set<pti>(thr.encl->interior.begin(),
-                                           thr.encl->interior.end()),
-                             std::set<pti>(thr.encl->border.begin(),
-                                           thr.encl->border.end()));
+            thrEncls.emplace(
+                std::set<pti>(thr.encl->interior.begin(),
+                              thr.encl->interior.end()),
+                std::set<pti>(thr.encl->border.begin(), thr.encl->border.end()),
+                thr.where);
         }
         // check
         if (dfsEncls != thrEncls)
@@ -8303,20 +8316,21 @@ bool Game::checkThreatWithDfs()
                       << coord.showBoard(threats[pl].is_in_border) << std::endl;
             std::cerr << "Plansza:\n"
                       << coord.showColouredBoardWithDots(sg.worm) << std::endl;
-            auto show = [who](const std::pair<std::set<pti>, std::set<pti>> &ib)
+            auto show = [who](const EnclSet &es)
             {
-                auto [interior, border] = ib;
                 std::vector<pti> board(coord.getSize(), 0);
-                for (auto i : interior) board[i] = 3 - who;
-                for (auto b : border) board[b] = who;
+                for (auto b : es.border) board[b] = who;
+                for (auto i : es.interior) board[i] = 3 - who;
                 std::cerr << coord.showColouredBoard(board) << std::endl;
             };
+            bool isOK = true;
             for (const auto &p : dfsEncls)
                 if (!thrEncls.contains(p))
                 {
                     std::cerr
                         << "To zagrozenie jest w dfs, ale nie w threats:\n";
                     show(p);
+                    isOK = false;
                 }
             for (const auto &p : thrEncls)
                 if (!dfsEncls.contains(p))
@@ -8324,9 +8338,19 @@ bool Game::checkThreatWithDfs()
                     std::cerr
                         << "To zagrozenie jest w threats, ale nie w dfs:\n";
                     show(p);
+                    auto modifiedInterior = p.interior;
+                    modifiedInterior.insert(p.where);
+                    if (std::find_if(dfsEncls.begin(), dfsEncls.end(),
+                                     [&](const auto &dfsEn) {
+                                         return (dfsEn.interior ==
+                                                 modifiedInterior);
+                                     }) == dfsEncls.end())
+                    {
+                        isOK = false;
+                    }
                 }
 
-            return false;
+            return isOK;
         }
     }
     return true;
