@@ -92,6 +92,21 @@ std::string applyIsometry(const std::string &sgfCoord, unsigned isometry,
     return result;
 }
 
+std::set<pti> getSetOfPoints(const std::string &sgfPoints, unsigned isometry,
+                             Coord &coord)
+// sgfPoints is a char-separated list of points, for example
+// "ab bc cd da"
+{
+    std::set<pti> result;
+    for (std::size_t i = 0; i < sgfPoints.size(); i += 3)
+    {
+        auto pointSgf = sgfPoints.substr(i, 2);
+        auto ind = coord.sgfToPti(applyIsometry(pointSgf, isometry, coord));
+        result.insert(ind);
+    }
+    return result;
+}
+
 Game constructGameFromSgfWithIsometry(const std::string &sgf, unsigned isometry)
 {
     SgfParser parser(sgf);

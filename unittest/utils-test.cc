@@ -49,3 +49,24 @@ TEST(Isometry, applyIsometryWorks)
     EXPECT_EQ("Ca.yf", applyIsometry("ab.ff", 6, coord));
     EXPECT_EQ("CD.yy", applyIsometry("ab.ff", 7, coord));
 }
+
+TEST(SetOfPointsWithIsometry, works)
+{
+    coord.changeSize(30, 30);
+    EXPECT_EQ((std::set<pti>{coord.ind(0, 1), coord.ind(2, 2)}),
+              getSetOfPoints("ab cc", 0, coord));
+    EXPECT_EQ((std::set<pti>{coord.ind(29, 1), coord.ind(27, 2)}),
+              getSetOfPoints("ab,cc", 1, coord));
+    EXPECT_EQ((std::set<pti>{coord.ind(0, 28), coord.ind(2, 27)}),
+              getSetOfPoints("ab cc", 2, coord));
+    EXPECT_EQ((std::set<pti>{coord.ind(29, 28), coord.ind(27, 27)}),
+              getSetOfPoints("ab,cc", 3, coord));
+    EXPECT_EQ((std::set<pti>{coord.ind(1, 0), coord.ind(2, 2)}),
+              getSetOfPoints("ab cc", 4, coord));
+    EXPECT_EQ((std::set<pti>{coord.ind(1, 29), coord.ind(2, 27)}),
+              getSetOfPoints("ab cc", 5, coord));
+    EXPECT_EQ((std::set<pti>{coord.ind(28, 0), coord.ind(27, 2)}),
+              getSetOfPoints("ab cc", 6, coord));
+    EXPECT_EQ((std::set<pti>{coord.ind(28, 29), coord.ind(27, 27)}),
+              getSetOfPoints("ab cc", 7, coord));
+}
