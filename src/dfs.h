@@ -77,4 +77,5 @@ struct OnePlayerDfs
     void dfsAP(const SimpleGame& game, pti source, pti parent);
     void dfsAPinsideTerr(const SimpleGame& game, pti source, pti parent,
                          pti root);
+    void adjustDiscoveryAndAPs(std::size_t previousAPs);
 };

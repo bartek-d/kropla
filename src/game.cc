@@ -8275,6 +8275,8 @@ bool Game::checkThreatWithDfs()
         OnePlayerDfs dfs;
         dfs.player = who;
         dfs.AP(getSimpleGame(), coord.first, coord.last);
+        dfs.findTerritoriesAndEnclosuresInside(getSimpleGame(), coord.first,
+                                               coord.last);
         auto allEncls = dfs.findAllEnclosures();
         std::set<std::pair<std::set<pti>, std::set<pti>>> dfsEncls;
         std::set<std::pair<std::set<pti>, std::set<pti>>> thrEncls;
@@ -8285,9 +8287,9 @@ bool Game::checkThreatWithDfs()
         for (const Threat &thr : threats[pl].threats)
         {
             // in DFS, we don't find territories (yet)
-            if (thr.type & ThreatConsts::TERR) continue;
+            //if (thr.type & ThreatConsts::TERR) continue;
             // in DFS, we don't find enclorues inside territories	(yet)
-            if (threats[pl].is_in_terr[thr.where]) continue;
+            //if (threats[pl].is_in_terr[thr.where]) continue;
             thrEncls.emplace(std::set<pti>(thr.encl->interior.begin(),
                                            thr.encl->interior.end()),
                              std::set<pti>(thr.encl->border.begin(),
@@ -8298,8 +8300,32 @@ bool Game::checkThreatWithDfs()
         {
             std::cerr << "*** DFS nie zgadza sie z threats dla gracza " << who
                       << " !!!!!!!!!!!!! ****" << std::endl
-                      << coord.showFullBoard(threats[pl].is_in_border)
-                      << std::endl;
+                      << coord.showBoard(threats[pl].is_in_border) << std::endl;
+            std::cerr << "Plansza:\n"
+                      << coord.showColouredBoardWithDots(sg.worm) << std::endl;
+            auto show = [who](const std::pair<std::set<pti>, std::set<pti>> &ib)
+            {
+                auto [interior, border] = ib;
+                std::vector<pti> board(coord.getSize(), 0);
+                for (auto i : interior) board[i] = 3 - who;
+                for (auto b : border) board[b] = who;
+                std::cerr << coord.showColouredBoard(board) << std::endl;
+            };
+            for (const auto &p : dfsEncls)
+                if (!thrEncls.contains(p))
+                {
+                    std::cerr
+                        << "To zagrozenie jest w dfs, ale nie w threats:\n";
+                    show(p);
+                }
+            for (const auto &p : thrEncls)
+                if (!dfsEncls.contains(p))
+                {
+                    std::cerr
+                        << "To zagrozenie jest w threats, ale nie w dfs:\n";
+                    show(p);
+                }
+
             return false;
         }
     }
@@ -8437,7 +8463,7 @@ bool Game::checkThreat2movesCorrectness()
                 std::cerr << "where0 = " << coord.showPt(where0)
                           << ", err = " << err << std::endl;
                 std::cerr << "Threats: " << std::endl;
-                for (const auto& t : thr2.thr_list) std::cerr << t.show();
+                for (const auto &t : thr2.thr_list) std::cerr << t.show();
                 return false;
             }
         }

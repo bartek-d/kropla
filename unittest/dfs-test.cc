@@ -380,6 +380,35 @@ TEST_P(DfsIsometryFixture, weFindThreatsInsideTerrAlsoWhenLefttopPointIsAThreat)
     ASSERT_EQ(7, dfs.aps.size());
 }
 
+TEST_P(DfsIsometryFixture, weFindThreatsInsideTerrAlsoWhenLefttopPointIsOppDot)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "..o...."
+        ".o.o..."
+        "oxx.ooo"
+        "o.oo..."
+        ".o....."
+        "......."
+        ".......");
+    Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const int playerO = 1;
+    OnePlayerDfs dfs;
+    dfs.player = playerO;
+    dfs.AP(game.getSimpleGame(), coord.first, coord.last);
+    dfs.findTerritoriesAndEnclosuresInside(game.getSimpleGame(), coord.first,
+                                           coord.last);
+
+    std::cout << coord.showColouredBoard(dfs.discovery);
+    std::cout << coord.showColouredBoard(dfs.low);
+    for (std::size_t i = 0; i < dfs.seq.size(); ++i)
+    {
+        std::cout << coord.showPt(dfs.seq[i]) << '\t';
+        if (i % 10 == 9) std::cout << std::endl;
+    }
+    ASSERT_EQ(1, dfs.aps.size());
+}
+
 INSTANTIATE_TEST_CASE_P(Par, DfsIsometryFixture,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 

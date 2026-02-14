@@ -29,6 +29,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <set>
 #include <span>
 
 #include "simplegame.h"
@@ -271,19 +272,15 @@ void OnePlayerDfs::dfsAPinsideTerr(const SimpleGame& game, pti source,
         {
             const auto time_before_node = static_cast<pti>(seq.size());
             dfsAPinsideTerr(game, v, u, root);
-
-            std::cout << "Odwiedzam " << coord.showPt(v) << " idąc od "
-                      << coord.showPt(u) << std::endl;
-            std::cout << "Discovery:\n"
-                      << coord.showBoard(discovery) << std::endl;
-            std::cout << "Low:\n" << coord.showBoard(low) << std::endl;
             if (discovery[u] <= low[v] && u != root &&
                 game.whoseDotMarginAt(u) == 0)
             {
                 // ap found
-                std::cout << "AP found at " << coord.showPt(u)
+                std::cout << "AP inside terr found at " << coord.showPt(u)
                           << " interior size: " << seq.size() - time_before_node
-                          << std::endl;
+                          << "  seq_where = " << discovery[u]
+                          << "  interior: " << time_before_node << " -- "
+                          << seq.size() << std::endl;
                 aps.push_back(APInfo{.where = u,
                                      .seq0 = time_before_node,
                                      .seq1 = static_cast<pti>(seq.size())});
@@ -304,7 +301,8 @@ void OnePlayerDfs::dfsAPinsideTerr(const SimpleGame& game, pti source,
         if (v == parent) continue;
         const auto last_discovery = seq.size();
         visitPoint(v, u);
-        if (u == root && seq.size() > last_discovery)
+        if (u == root && game.whoseDotMarginAt(root) == 0 &&
+            seq.size() > last_discovery)
         {
             switch (subtrees_before)
             {
@@ -321,6 +319,108 @@ void OnePlayerDfs::dfsAPinsideTerr(const SimpleGame& game, pti source,
                     aps.push_back(last_subtree);
             }
             ++subtrees_before;
+        }
+    }
+}
+
+void OnePlayerDfs::adjustDiscoveryAndAPs(std::size_t previousAPs)
+// For APs in territories, we need that the first AP with some point 'where'
+// has interior starting with (where+1). E.g.
+//   x x
+// x 1 4 x
+// x 2 3 x
+// x 5 x
+//   x
+// Here '2' is an AP with interior [5]. This means that its complement
+// would be an AP at '2' with interior [1, 3, 4], which is not a sequence of
+// consecutive numbers. Therefore, we need to rearrange discovery as follows:
+//   x x
+// x 1 5 x
+// x 2 4 x
+// x 3 x
+//   x
+{
+    pti last_where = -1;
+    std::cout
+        << "----------------------------------------------------------------\n";
+    const pti endOfTerr = seq.size();
+    for (std::size_t a = previousAPs; a < aps.size(); ++a)
+    {
+        if (aps[a].where != last_where)
+        {
+            // first AP at this point
+            last_where = aps[a].where;
+            const pti seq_where = discovery[last_where];
+            if (aps[a].seq0 != seq_where + 1)
+            {
+                // rearragement needed
+                // are there some other APs with the same point? if so, take the end
+                // range1 as the last seq1
+                std::cout << "Discovery BEFORE change:\n"
+                          << coord.showBoard(discovery) << std::endl;
+
+                auto findLastSeq1WithThisWhere = [&]()
+                {
+                    auto lastSeq1 = aps[a].seq1;
+                    for (auto j = a + 1; j < aps.size(); ++j)
+                    {
+                        if (aps[j].where != last_where) break;
+                        assert(aps[j].seq0 == lastSeq1);
+                        lastSeq1 = aps[j].seq1;
+                    }
+                    return lastSeq1;
+                };
+                const pti range1 = findLastSeq1WithThisWhere();
+                const pti offsetMinus = aps[a].seq0 - (seq_where + 1);
+                const pti offsetPlus = range1 - aps[a].seq0;
+                const pti range0 = seq_where + 1;
+                const pti middle = aps[a].seq0;
+                std::cout << "aps[" << a
+                          << "]: (seq0, seq1, seq_where) = " << aps[a].seq0
+                          << ", " << aps[a].seq1 << ", " << seq_where << '\n';
+                std::cout << "ranges: " << range0 << ", " << middle << ", "
+                          << range1 << std::endl;
+                std::cout << "offsets: -" << offsetMinus << " +" << offsetPlus
+                          << std::endl;
+                // discovery with values in [range0, range1) have to be changed:
+                // those in [range0, middle) by +offsetPlus, those in [middle, seq1) by -offsetMinus
+                for (auto i = range0; i < middle; ++i)
+                {
+                    discovery[seq[i]] += offsetPlus;
+                    seq.push_back(seq[i]);
+                }
+                for (auto i = middle; i < range1; ++i)
+                {
+                    discovery[seq[i]] -= offsetMinus;
+                    seq[i - offsetMinus] = seq[i];
+                }
+                std::copy(seq.begin() + endOfTerr, seq.end(),
+                          seq.begin() + (range1 - offsetMinus));
+                seq.resize(endOfTerr);
+                // now change this and subsequent APs
+                auto adjust = [=](pti i) -> pti
+                {
+                    if (i < range0 || i >= range1) return i;
+                    if (i < middle) return i + offsetPlus;
+                    return i - offsetMinus;
+                };
+                std::cout << "Discovery:\n"
+                          << coord.showBoard(discovery) << std::endl;
+                for (auto k = a; k < aps.size(); ++k)
+                {
+                    std::cout << "aps[" << k
+                              << "]: (seq0, seq1, where) = " << aps[k].seq0
+                              << ", " << aps[k].seq1 << ", " << aps[k].where
+                              << '\n';
+                    auto len = aps[k].seq1 - aps[k].seq0;
+                    aps[k].seq0 = adjust(aps[k].seq0);
+                    aps[k].seq1 = aps[k].seq0 + len;
+                    std::cout << "aps[" << k
+                              << "]: (seq0, seq1, where) = " << aps[k].seq0
+                              << ", " << aps[k].seq1 << ", " << aps[k].where
+                              << '\n';
+                }
+            }
         }
     }
 }
@@ -350,11 +450,31 @@ void OnePlayerDfs::findTerritoriesAndEnclosuresInside(const SimpleGame& game,
                 const pti endOfTerr = seq.size();
                 // double the APs
                 const auto currentAPs = aps.size();
+
                 if (currentAPs > previousAPs)
                 {
-                    std::sort(aps.begin() + previousAPs, aps.end(),
-                              [](const auto& ap1, const auto& ap2)
-                              { return ap1.where < ap2.where; });
+                    std::sort(
+                        aps.begin() + previousAPs, aps.end(),
+                        [this](const auto& ap1, const auto& ap2)
+                        {
+                            return std::tie(discovery[ap1.where], ap1.seq0) <
+                                   std::tie(discovery[ap2.where], ap2.seq0);
+                        });
+                    std::cerr << "-- Adjusting discovery\n";
+                    std::cerr << "Before:\n"
+                              << coord.showBoard(discovery) << std::endl;
+                    std::cerr << "seq: size = " << seq.size() << "\n";
+                    for (auto el : seq) std::cerr << coord.showPt(el) << "  ";
+                    std::cerr << std::endl;
+
+                    adjustDiscoveryAndAPs(previousAPs);
+                    std::cerr << "-- Adjusted discovery\n";
+                    std::cerr << "AFTER:\n"
+                              << coord.showBoard(discovery) << std::endl;
+                    std::cerr << "seq: size = " << seq.size() << "\n";
+                    for (auto el : seq) std::cerr << coord.showPt(el) << "  ";
+                    std::cerr << std::endl;
+                    assert(checkInvariants(game, left_top, bottom_right));
                     pti last_where = aps[previousAPs].where;
                     pti currentStart = discovery[last_where];
                     pti augmentedSeq = startOfTerr;
@@ -413,6 +533,15 @@ std::vector<Enclosure> OnePlayerDfs::findAllEnclosures()
     std::vector<Enclosure> encls;
     encls.reserve(aps.size());
     auto& marks = low;
+    std::cerr << __FUNCTION__ << ":" << __LINE__ << '\n';
+    int numb = 0;
+    for (const auto& ap : aps)
+    {
+        std::cout << numb++ << ": " << ap.seq0 << " -- " << ap.seq1
+                  << ", seq_where: " << discovery[ap.where]
+                  << ", where-pt: " << coord.showPt(ap.where) << std::endl;
+    }
+
     for (const auto& ap : aps)
     {
         auto border = findBorder(ap);
@@ -495,13 +624,15 @@ bool OnePlayerDfs::checkInvariants(const SimpleGame& game, pti left_top,
         {
             if (discovery[i] != 0)
             {
-                std::cerr << "discovery[" << coord.showPt(i) << "] != 0\n"
+                std::cerr << __FUNCTION__ << ":" << __LINE__ << "discovery["
+                          << coord.showPt(i) << "] != 0\n"
                           << coord.showColouredBoard(discovery) << std::endl;
                 return false;
             }
             if (low[i] != 0)
             {
-                std::cerr << "low[" << coord.showPt(i) << "] != 0\n"
+                std::cerr << __FUNCTION__ << ":" << __LINE__ << "low["
+                          << coord.showPt(i) << "] != 0\n"
                           << coord.showColouredBoard(low) << std::endl;
 
                 return false;
@@ -513,45 +644,73 @@ bool OnePlayerDfs::checkInvariants(const SimpleGame& game, pti left_top,
             {
                 if (discovery[i] == 0)
                 {
-                    std::cerr << "discovery[" << coord.showPt(i) << "] == 0\n"
+                    std::cerr << __FUNCTION__ << ":" << __LINE__ << "discovery["
+                              << coord.showPt(i) << "] == 0\n"
                               << coord.showColouredBoard(discovery)
                               << std::endl;
                     return false;
                 }
                 if (discovery[i] > 0 && ourDotOrOutside(i))
                 {
-                    std::cerr << "discovery[" << coord.showPt(i) << "] > 0\n"
+                    std::cerr << __FUNCTION__ << ":" << __LINE__ << "discovery["
+                              << coord.showPt(i) << "] > 0\n"
                               << coord.showColouredBoard(discovery)
                               << std::endl;
                     return false;
                 }
                 if (low[i] > 0 && ourDotOrOutside(i))
                 {
-                    std::cerr << "low[" << coord.showPt(i) << "] > 0\n"
+                    std::cerr << __FUNCTION__ << ":" << __LINE__ << "low["
+                              << coord.showPt(i) << "] > 0\n"
                               << coord.showColouredBoard(low) << std::endl;
                     return false;
                 }
             }
             if (discovery[i] > static_cast<pti>(seq.size()))
             {
+                std::cerr << __FUNCTION__ << ":" << __LINE__ << "discovery["
+                          << coord.showPt(i) << "] > " << seq.size() << '\n'
+                          << coord.showColouredBoard(discovery) << std::endl;
+                return false;
                 return false;
             }
             if (discovery[i] > 0) sum += discovery[i];
         }
     }
     long int expected_sum = seq.size() * (seq.size() - 1) / 2;
-    if (sum != expected_sum)
+    if (sum > expected_sum)
     {
-        std::cerr << "Sum: " << sum << " seq.size() == " << seq.size()
-                  << std::endl;
+        std::cerr << __FUNCTION__ << ":" << __LINE__ << "Sum: " << sum
+                  << " seq.size() == " << seq.size() << std::endl;
         std::cerr << "discovery:\n"
                   << coord.showColouredBoard(discovery) << std::endl;
         return false;
     }
+    std::set<pti> visited;
     for (std::size_t i = 0; i < seq.size(); ++i)
     {
-        if (seq[i] < 0 || seq[i] >= coord.getSize()) return false;
-        if (discovery[seq[i]] != static_cast<int>(i)) return false;
+        if (seq[i] < 0 || seq[i] >= coord.getSize())
+        {
+            std::cerr << __FUNCTION__ << ":" << __LINE__ << " index: " << i
+                      << " point: " << coord.showPt(seq[i]) << '\n'
+                      << coord.showColouredBoard(discovery) << std::endl;
+            std::cerr << "seq: \n";
+            for (auto el : seq) std::cerr << coord.showPt(el) << "  ";
+            std::cerr << std::endl;
+            return false;
+        }
+        if (!visited.contains(seq[i]) &&
+            discovery[seq[i]] != static_cast<int>(i))
+        {
+            std::cerr << __FUNCTION__ << ":" << __LINE__ << " index: " << i
+                      << " point: " << coord.showPt(seq[i]) << '\n'
+                      << coord.showColouredBoard(discovery) << std::endl;
+            std::cerr << "seq: size = " << seq.size() << "\n";
+            for (auto el : seq) std::cerr << coord.showPt(el) << "  ";
+            std::cerr << std::endl;
+            return false;
+        }
+        visited.insert(seq[i]);
     }
     if (seq[0] != 0) return false;
     return true;

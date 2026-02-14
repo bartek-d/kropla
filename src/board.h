@@ -119,24 +119,24 @@ class Coord
     bool isInNeighbourhood(pti p1, pti p2) const;
     int distBetweenPts_1(pti p1, pti p2) const;
     template <typename Container>
-    std::string showBoard(Container const &b);
+    std::string showBoard(Container const& b);
     template <typename Container>
-    std::string showColouredBoard(Container const &b);
+    std::string showColouredBoard(Container const& b);
     template <typename Container>
-    std::string showColouredBoardWithDots(Container const &b);
+    std::string showColouredBoardWithDots(Container const& b);
     template <typename ColourGetter, typename StringGetter>
     std::string showColouredBoardWithDotsAndDebugMoves(ColourGetter col_get,
                                                        StringGetter str_get);
     template <typename Container>
-    std::string showFullBoard(Container const &b);
+    std::string showFullBoard(Container const& b);
     std::string showPt(pti p) const;
-    int sgfToX(const std::string &s) const;
-    int sgfToY(const std::string &s) const;
-    pti sgfToPti(const std::string &s) const;
+    int sgfToX(const std::string& s) const;
+    int sgfToY(const std::string& s) const;
+    pti sgfToPti(const std::string& s) const;
     int sgfCoordToInt(char s) const;
     std::string indToSgf(pti p) const;
     std::string numberToLetter(pti p) const;
-    bool isOnBoardSgf(const std::string &pt) const;
+    bool isOnBoardSgf(const std::string& pt) const;
     std::string dindToStr(pti p) const;
 };
 
@@ -147,7 +147,7 @@ extern class Coord coord;
 *********************************************************************************************************/
 
 template <typename Container>
-std::string Coord::showBoard(Container const &b)
+std::string Coord::showBoard(Container const& b)
 {
     std::stringstream out;
     for (int y = -2; y < wlky; y++)
@@ -195,7 +195,7 @@ std::string Coord::showBoard(Container const &b)
 
 /// shows numbers, for debug purposes
 template <typename Container>
-std::string Coord::showColouredBoard(Container const &b)
+std::string Coord::showColouredBoard(Container const& b)
 {
     std::stringstream out;
     for (int y = -2; y < wlky; y++)
@@ -258,7 +258,7 @@ std::string Coord::showColouredBoard(Container const &b)
 
 /// shows dots, for ascii-mode play
 template <typename Container>
-std::string Coord::showColouredBoardWithDots(Container const &b)
+std::string Coord::showColouredBoardWithDots(Container const& b)
 {
     std::stringstream out;
     std::string ascii_dots[4] =
@@ -384,7 +384,7 @@ std::string Coord::showColouredBoardWithDotsAndDebugMoves(ColourGetter col_get,
 }
 
 template <typename Container>
-std::string Coord::showFullBoard(Container const &b)
+std::string Coord::showFullBoard(Container const& b)
 {
     std::stringstream out;
     for (int y = -1; y <= wlky; y++)
