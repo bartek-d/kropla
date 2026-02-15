@@ -91,4 +91,5 @@ struct OnePlayerDfs
     void dfsAPinsideTerr(const SimpleGame& game, pti source, pti parent,
                          pti root);
     void adjustDiscoveryAndAPs(std::size_t previousAPs);
+    bool isRectangleTooSmall(pti left_top, pti bottom_right) const;
 };

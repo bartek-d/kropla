@@ -8274,9 +8274,11 @@ bool Game::checkThreatWithDfs()
         const int who = pl + 1;
         OnePlayerDfs dfs;
         dfs.player = who;
-        dfs.AP(getSimpleGame(), coord.first, coord.last);
-        dfs.findTerritoriesAndEnclosuresInside(getSimpleGame(), coord.first,
-                                               coord.last);
+        ImportantRectangle ir;
+        ir.initialise(getSimpleGame(), who);
+        dfs.AP(getSimpleGame(), ir.getLeftTop(), ir.getBottomRight());
+        dfs.findTerritoriesAndEnclosuresInside(getSimpleGame(), ir.getLeftTop(),
+                                               ir.getBottomRight());
         auto allEncls = dfs.findAllEnclosures();
         struct EnclSet
         {

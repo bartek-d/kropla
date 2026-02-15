@@ -40,9 +40,10 @@ bool ImportantRectangle::checkIfEssential(const SimpleGame& sg, pti ind,
     const auto w = sg.worm[ind];
     const auto& d = sg.descr.at(w);
     if (d.dots[player - 1] > 2) return true;  // large worm
-    if (d.dots[player - 1] == 2 && d.neighb.empty())
-        return false;                       // 2-dot isolated worm
-    if (d.neighb.size() >= 2) return true;  // at least 2 neighbours
+    if (d.neighb.empty()) return false;       // 1-dot or 2-dot isolated worm
+    if (d.neighb.size() >= 2) return true;    // at least 2 neighbours
+    if (d.dots[player - 1] == 2)
+        return true;  // 2-dot worm with at least 1 neighbour
     // here 1-dot worm with one neighbour, check if the neighbour is also 1-dot with no other neighbours
     const auto nei = d.neighb[0];
     if (sg.descr.at(nei).dots[player - 1] == 1 &&
@@ -291,8 +292,18 @@ void OnePlayerDfs::dfsAP(const SimpleGame& game, pti source, pti parent)
     }
 }
 
+bool OnePlayerDfs::isRectangleTooSmall(pti left_top, pti bottom_right) const
+{
+    if (left_top == -1) return true;
+    if (coord.x[bottom_right] - coord.x[left_top] <= 1 ||
+        coord.y[bottom_right] - coord.y[left_top] <= 1)
+        return true;
+    return false;
+}
+
 void OnePlayerDfs::AP(const SimpleGame& game, pti left_top, pti bottom_right)
 {
+    if (isRectangleTooSmall(left_top, bottom_right)) return;
     low = std::vector<pti>(coord.getSize());
     discovery = std::vector<pti>(coord.getSize());
     seq.clear();
@@ -320,8 +331,6 @@ void OnePlayerDfs::AP(const SimpleGame& game, pti left_top, pti bottom_right)
             current_bottom += coord.E;
         }
     }
-    // std::cout << "discovery at start:\n"
-    //         << coord.showColouredBoard(discovery) << std::endl;
     // top row
     for (auto i = left_top + coord.E; i <= bottom_right; i += coord.E)
         discovery[i] = offset + coord.W;
@@ -331,8 +340,8 @@ void OnePlayerDfs::AP(const SimpleGame& game, pti left_top, pti bottom_right)
         // std::cout << coord.showPt(i) << std::endl;
         discovery[i] = offset + coord.N;
     }
-    // std::cout << "discovery at start:\n"
-    //        << coord.showColouredBoard(discovery) << std::endl;
+    //std::cout << "discovery at start:\n"
+    //      << coord.showColouredBoard(discovery) << std::endl;
 
     pti fakeSource = 0;
     low[fakeSource] = discovery[fakeSource] = seq.size();
@@ -538,6 +547,7 @@ void OnePlayerDfs::findTerritoriesAndEnclosuresInside(const SimpleGame& game,
                                                       pti left_top,
                                                       pti bottom_right)
 {
+    if (isRectangleTooSmall(left_top, bottom_right)) return;
     // note: AP has to be called first
     auto ourDotAt = [&](pti u)
     {
@@ -639,6 +649,7 @@ void OnePlayerDfs::findTerritoriesAndEnclosuresInside(const SimpleGame& game,
 
 std::vector<Enclosure> OnePlayerDfs::findAllEnclosures()
 {
+    if (aps.empty()) return {};
     std::vector<Enclosure> encls;
     encls.reserve(aps.size());
     auto& marks = low;
@@ -735,7 +746,10 @@ bool OnePlayerDfs::checkInvariants(const SimpleGame& game, pti left_top,
             {
                 std::cerr << __FUNCTION__ << ":" << __LINE__ << "discovery["
                           << coord.showPt(i) << "] != 0\n"
-                          << coord.showColouredBoard(discovery) << std::endl;
+                          << coord.showColouredBoard(discovery) << std::endl
+                          << "leftTop: " << coord.showPt(left_top)
+                          << ", bottom right: " << coord.showPt(bottom_right)
+                          << std::endl;
                 return false;
             }
             if (low[i] != 0)
