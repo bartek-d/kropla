@@ -29,6 +29,19 @@
 
 struct SimpleGame;
 
+class ImportantRectangle
+{
+    bool checkIfEssential(const SimpleGame& sg, pti ind, pti player) const;
+    pti left_top{-1};
+    pti bottom_right{-1};
+
+   public:
+    void initialise(const SimpleGame& sg, pti player);
+    void update(const SimpleGame& sg, pti point, pti player);
+    pti getLeftTop() const;
+    pti getBottomRight() const;
+};
+
 struct APInfo
 {
     pti where;

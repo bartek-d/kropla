@@ -51,6 +51,12 @@ std::string constructSgfFromGameBoard(const std::string &board)
     return oss.str();
 }
 
+pti applyIsometry(pti point, unsigned isometry, Coord &coord)
+{
+    return coord.sgfToPti(
+        applyIsometry(coord.indToSgf(point), isometry, coord));
+}
+
 std::string applyIsometry(const std::string &sgfCoord, unsigned isometry,
                           Coord &coord)
 {

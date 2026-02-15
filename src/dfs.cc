@@ -34,6 +34,95 @@
 
 #include "simplegame.h"
 
+bool ImportantRectangle::checkIfEssential(const SimpleGame& sg, pti ind,
+                                          pti player) const
+{
+    const auto w = sg.worm[ind];
+    const auto& d = sg.descr.at(w);
+    if (d.dots[player - 1] > 2) return true;  // large worm
+    if (d.dots[player - 1] == 2 && d.neighb.empty())
+        return false;                       // 2-dot isolated worm
+    if (d.neighb.size() >= 2) return true;  // at least 2 neighbours
+    // here 1-dot worm with one neighbour, check if the neighbour is also 1-dot with no other neighbours
+    const auto nei = d.neighb[0];
+    if (sg.descr.at(nei).dots[player - 1] == 1 &&
+        sg.descr.at(nei).neighb.size() == 1)
+        return false;
+    return true;
+}
+
+void ImportantRectangle::initialise(const SimpleGame& sg, pti player)
+{
+    pti x0 = coord.wlkx;
+    pti y0 = coord.wlky;
+    pti x1 = -1;
+    pti y1 = -1;
+
+    for (pti i = coord.first; i <= coord.last; ++i)
+        if (sg.whoseDotMarginAt(i) == player && checkIfEssential(sg, i, player))
+        {
+            const pti x = coord.x[i];
+            const pti y = coord.y[i];
+            x0 = std::min<pti>(x0, x);
+            y0 = std::min<pti>(y0, y);
+            x1 = std::max<pti>(x1, x);
+            y1 = std::max<pti>(y1, y);
+        }
+    if (x1 != -1)
+    {
+        x0 = std::max<pti>(0, x0 - 1);
+        y0 = std::max<pti>(0, y0 - 1);
+        x1 = std::min<pti>(coord.wlkx - 1, x1 + 1);
+        y1 = std::min<pti>(coord.wlky - 1, y1 + 1);
+        left_top = coord.ind(x0, y0);
+        bottom_right = coord.ind(x1, y1);
+        return;
+    }
+    left_top = -1;
+    bottom_right = -1;
+}
+
+void ImportantRectangle::update(const SimpleGame& sg, pti point, pti player)
+// at 'point' a new dot of 'player' was put, update the rectangle
+{
+    if (!checkIfEssential(sg, point, player)) return;
+    const pti x = coord.x[point];
+    const pti y = coord.y[point];
+    pti x0 = left_top != -1 ? coord.x[left_top] : x;
+    pti y0 = left_top != -1 ? coord.y[left_top] : y;
+    pti x1 = left_top != -1 ? coord.x[bottom_right] : x;
+    pti y1 = left_top != -1 ? coord.y[bottom_right] : y;
+    if (x >= x0 + 2 && x <= x1 - 2 && y >= y0 + 2 && y <= y1 - 2) return;
+    // having a new dot at ind may make some other dots essential, those dots may be up to 2 points away
+    const pti xstart = std::max<pti>(x - 2, 0);
+    const pti xend = std::min<pti>(x + 2, coord.wlkx - 1);
+    const pti ystart = std::max<pti>(y - 2, 0);
+    const pti yend = std::min<pti>(y + 2, coord.wlky - 1);
+    for (pti x = xstart; x <= xend; ++x)
+        for (pti y = ystart; y <= yend; ++y)
+        {
+            pti ind = coord.ind(x, y);
+            if (sg.whoseDotMarginAt(ind) == player &&
+                checkIfEssential(sg, ind, player))
+            {
+                x0 = std::min<pti>(x0, x - 1);
+                y0 = std::min<pti>(y0, y - 1);
+                x1 = std::max<pti>(x1, x + 1);
+                y1 = std::max<pti>(y1, y + 1);
+            }
+        }
+    x0 = std::max<pti>(0, x0);
+    y0 = std::max<pti>(0, y0);
+    x1 = std::min<pti>(coord.wlkx - 1, x1);
+    y1 = std::min<pti>(coord.wlky - 1, y1);
+    left_top = coord.ind(x0, y0);
+    bottom_right = coord.ind(x1, y1);
+}
+
+pti ImportantRectangle::getLeftTop() const { return left_top; }
+
+pti ImportantRectangle::getBottomRight() const { return bottom_right; }
+
 std::vector<pti> OnePlayerDfs::findBorder(const APInfo& ap)
 {
     auto& marks = low;

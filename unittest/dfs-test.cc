@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <iostream>
 #include <set>
 
@@ -487,6 +488,52 @@ TEST_P(DfsIsometryFixture, weFindThreatsInsideTerrAlsoWhenLefttopPointIsOppDot)
                                            coord.last);
 
     ASSERT_EQ(1, dfs.aps.size());
+}
+
+TEST_P(DfsIsometryFixture, importantRectangle)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "......."
+        "..o.o.."
+        ".oxx.o."
+        ".o.xxo."
+        "..o.oo."
+        "...o..."
+        ".......");
+    Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    pti corner1 = applyIsometry(coord.ind(1, 1), isometry, coord);
+    pti corner2 = applyIsometry(coord.ind(5, 4), isometry, coord);
+    pti corner3 = applyIsometry(coord.ind(1, 4), isometry, coord);
+    pti corner4 = applyIsometry(coord.ind(5, 1), isometry, coord);
+
+    std::array<pti, 3> expectedLeftTop{
+        0, coord.first,
+        std::min(std::min(corner1, corner2), std::min(corner3, corner4))};
+    std::array<pti, 3> expectedBottomRight{
+        0, coord.last,
+        std::max(std::max(corner1, corner2), std::max(corner3, corner4))};
+    for (int player = 1; player <= 2; ++player)
+    {
+        ImportantRectangle ir_initialised;
+        ImportantRectangle ir_updated;
+        ir_initialised.initialise(game.getSimpleGame(), player);
+        const auto &history = game.getSimpleGame().getHistory();
+        for (std::size_t i = 0; i < history.size(); ++i)
+        {
+            auto move = history.get(i);
+            if (game.whoseDotMarginAt(move) == player)
+                ir_updated.update(game.getSimpleGame(), move, player);
+        }
+        EXPECT_EQ(ir_initialised.getLeftTop(), ir_updated.getLeftTop())
+            << " for player " << player;
+        EXPECT_EQ(ir_initialised.getBottomRight(), ir_updated.getBottomRight())
+            << " for player " << player;
+        EXPECT_EQ(expectedLeftTop.at(player), ir_updated.getLeftTop())
+            << " for player " << player;
+        EXPECT_EQ(expectedBottomRight.at(player), ir_updated.getBottomRight())
+            << " for player " << player;
+    }
 }
 
 INSTANTIATE_TEST_CASE_P(Par, DfsIsometryFixture,
