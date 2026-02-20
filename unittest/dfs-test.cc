@@ -536,6 +536,53 @@ TEST_P(DfsIsometryFixture, importantRectangle)
     }
 }
 
+TEST(Dfs, importantRectangleIsUpdatedCorrectly)
+{
+    auto sgf = constructSgfFromGameBoard(
+        "......."
+        "......."
+        "....o.."
+        "o...o.."
+        "o......"
+        "o.....o"
+        "oo...oo");
+    Game game = constructGameFromSgfWithIsometry(sgf, 0);
+    auto &sg = game.getSimpleGame();
+    EXPECT_EQ(coord.ind(0, 2), sg.rectangle[0].getLeftTop());
+    game.placeDot(3, 5, 1);
+    EXPECT_EQ(coord.ind(0, 2), sg.rectangle[0].getLeftTop());
+    game.placeDot(3, 4, 1);
+    EXPECT_EQ(coord.ind(0, 1), sg.rectangle[0].getLeftTop());
+    EXPECT_EQ(coord.ind(6, 6), sg.rectangle[0].getBottomRight());
+}
+
+TEST(Dfs, importantRectangleZagram158271)
+{
+    std::string zagram158271 =
+        "(;FF[4]GM[40]CA[UTF-8]AP[zagram.org]SZ[30]RU[Punish=0,Holes=1,AddTurn="
+        "0,MustSurr=0,MinArea=0,Pass=0,Stop=0,LastSafe=0,ScoreTerr=0,"
+        "InstantWin=0]EV[Liga kropki.legion.pl sezon 10]RO[liga "
+        "2]PB[senny_mojrzesz]PW[wolan]TM[300]OT[25]DT[2013-05-19]RE[B+1]BR["
+        "1237]WR[1339];B[po];W[oo];B[pn];W[on];B[om];W[pm];B[nm];W[qm];B[ro];W["
+        "np];B[nk];W[pk];B[kn];W[lp];B[kk];W[ko];B[jn];W[ln];B[lm];W[jo];B[mn];"
+        "W[lo];B[op];W[no];B[oq];W[ls];B[nr];W[mr];B[ns];W[in];B[jm];W[im];B["
+        "jl];W[oj];B[mi];W[nj];B[mj];W[hq];B[un];W[ph];B[ng];W[og];B[jg];W[ii];"
+        "B[ji];W[ij];B[ih];W[hk];B[tr];W[rs];B[qr];W[rr];B[rq];W[sr];B[sq];W["
+        "qs];B[ps];W[ru];B[ot];W[jj];B[kj];W[cn];B[el];W[dj];B[cl];W[dl];B[dk];"
+        "W[dm];B[ek];W[ck];B[cj];W[bk];B[ej];W[di];B[ei];W[fm];B[gh];W[er];B["
+        "gs];W[gr];B[is];W[of];B[me];W[nf];B[mf];W[nh];B[mg];W[mh];B[lh];W[sh];"
+        "B[xs];W[uj];B[tl];W[sk];B[xo];W[sl];B[sm];W[rm];B[sn];W[vk];B[uv];W["
+        "sv];B[uy];W[pv];B[zw];W[zu];B[yv];W[mq];B[nv];W[px];B[ny];W[qz];B[yz];"
+        "W[yu];B[xu];W[tw];B[uw];W[zi];B[Bn];W[Bu];B[Bs];W[At];B[As];W[zs];B["
+        "zr];W[zm];B[zn];W[yn];B[yo];W[xn];B[Am];W[zl];B[Al];W[Ak];B[xg];W[xh];"
+        "B[wh];W[wi];B[yh];W[xi];B[wf];W[vh];B[wg];W[te];B[uf];W[tf];B[tg])";
+    Game game = constructGameFromSgfWithIsometry(zagram158271, 0);
+    const auto &sg = game.getSimpleGame();
+    EXPECT_EQ(coord.ind(0, 4), sg.rectangle[1].getLeftTop());
+    game.placeDot(18, 6, 2);
+    EXPECT_EQ(coord.ind(0, 3), sg.rectangle[1].getLeftTop());
+}
+
 INSTANTIATE_TEST_CASE_P(Par, DfsIsometryFixture,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 

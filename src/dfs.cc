@@ -86,14 +86,15 @@ void ImportantRectangle::initialise(const SimpleGame& sg, pti player)
 void ImportantRectangle::update(const SimpleGame& sg, pti point, pti player)
 // at 'point' a new dot of 'player' was put, update the rectangle
 {
-    if (!checkIfEssential(sg, point, player)) return;
+    if (left_top == coord.first && bottom_right == coord.last) return;
     const pti x = coord.x[point];
     const pti y = coord.y[point];
     pti x0 = left_top != -1 ? coord.x[left_top] : x;
     pti y0 = left_top != -1 ? coord.y[left_top] : y;
     pti x1 = left_top != -1 ? coord.x[bottom_right] : x;
     pti y1 = left_top != -1 ? coord.y[bottom_right] : y;
-    if (x >= x0 + 2 && x <= x1 - 2 && y >= y0 + 2 && y <= y1 - 2) return;
+    if (x >= x0 + 3 && x <= x1 - 3 && y >= y0 + 3 && y <= y1 - 3) return;
+    if (!checkIfEssential(sg, point, player)) return;
     // having a new dot at ind may make some other dots essential, those dots may be up to 2 points away
     const pti xstart = std::max<pti>(x - 2, 0);
     const pti xend = std::min<pti>(x + 2, coord.wlkx - 1);
@@ -123,6 +124,20 @@ void ImportantRectangle::update(const SimpleGame& sg, pti point, pti player)
 pti ImportantRectangle::getLeftTop() const { return left_top; }
 
 pti ImportantRectangle::getBottomRight() const { return bottom_right; }
+
+bool ImportantRectangle::operator<=(ImportantRectangle other) const noexcept
+// returns true if *this is included in other
+{
+    if (left_top == -1) return true;
+    if (other.left_top == -1) return false;
+    const pti x0 = coord.x[left_top];
+    const pti y0 = coord.y[left_top];
+    const pti x1 = coord.x[bottom_right];
+    const pti y1 = coord.y[bottom_right];
+    return (coord.x[other.left_top] <= x0 &&
+            x1 <= coord.x[other.bottom_right] &&
+            coord.y[other.left_top] <= y0 && y1 <= coord.y[other.bottom_right]);
+}
 
 std::vector<pti> OnePlayerDfs::findBorder(const APInfo& ap)
 {

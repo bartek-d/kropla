@@ -319,6 +319,7 @@ bool SimpleGame::placeDot(int x, int y, int who, bool notInTerrOrEncl,
     }
 
     connectionsRecalculateNeighb(ind, who);
+    rectangle[who - 1].update(*this, ind, who);
 
     return update_safety_dame;
 }

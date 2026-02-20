@@ -40,6 +40,7 @@ class ImportantRectangle
     void update(const SimpleGame& sg, pti point, pti player);
     pti getLeftTop() const;
     pti getBottomRight() const;
+    bool operator<=(ImportantRectangle other) const noexcept;
 };
 
 struct APInfo

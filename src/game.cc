@@ -8275,7 +8275,21 @@ bool Game::checkThreatWithDfs()
         OnePlayerDfs dfs;
         dfs.player = who;
         ImportantRectangle ir;
-        ir.initialise(getSimpleGame(), who);
+        const auto &sg = getSimpleGame();
+        ir.initialise(sg, who);
+        if (!(ir <= sg.rectangle[pl]))
+        {
+            std::cout << "Zly prostokat!" << std::endl;
+            std::cout << coord.showColouredBoard(sg.worm) << std::endl;
+            std::cout << "Nowy prostokat: " << coord.showPt(ir.getLeftTop())
+                      << " -- " << coord.showPt(ir.getBottomRight())
+                      << std::endl;
+            std::cout << "prostokat z SG: "
+                      << coord.showPt(sg.rectangle[pl].getLeftTop()) << " -- "
+                      << coord.showPt(sg.rectangle[pl].getBottomRight())
+                      << std::endl;
+            return false;
+        }
         dfs.AP(getSimpleGame(), ir.getLeftTop(), ir.getBottomRight());
         dfs.findTerritoriesAndEnclosuresInside(getSimpleGame(), ir.getLeftTop(),
                                                ir.getBottomRight());
