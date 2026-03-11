@@ -88,7 +88,7 @@ struct Treenode
     Treenode* parent{nullptr};
     // std::vector<Treenode> children;
     std::atomic<Treenode*> children{nullptr};
-    std::shared_ptr<Game> game_ptr{nullptr};
+    std::atomic<std::shared_ptr<Game>> game_ptr{nullptr};
     Movestats t;
     Movestats amaf;
     Movestats prior;

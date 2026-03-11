@@ -15,6 +15,11 @@ git submodule init
 git submodule update
 ```
 
+Dependencies
+
+One needs HDF5 and googlemock. In Debian, these are provided
+as `libhdf5-dev` and `libgmock-dev` packages, respectively.
+
 Build
 ```
 mkdir build

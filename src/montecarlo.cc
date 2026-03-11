@@ -313,15 +313,13 @@ Treenode *MonteCarlo::selectBestChild(Treenode *node) const
 
 std::shared_ptr<Game> MonteCarlo::getCopyOfGame(Treenode *node) const
 {
-    if (std::atomic_load(&node->game_ptr) == nullptr)
-    {
-        assert(std::atomic_load(&node->parent->game_ptr) != nullptr);
-        std::shared_ptr<Game> game_ptr =
-            std::make_shared<Game>(*std::atomic_load(&node->parent->game_ptr));
-        game_ptr->makeMove(node->move);
-        std::atomic_store(&node->game_ptr, game_ptr);
-    }
-    return std::make_shared<Game>(*std::atomic_load(&node->game_ptr));
+    if (auto ptr = node->game_ptr.load()) return std::make_shared<Game>(*ptr);
+    assert(node->parent->game_ptr.load() != nullptr);
+    std::shared_ptr<Game> game_ptr =
+        std::make_shared<Game>(*node->parent->game_ptr.load());
+    game_ptr->makeMove(node->move);
+    node->game_ptr.store(std::make_shared<Game>(*game_ptr));
+    return game_ptr;
 }
 
 void MonteCarlo::expandNode(TreenodeAllocator &alloc, Treenode *node,

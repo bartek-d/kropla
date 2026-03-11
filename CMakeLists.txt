@@ -107,7 +107,7 @@ target_link_libraries(gather kroplalib Threads::Threads ${CNN_lib})
 target_include_directories(gather PRIVATE src)
 
 add_executable(extract src/string_utils.h src/string_utils.cc src/extract.cc src/gzip.cpp src/gzip.hpp  ${CNN_src})
-target_link_libraries(extract kroplalib Threads::Threads HighFive ${CNN_lib} ${ZLIB_LIBRARIES}  ${Boost_LIBRARIES})
+target_link_libraries(extract kroplalib Threads::Threads ${CNN_lib} ${ZLIB_LIBRARIES}  ${Boost_LIBRARIES})
 target_include_directories(extract PRIVATE src)
 
 if (USE_CNN)
