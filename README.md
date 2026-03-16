@@ -20,6 +20,8 @@ Dependencies
 One needs HDF5 and googlemock. In Debian, these are provided
 as `libhdf5-dev` and `libgmock-dev` packages, respectively.
 
+Included: lz77.h from [Yet another LZ77](https://github.com/ivan-tkatchev/yalz77) (public domain), by Ivan Tkatchev.
+
 Build
 ```
 mkdir build
