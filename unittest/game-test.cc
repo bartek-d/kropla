@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <set>
+#include <sstream>
 
 #include "sgf.h"
 #include "utils.h"
@@ -1119,5 +1120,939 @@ TEST_P(IsometryFixture, findNumberOfDotsToEncloseBy_emptyPointCloseToBambus)
 
 INSTANTIATE_TEST_CASE_P(Par, IsometryFixture,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
+
+TEST(GameTest, getSimplifyingEnclAndPriorities)
+{
+    // https://zagram.org/eidokropki/#2026_3_18_qjCZHW
+    std::string sgf{
+        "(;GM[40]FF[4]CA[UTF-8]SZ[20];B[jh];W[lh];B[lg];W[jg];B[kh];W[ih];B[li]"
+        ";W[hg];B[mh];W[kg];B[lj];W[ji];B[kk];W[ki];B[nj];W[mi];B[ni];W[nh];B["
+        "mk];W[mg];B[mf];W[lf];B[le];W[ke];B[kd];W[jd];B[je];W[ie];B[hd];W[hf];"
+        "B[me];W[oe];B[pf];W[ph];B[og];W[oh];B[ng];W[pg];B[pe];W[of];B[od];W["
+        "nf];B[nd];W[oi];B[pj];W[oj];B[ok];W[nk];B[nl];W[ml];B[mm];W[lm];B[ln];"
+        "W[km];B[kn];W[jl];B[jm];W[ik];B[kl];W[ij];B[ii];W[hi])"};
+    std::string expectedOutput{R"(Moves 62
+Move 9, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 10, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 11, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 12, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 12, who = 2, sizes = 0 1 1
+ml_encl_moves:
+Zobrists: 0
+ml_priorities:
+ 240 15140823732657418624
+Move 13, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 13, who = 2, sizes = 0 1 1
+ml_encl_moves:
+Zobrists: 0
+ml_priorities:
+ 240 15140823732657418624
+Move 14, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 14, who = 2, sizes = 1 0 1
+ml_encl_moves:
+.ihjikilhkgjgih
+Zobrists: 15140823732657418624
+ml_priorities:
+Move 15, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 15, who = 2, sizes = 1 0 1
+ml_encl_moves:
+.ihjikilhkgjgih
+Zobrists: 15140823732657418624
+ml_priorities:
+Move 16, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 16, who = 2, sizes = 1 0 1
+ml_encl_moves:
+.ihjikilhkgjgih
+Zobrists: 15140823732657418624
+ml_priorities:
+Move 17, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 17, who = 2, sizes = 1 0 1
+ml_encl_moves:
+.ihjikilhkgjgih
+Zobrists: 15140823732657418624
+ml_priorities:
+Move 18, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 18, who = 2, sizes = 1 1 1
+ml_encl_moves:
+.ihjikilhkgjgih
+Zobrists: 15140823732657418624
+ml_priorities:
+ 280 18443392042400014786
+Move 19, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 19, who = 2, sizes = 1 1 1
+ml_encl_moves:
+.ihjikilhkgjgih
+Zobrists: 15140823732657418624
+ml_priorities:
+ 280 18443392042400014786
+Move 20, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 20, who = 2, sizes = 2 0 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+Zobrists: 3308762194666950722
+ml_priorities:
+Move 21, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 21, who = 2, sizes = 2 0 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+Zobrists: 3308762194666950722
+ml_priorities:
+Move 22, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 22, who = 2, sizes = 3 0 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+Move 23, who = 1, sizes = 1 0 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+Move 23, who = 2, sizes = 3 0 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+Move 24, who = 1, sizes = 1 1 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+ 237 16381074080247343624
+Move 24, who = 2, sizes = 3 0 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+Move 25, who = 1, sizes = 1 1 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+ 237 16381074080247343624
+Move 25, who = 2, sizes = 3 0 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+Move 26, who = 1, sizes = 1 1 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+ 237 16381074080247343624
+Move 26, who = 2, sizes = 3 0 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+Move 27, who = 1, sizes = 1 2 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 27, who = 2, sizes = 3 0 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+Move 28, who = 1, sizes = 1 2 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 28, who = 2, sizes = 3 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+ 174 2703139480711874315
+ 195 18064183648490861725
+ 216 9493375576596797202
+Move 29, who = 1, sizes = 1 2 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 29, who = 2, sizes = 3 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+ 174 2703139480711874315
+ 195 18064183648490861725
+ 216 9493375576596797202
+Move 30, who = 1, sizes = 1 2 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 30, who = 2, sizes = 3 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 31, who = 1, sizes = 1 2 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 31, who = 2, sizes = 3 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 32, who = 1, sizes = 1 2 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 32, who = 2, sizes = 3 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 33, who = 1, sizes = 1 2 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 33, who = 2, sizes = 3 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 34, who = 1, sizes = 1 2 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 34, who = 2, sizes = 3 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 35, who = 1, sizes = 1 2 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 35, who = 2, sizes = 3 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 36, who = 1, sizes = 1 2 1
+ml_encl_moves:
+.khlimhlgkh
+Zobrists: 11007021640684908225
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 36, who = 2, sizes = 3 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 37, who = 1, sizes = 2 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+Zobrists: 9071382244244451905
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 37, who = 2, sizes = 3 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 38, who = 1, sizes = 2 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+Zobrists: 9071382244244451905
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 38, who = 2, sizes = 3 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 39, who = 1, sizes = 2 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+Zobrists: 9071382244244451905
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 39, who = 2, sizes = 3 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 40, who = 1, sizes = 2 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+Zobrists: 9071382244244451905
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 40, who = 2, sizes = 3 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 41, who = 1, sizes = 2 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+Zobrists: 9071382244244451905
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 41, who = 2, sizes = 3 4 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+Zobrists: 1171123422682987795
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 300 14077545117209097795
+Move 42, who = 1, sizes = 2 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+Zobrists: 9071382244244451905
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 42, who = 2, sizes = 4 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 43, who = 1, sizes = 2 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+Zobrists: 9071382244244451905
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 43, who = 2, sizes = 4 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 44, who = 1, sizes = 2 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+Zobrists: 9071382244244451905
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 44, who = 2, sizes = 4 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 45, who = 1, sizes = 2 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+Zobrists: 9071382244244451905
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 45, who = 2, sizes = 4 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 46, who = 1, sizes = 2 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+Zobrists: 9071382244244451905
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 46, who = 2, sizes = 4 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 47, who = 1, sizes = 2 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+Zobrists: 9071382244244451905
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 47, who = 2, sizes = 4 3 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+Move 48, who = 1, sizes = 2 4 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+Zobrists: 9071382244244451905
+ml_priorities:
+ 0 10284593131849685004
+ 237 16381074080247343624
+ 237 6580109999393108788
+ 306 4368085964544326568
+Move 48, who = 2, sizes = 4 4 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+Move 49, who = 1, sizes = 3 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+.mknloknjmk
+Zobrists: 4718234314736749033
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 49, who = 2, sizes = 4 4 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+Move 50, who = 1, sizes = 3 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+.mknloknjmk
+Zobrists: 4718234314736749033
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 50, who = 2, sizes = 4 4 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+Move 51, who = 1, sizes = 3 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+.mknloknjmk
+Zobrists: 4718234314736749033
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 51, who = 2, sizes = 4 4 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+Move 52, who = 1, sizes = 3 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+.mknloknjmk
+Zobrists: 4718234314736749033
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 52, who = 2, sizes = 4 4 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+Move 53, who = 1, sizes = 3 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+.mknloknjmk
+Zobrists: 4718234314736749033
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 53, who = 2, sizes = 4 4 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+Move 54, who = 1, sizes = 3 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+.mknloknjmk
+Zobrists: 4718234314736749033
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 54, who = 2, sizes = 4 4 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+Move 55, who = 1, sizes = 3 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+.mknloknjmk
+Zobrists: 4718234314736749033
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 55, who = 2, sizes = 4 4 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+Move 56, who = 1, sizes = 3 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+.mknloknjmk
+Zobrists: 4718234314736749033
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 56, who = 2, sizes = 4 4 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+Move 57, who = 1, sizes = 3 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+.mknloknjmk
+Zobrists: 4718234314736749033
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 57, who = 2, sizes = 4 4 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+Move 58, who = 1, sizes = 3 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+.mknloknjmk
+Zobrists: 4718234314736749033
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 58, who = 2, sizes = 4 6 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+ 199 11542949498831600750
+ 220 4503292342943210786
+Move 59, who = 1, sizes = 3 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+.mknloknjmk
+Zobrists: 4718234314736749033
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 59, who = 2, sizes = 4 6 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+ 199 11542949498831600750
+ 220 4503292342943210786
+Move 60, who = 1, sizes = 3 2 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+.mknloknjmk
+Zobrists: 4718234314736749033
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+Move 60, who = 2, sizes = 4 6 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+ 0 11542949498831600750
+ 283 373999137770643516
+Move 61, who = 1, sizes = 3 3 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+.mknloknjmk
+Zobrists: 4718234314736749033
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+ 220 12701998687097568876
+Move 61, who = 2, sizes = 4 6 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+Zobrists: 15212550682295978832
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+ 0 11542949498831600750
+ 283 373999137770643516
+Move 62, who = 1, sizes = 3 3 1
+ml_encl_moves:
+.khlimhlgkh
+.lgmhngmflg
+.mknloknjmk
+Zobrists: 4718234314736749033
+ml_priorities:
+ 237 16381074080247343624
+ 237 6580109999393108788
+ 220 12701998687097568876
+Move 62, who = 2, sizes = 5 6 1
+ml_encl_moves:
+.ihjikilhkgjgih
+.lhminhmglh
+.kglhmglfkg
+.mgnhohpgofnfmg
+.hiijjiihhi
+Zobrists: 5008064273156697431
+ml_priorities:
+ 0 2703139480711874315
+ 216 9493375576596797202
+ 195 18064183648490861725
+ 283 8965256293582189866
+ 0 11542949498831600750
+ 283 373999137770643516
+)"};
+    SgfParser parser(sgf);
+    auto seq = parser.parseMainVar();
+    const auto number_of_nonroot_nodes = seq.size() - 1;
+    std::stringstream ss;
+    ss << "Moves " << number_of_nonroot_nodes << '\n';
+    for (auto nmoves = 4u; nmoves <= number_of_nonroot_nodes; ++nmoves)
+    {
+        Game game(seq, nmoves);
+        for (int who = 1; who <= 2; ++who)
+        {
+            game.getSimplifyingEnclAndPriorities(who);
+            const auto& ml_encl_moves = game.getMlEnclMoves();
+            const auto& ml_priorities = game.getMlPriorities();
+            const auto& ml_encl_zobrists = game.getMlEnclZobrists();
+            if (!ml_encl_moves.empty() or !ml_priorities.empty() or
+                ml_encl_zobrists[0] != 0)
+            {
+                ss << "Move " << nmoves << ", who = " << who
+                   << ", sizes = " << ml_encl_moves.size() << " "
+                   << ml_priorities.size() << " " << ml_encl_zobrists.size()
+                   << '\n';
+                ss << "ml_encl_moves:\n";
+                for (const auto& encl : ml_encl_moves)
+                    ss << encl->toSgfString() << '\n';
+                ss << "Zobrists:";
+                for (auto zobr : ml_encl_zobrists) ss << " " << zobr;
+                ss << "\nml_priorities:\n";
+                for (const auto& mlpr : ml_priorities)
+                {
+                    ss << " " << mlpr.thr_pointer->where << " "
+                       << mlpr.thr_pointer->zobrist_key << '\n';
+                }
+            }
+        }
+    }
+    std::cout << "Expected string*\n" << ss.str() << "\n*****\n";
+    EXPECT_EQ(expectedOutput, ss.str());
+}
 
 }  // namespace

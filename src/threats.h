@@ -168,7 +168,7 @@ struct ThrInfo
     std::vector<uint64_t> opp_thr;
     std::vector<pti> saved_worms;  // list of our saved worms, to calculated
                                    // saved_dots correctly
-    uint64_t zobrist_key;
+    uint64_t zobrist_key{0};
     const Threat *thr_pointer{nullptr};
     pti type{0};
     pti move{0};

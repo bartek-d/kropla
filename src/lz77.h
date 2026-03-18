@@ -10,29 +10,28 @@
 /*
  * This is a variation on the LZ77 compression algorithm.
  * It is designed for code simplicity and clarity.
- *
+ * 
  * Highlights:
  *
- *   - Portable, self-contained, tiny implementation in readable C++.
+ *   - Portable, self-contained, tiny implementation in readable C++. 
  *     (Header-only, no ifdefs or CPU dependencies or other stupid tricks.)
  *   - Fast decompression.
  *   - Pretty good compression quality.
  *   - Simple 'one-button' API for realistic use-cases.
- *   - No penalty (only 2 bytes overhead) even when compressing very short
- * strings.
- *   - Fully streamable decompressor: feed it chunks of arbitrarity-sized data,
- * and the original uncompressed buffers will be reconstructed automatically.
+ *   - No penalty (only 2 bytes overhead) even when compressing very short strings.
+ *   - Fully streamable decompressor: feed it chunks of arbitrarity-sized data, and the
+ *     original uncompressed buffers will be reconstructed automatically.
  *
  * Compression performance and quality should be _roughly_ on par with other
  * compression algorithms.
  *
- * (Compression ratio is comparable to other LZ algorithms when at high quality
- * settings, compression speed is comparable to gzip. Decompression speed is on
- * par with other fast LZ algorithms.)
+ * (Compression ratio is comparable to other LZ algorithms when at high quality 
+ * settings, compression speed is comparable to gzip. Decompression speed is on par
+ * with other fast LZ algorithms.)
  *
  */
 
-/*
+/* 
  * Usage:
 
   #include "lz77.h"
@@ -75,7 +74,7 @@
 
   'extra' will hold any data that was tacked onto the buffer but wasn't
   part of this packet of compressed data. (Useful when decoding a message
-  stream that doesn't have clearly delineated message boundaries; the
+  stream that doesn't have clearly delineated message boundaries; the 
   decompressor will detect message boundaries properly for you.)
 
   'extra' will be assigned to only when 'feed' returns true.
@@ -92,8 +91,7 @@
 
 #include <stdexcept>
 #include <string>
-
-#include "bvector.hpp"
+#include <vector>
 
 namespace lz77
 {
@@ -109,8 +107,8 @@ enum
     MIN_RUN = 5
 };
 
-// Utility function: encode a size_t as a variable-sized stream of octets with 7
-// bits of useful data. (One bit is used to signal an end of stream.)
+// Utility function: encode a size_t as a variable-sized stream of octets with 7 bits of useful data.
+// (One bit is used to signal an end of stream.)
 
 inline void push_vlq_uint(size_t n, std::string& out)
 {
@@ -178,10 +176,9 @@ inline void pack_bytes(const unsigned char* i, uint16_t& packed,
     packed = a % blocksize;
 }
 
-// Compute the profit from compression; 'run' is the length of a string at
-// position 'offset'. 'run' and 'offset' are numbers encoded as variable-length
-// bitstreams; the sum length of encoded 'run' and 'offset' must be less than
-// 'run'.
+// Compute the profit from compression; 'run' is the length of a string at position 'offset'.
+// 'run' and 'offset' are numbers encoded as variable-length bitstreams; the sum length of
+// encoded 'run' and 'offset' must be less than 'run'.
 
 inline size_t vlq_length(size_t x)
 {
@@ -198,8 +195,7 @@ inline size_t vlq_length(size_t x)
 
 inline size_t gains(size_t run, size_t offset)
 {
-    // Note: this function uses knowledge about the layout of bits in the
-    // compressed data format.
+    // Note: this function uses knowledge about the layout of bits in the compressed data format.
 
     size_t gain = run;
 
@@ -218,12 +214,12 @@ inline size_t gains(size_t run, size_t offset)
 }
 
 // Hash table already seen strings; it maps from a hash of a string prefix to
-// a list of offsets. (At each offset there is a string with a prefix that
-// hashes to the key.)
+// a list of offsets. (At each offset there is a string with a prefix that hashes
+// to the key.)
 
 struct offsets_dict_t
 {
-    typedef stdb::vector<size_t> offsets_t;
+    typedef std::vector<size_t> offsets_t;
     offsets_t offsets;
 
     size_t searchlen;
@@ -278,8 +274,7 @@ struct offsets_dict_t
 
             if (*cb_i == 0) break;
 
-            // The stored value is position + 1 to allow 0 to mean
-            // 'uninitialized offset'.
+            // The stored value is position + 1 to allow 0 to mean 'uninitialized offset'.
             size_t pos = *cb_i - 1;
 
             size_t offset = i - i0 - pos;
@@ -301,9 +296,9 @@ struct offsets_dict_t
 };
 
 /*
- *
+ * 
  * Entry point for compression.
- *
+ * 
  * Inputs: std::string of data to be compressed.
  *
  * Also optionally parameters for tuning speed and quality.
@@ -313,15 +308,12 @@ struct offsets_dict_t
  * 'blocksize' is the upper bound for hash table sizes.
  * 'searchlen' is the upper bound for lists of offsets at each hash value.
  *
- * A larger 'searchlen' increases compression quality, running time and memory
- * consumption. A larger 'blocksize' increases memory consumption and
- * compression quality.
+ * A larger 'searchlen' increases compression quality, running time and memory consumption. 
+ * A larger 'blocksize' increases memory consumption and compression quality. 
  *
- * If you want faster compression at the expense of quality, try lowering
- * searchlen.
+ * If you want faster compression at the expense of quality, try lowering searchlen.
  *
- * If you only ever compress short strings, try lowering blocksize to save
- * memory.
+ * If you only ever compress short strings, try lowering blocksize to save memory.
  *
  * Output: the compressed data as a string.
  */
@@ -354,8 +346,8 @@ struct compress_t
         {
             unsigned char c = *i;
 
-            // The last MIN_RUN-1 bytes are uncompressable. (At least MIN_RUN
-            // bytes are needed to calculate a prefix hash.)
+            // The last MIN_RUN-1 bytes are uncompressable. (At least MIN_RUN bytes
+            // are needed to calculate a prefix hash.)
 
             if (i > e - MIN_RUN)
             {
@@ -370,8 +362,8 @@ struct compress_t
 
             uint16_t packed;
 
-            // The MIN_RUN prefix length was chosen empirically, based on a
-            // series of unscientific tests.
+            // The MIN_RUN prefix length was chosen empirically, based on a series
+            // of unscientific tests.
 
             pack_bytes(i, packed, blocksize);
 
@@ -396,10 +388,10 @@ struct compress_t
 
             // A compressed string is a length and an offset.
             // First subtract the minimum length (smaller lengths don't exist).
-            // Then check if the length fits in SHORTRUN_BITS bits; if it does,
-            // then tack it on to the offset. Otherwise write length and offset
-            // separately. The rightmost bit is a zero to differentiate from
-            // packets of uncompressed data.
+            // Then check if the length fits in SHORTRUN_BITS bits; if it does, then
+            // tack it on to the offset. Otherwise write length and offset separately.
+            // The rightmost bit is a zero to differentiate from packets of
+            // uncompressed data.
 
             i += maxrun;
             maxrun = maxrun - MIN_RUN + 1;
@@ -438,7 +430,7 @@ struct compress_t
 
 /*
  * Entry point for decompression.
- * Calling 'feed' and 'result' out of order is undefined behaviour
+ * Calling 'feed' and 'result' out of order is undefined behaviour 
  * and will crash your program.
  */
 
@@ -499,9 +491,9 @@ struct decompress_t
     }
 
     /*
-     * max_size is the maximum size of decompressed data you're willing to
-     * accept. This is strictly optional and needed for safety reasons, when
-     * you're paranoid about accepting data from unknown sources.
+     * max_size is the maximum size of decompressed data you're willing to accept.
+     * This is strictly optional and needed for safety reasons, when you're
+     * paranoid about accepting data from unknown sources.
      *
      * The default of 0 means no sanity checking is done.
      */
@@ -513,7 +505,7 @@ struct decompress_t
 
     /*
      * Inputs: the compressed string, as output from 'compress()'.
-     * Outputs:
+     * Outputs: 
      *    true if all of the data was decompressed.
      *    false if more input data needs to be fed via 'feed()'.
      *    'remaining' will hold input data that wasn't part of

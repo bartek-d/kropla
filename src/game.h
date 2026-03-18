@@ -324,7 +324,6 @@ class Game
     bool appendSimplifyingEncl(
         std::vector<std::shared_ptr<Enclosure>>& encl_moves, uint64_t& zobrists,
         int who);
-    void getSimplifyingEnclAndPriorities(int who);
     int checkBorderMove(pti ind, int who) const;
     int checkBorderOneSide(pti ind, pti viter, pti vnorm, int who) const;
     void possibleMoves_updateSafety(pti p);
@@ -367,6 +366,8 @@ class Game
     bool isDotAt(pti ind) const { return sg.isDotAt(ind); }
     int whoseDotMarginAt(pti ind) const { return sg.whoseDotMarginAt(ind); }
     int whoseDotAt(pti ind) const { return sg.whoseDotAt(ind); }
+
+    void getSimplifyingEnclAndPriorities(int who);
 
     pti isInTerr(pti ind, int who) const;
     pti isInEncl(pti ind, int who) const;
@@ -463,6 +464,11 @@ class Game
     void showThreats2m();
 
     std::string showDescr(pti p) const { return sg.descr.at(p).show(); }
+
+    // debug/test functions
+    const std::vector<std::shared_ptr<Enclosure>>& getMlEnclMoves() const;
+    const std::vector<ThrInfo>& getMlPriorities() const;
+    const std::vector<uint64_t>& getMlEnclZobrists() const;
 
     friend class Safety;
     friend class GroupNeighbours;

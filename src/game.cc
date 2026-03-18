@@ -8780,3 +8780,19 @@ bool Game::checkCorrectness(SgfSequence seq)
               << std::endl;
     return false;
 }
+
+// debug/test functions
+const std::vector<std::shared_ptr<Enclosure>> &Game::getMlEnclMoves() const
+{
+    return ml_encl_moves;
+}
+
+const std::vector<ThrInfo> &Game::getMlPriorities() const
+{
+    return ml_priorities;
+}
+
+const std::vector<uint64_t> &Game::getMlEnclZobrists() const
+{
+    return ml_encl_zobrists;
+}
