@@ -120,18 +120,24 @@ bool SimpleGame::placeDot(int x, int y, int who, bool notInTerrOrEncl,
     }
 
     // if (mustSurround) { ... place the dot, do the necessary surrounds }
+
+    const auto our_groups_touched = connects[who - 1][ind].count();
+
     pti numb[4];
     int count = 0;
-    for (int i = 0; i < 4; i++)
+    if (our_groups_touched > 0)
     {
-        pti nb = ind + coord.nb4[i];
-        if (whoseDotMarginAt(nb) == who)
+        for (int i = 0; i < 4; i++)
         {
-            // check if it was already saved
-            for (int j = 0; j < count; j++)
-                if (numb[j] == worm[nb]) goto AlreadyThere;
-            numb[count++] = worm[nb];
-        AlreadyThere:;
+            pti nb = ind + coord.nb4[i];
+            if (whoseDotMarginAt(nb) == who)
+            {
+                // check if it was already saved
+                for (int j = 0; j < count; j++)
+                    if (numb[j] == worm[nb]) goto AlreadyThere;
+                numb[count++] = worm[nb];
+            AlreadyThere:;
+            }
         }
     }
 
@@ -279,47 +285,50 @@ bool SimpleGame::placeDot(int x, int y, int who, bool notInTerrOrEncl,
     }
 
     // check diag neighbours
-    pti cm[4];
-    int top = 0;
-    pti our_group_id = descr.at(worm[ind]).group_id;
-    for (int i = 0; i < 8; i += 2)
+    if (our_groups_touched > 0)
     {
-        pti nb = ind + coord.nb8[i];
-        if (whoseDotMarginAt(nb) == who and worm[nb] != worm[ind])
+        pti cm[4];
+        int top = 0;
+        pti our_group_id = descr.at(worm[ind]).group_id;
+        for (int i = 0; i < 8; i += 2)
         {
-            // connection!
-            if (descr.at(worm[nb]).group_id != our_group_id)
+            pti nb = ind + coord.nb8[i];
+            if (whoseDotMarginAt(nb) == who and worm[nb] != worm[ind])
             {
-                for (int j = 0; j < top; j++)
+                // connection!
+                if (descr.at(worm[nb]).group_id != our_group_id)
                 {
-                    if (cm[j] == descr.at(worm[nb]).group_id) goto check_ok;
+                    for (int j = 0; j < top; j++)
+                    {
+                        if (cm[j] == descr.at(worm[nb]).group_id) goto check_ok;
+                    }
+                    cm[top++] = descr.at(worm[nb]).group_id;
+                check_ok:;
                 }
-                cm[top++] = descr.at(worm[nb]).group_id;
-            check_ok:;
-            }
-            // add to neighbours if needed
-            if (std::find(descr.at(worm[ind]).neighb.begin(),
-                          descr.at(worm[ind]).neighb.end(),
-                          worm[nb]) == descr.at(worm[ind]).neighb.end())
-            {
-                descr.at(worm[ind]).neighb.push_back(worm[nb]);
-                descr.at(worm[nb]).neighb.push_back(worm[ind]);
+                // add to neighbours if needed
+                if (std::find(descr.at(worm[ind]).neighb.begin(),
+                              descr.at(worm[ind]).neighb.end(),
+                              worm[nb]) == descr.at(worm[ind]).neighb.end())
+                {
+                    descr.at(worm[ind]).neighb.push_back(worm[nb]);
+                    descr.at(worm[nb]).neighb.push_back(worm[ind]);
+                }
             }
         }
-    }
-    while (top >= 1)
-    {
-        for (auto &d : descr)
+        while (top >= 1)
         {
-            if (d.second.group_id == cm[top - 1])
-                d.second.group_id = our_group_id;
+            for (auto &d : descr)
+            {
+                if (d.second.group_id == cm[top - 1])
+                    d.second.group_id = our_group_id;
+            }
+            connectionsRenameGroup(our_group_id, cm[top - 1]);
+            top--;
         }
-        connectionsRenameGroup(our_group_id, cm[top - 1]);
-        top--;
     }
 
     connectionsRecalculateNeighb(ind, who);
-    rectangle[who - 1].update(*this, ind, who);
+    if (our_groups_touched > 0) rectangle[who - 1].update(*this, ind, who);
 
     return update_safety_dame;
 }
