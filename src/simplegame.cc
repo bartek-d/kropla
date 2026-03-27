@@ -27,7 +27,7 @@
 #include <algorithm>
 
 /********************************************************************************************************
-  Connections class
+  OneConnection class
 *********************************************************************************************************/
 bool OneConnection::operator!=(const OneConnection &other) const
 {
@@ -56,6 +56,74 @@ int OneConnection::getUniqueGroups(std::array<pti, 4> &unique_groups) const
     was_saved:;
     }
     return ug;
+}
+
+/********************************************************************************************************
+  Connections class
+*********************************************************************************************************/
+
+std::size_t Connections::getIndex(pti ind, int who) const
+{
+    return ind + offsets[who];
+}
+
+void Connections::init()
+{
+    const auto size_for_1_player = coord.last - coord.first + 1;
+    connections =
+        std::vector<OneConnection>(2 * size_for_1_player, OneConnection());
+    offsets[0] = 0;
+    offsets[1] = -coord.first;
+    offsets[2] = size_for_1_player - coord.first;
+}
+
+const OneConnection &Connections::getConnection(pti ind, int who) const
+{
+    return connections[getIndex(who, ind)];
+}
+
+void Connections::updateCodeAndGroups(pti ind, int who, const SimpleGame &sg)
+{
+    // TODO: we could use pattern3 and delete codes completely
+    if (!sg.isDotAt(ind))
+    {
+        int code = 0;  // the codes for the neighbourhood for player who
+        for (int i = 7; i >= 0; i--)
+        {
+            pti nb = ind + coord.nb8[i];
+            if (sg.whoseDotMarginAt(nb) == who)
+            {
+                code |= 1;
+            }
+            code <<= 1;
+        }
+        code >>= 1;
+        connections[getIndex(ind, who)].code = code;
+    }
+    else
+    {
+        connections[getIndex(ind, who)].code = 0;
+    }
+    updateGroupsUsingOldCode(ind, who, sg);
+}
+
+void Connections::updateGroupsUsingOldCode(pti ind, int who,
+                                           const SimpleGame &sg)
+{
+    auto &conns = connections[getIndex(ind, who)];
+    const auto &new_connections = coord.connections_tab_simple[conns.code];
+    for (int j = 0; j < 4; j++)
+    {
+        if (new_connections[j] >= 0)
+        {
+            pti pt = ind + coord.nb8[new_connections[j]];
+            conns.groups_id[j] = sg.descr.at(sg.worm[pt]).group_id;
+        }
+        else
+        {
+            conns.groups_id[j] = 0;
+        }
+    }
 }
 
 // ******************************************************
@@ -121,6 +189,7 @@ bool SimpleGame::placeDot(int x, int y, int who, bool notInTerrOrEncl,
 
     // if (mustSurround) { ... place the dot, do the necessary surrounds }
 
+    // how many groups our new dot connects? (could be the same group connected again)
     const auto our_groups_touched = connects[who - 1][ind].count();
 
     pti numb[4];

@@ -109,6 +109,20 @@ struct OneConnection
     int getUniqueGroups(std::array<pti, 4>& ug) const;
 };
 
+class Connections
+{
+    std::vector<OneConnection> connections;
+    std::array<int, 3> offsets;
+    std::size_t getIndex(pti ind, int who) const;
+
+   public:
+    void init();
+    const OneConnection& getConnection(pti ind, int who) const;
+
+    void updateCodeAndGroups(pti ind, int who, const SimpleGame& sg);
+    void updateGroupsUsingOldCode(pti ind, int who, const SimpleGame& sg);
+};
+
 struct SimpleGame
 {
     std::vector<pti> worm;
@@ -176,11 +190,8 @@ struct SimpleGame
         return connects[ind];
     }
 
-    void connectionsRecalculateCode(pti ind, int who);
     void connectionsRecalculateConnect(pti ind, int who);
     void connectionsRecalculatePoint(pti ind, int who);
-    void connectionsRecalculateNeighb(pti ind, int who);
-    void connectionsRenameGroup(pti dst, pti src);
     void connectionsReset(pti ind, int who);
 
     bool haveConnection(pti p1, pti p2, int who) const;
@@ -193,6 +204,9 @@ struct SimpleGame
    private:
     std::vector<OneConnection> connects[2];
 
+    void connectionsRecalculateCode(pti ind, int who);
+    void connectionsRecalculateNeighb(pti ind, int who);
+    void connectionsRenameGroup(pti dst, pti src);
     void wormMergeAny(pti dst, pti src);
     void wormMerge_common(pti dst, pti src);
 };
