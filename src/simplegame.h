@@ -126,7 +126,6 @@ class Connections
                                                     const SimpleGame& sg);
     void connectionsRenameGroup(pti dst, pti src, int who);
     void reset(pti ind, int who);
-    void findConnections(const SimpleGame& sg);
 
     bool checkCorrectness(const SimpleGame& sg) const;
 };
@@ -204,7 +203,6 @@ struct SimpleGame
     void wormMergeSame(pti dst, pti src);
     void wormMergeOther(pti dst, pti src);
 
-    void findConnections();
     bool checkConnectionsCorrectness() const;
 
    private:

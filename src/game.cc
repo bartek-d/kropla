@@ -5060,9 +5060,9 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
             if (stack[nb] == 0)
             {
                 sg.connectionsRecalculatePoint(nb, 3 - who);
-                sg.connectionsRecalculatePoint(
-                    nb, who);  // TODO: needed to make connects.code correct,
-                // but probably this correctness is not needed for anything - consider removing
+                // sg.connectionsRecalculatePoint(
+                //    nb, who);  // needed to make connects.code correct,
+                // but probably this correctness is not needed for anything - hence turned off
             }
         }
     }

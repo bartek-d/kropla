@@ -164,31 +164,20 @@ void Connections::reset(pti ind, int who)
     connections[getIndex(ind, who)] = OneConnection();
 }
 
-void Connections::findConnections(const SimpleGame &sg)
-{
-    for (int x = 0; x < coord.wlkx; x++)
-    {
-        pti ind = coord.ind(x, 0);
-        for (int y = 0; y < coord.wlky; y++)
-        {
-            updateCodeAndGroups(ind, 1, sg);
-            updateCodeAndGroups(ind, 2, sg);
-            ind += coord.S;
-        }
-    }
-}
-
 bool Connections::checkCorrectness(const SimpleGame &sg) const
 {
     Connections newc;
     newc.init();
-    newc.findConnections(sg);
     for (int who = 1; who <= 2; ++who)
         for (pti ind = coord.first; ind <= coord.last; ++ind)
             if (coord.dist[ind] >= 0)
             {
-                if (newc.getConnection(ind, who).code !=
-                    connections[getIndex(ind, who)].code)
+                newc.updateCodeAndGroups(ind, who, sg);
+                // this check is not really needed
+                const bool needsCodeCorrectness = false;
+                if (needsCodeCorrectness &&
+                    newc.getConnection(ind, who).code !=
+                        connections[getIndex(ind, who)].code)
                 {
                     std::cerr
                         << "Wrong code at " << coord.showPt(ind)
@@ -637,8 +626,6 @@ void SimpleGame::connectionsReset(pti ind, int who)
 {
     connects.reset(ind, who);
 }
-
-void SimpleGame::findConnections() { connects.findConnections(*this); }
 
 bool SimpleGame::checkConnectionsCorrectness() const
 {
