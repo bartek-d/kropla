@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "sgf.h"
+#include "simplegame.h"
 #include "utils.h"
 
 namespace
@@ -1117,6 +1118,44 @@ TEST_P(IsometryFixture, findNumberOfDotsToEncloseBy_emptyPointCloseToBambus)
         coord.sgfToPti(applyIsometry("db", isometry, coord)), 1, infty{15});
     EXPECT_EQ(9, count);
 }
+
+
+TEST_P(IsometryFixture, connectionsUpdate)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        ".xxx..."
+        "..o.x.."
+        ".o.oo.."
+        "o..xo.x"
+        ".o.oo.."
+        "..o.o.."
+        ".......");
+    const Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    Connections conns;
+    conns.init();
+    for (int who = 1; who <= 2; ++who)
+        for (pti ind = coord.first; ind <= coord.last; ++ind)
+            if (coord.dist[ind] >= 0)
+            {
+                conns.updateCodeAndGroups(ind, who, game.getSimpleGame());
+            }
+    const int playerO = 1;
+    const int playerX = 2;
+
+    EXPECT_EQ(4, conns.getConnection(applyIsometry(coord.ind(2, 3), isometry, coord), playerO).count());
+    EXPECT_EQ(1, conns.getConnection(applyIsometry(coord.ind(2, 3), isometry, coord), playerX).count());
+    EXPECT_EQ(1, conns.getConnection(applyIsometry(coord.ind(2, 4), isometry, coord), playerO).count());
+    EXPECT_EQ(1, conns.getConnection(applyIsometry(coord.ind(2, 4), isometry, coord), playerX).count());
+
+    EXPECT_EQ(2, conns.getConnection(applyIsometry(coord.ind(3, 6), isometry, coord), playerO).count());
+    EXPECT_EQ(0, conns.getConnection(applyIsometry(coord.ind(3, 6), isometry, coord), playerX).count());
+
+    EXPECT_EQ(1, conns.getConnection(applyIsometry(coord.ind(5, 2), isometry, coord), playerO).count());
+    EXPECT_EQ(2, conns.getConnection(applyIsometry(coord.ind(5, 2), isometry, coord), playerX).count());
+
+}
+
 
 INSTANTIATE_TEST_CASE_P(Par, IsometryFixture,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));

@@ -25,6 +25,8 @@
 #include "simplegame.h"
 
 #include <algorithm>
+#include <cassert>
+#include <iostream>
 
 /********************************************************************************************************
   OneConnection class
@@ -64,14 +66,15 @@ int OneConnection::getUniqueGroups(std::array<pti, 4> &unique_groups) const
 
 std::size_t Connections::getIndex(pti ind, int who) const
 {
+    assert(ind >= coord.first && ind <= coord.last && who >= 1 && who <= 2);
     return ind + offsets[who];
 }
 
 void Connections::init()
 {
     const auto size_for_1_player = coord.last - coord.first + 1;
-    connections =
-        std::vector<OneConnection>(2 * size_for_1_player, OneConnection());
+    connections.clear();
+    connections.resize(2 * size_for_1_player, OneConnection());
     offsets[0] = 0;
     offsets[1] = -coord.first;
     offsets[2] = size_for_1_player - coord.first;
@@ -79,7 +82,7 @@ void Connections::init()
 
 const OneConnection &Connections::getConnection(pti ind, int who) const
 {
-    return connections[getIndex(who, ind)];
+    return connections[getIndex(ind, who)];
 }
 
 void Connections::updateCodeAndGroups(pti ind, int who, const SimpleGame &sg)
@@ -144,8 +147,11 @@ void SimpleGame::reserveMemory()
     lastWormNo[0] = 1;
     lastWormNo[1] = 2;
     nowMoves = 1;
-    connects[0] = std::vector<OneConnection>(coord.getSize(), OneConnection());
-    connects[1] = std::vector<OneConnection>(coord.getSize(), OneConnection());
+    for (int i = 0; i < 2; ++i)
+    {
+        connects[i].clear();
+        connects[i].resize(coord.getSize(), OneConnection{});
+    }
     initWorm();
     safety_soft.init(this);
 }

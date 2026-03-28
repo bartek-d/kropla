@@ -23,17 +23,18 @@
 *********************************************************************************************************/
 
 #pragma once
-#include <array>
-#include <cstdint>
-#include <set>
-#include <unordered_map>
-#include <vector>
 
 #include "../3rdparty/short_alloc.h"
 #include "board.h"
 #include "dfs.h"
 #include "history.h"
 #include "safety.h"
+
+#include <array>
+#include <cstdint>
+#include <set>
+#include <unordered_map>
+#include <vector>
 
 namespace krb
 {
