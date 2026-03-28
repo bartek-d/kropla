@@ -23,7 +23,13 @@
 *********************************************************************************************************/
 #pragma once
 
-#include "game.h"
+#include <array>
+#include <cstdint>
+#include <vector>
+
+#include "board.h"
+
+class SimpleGame;
 
 /*
  * Finds empty points close to a given group (group_id), but not close to
@@ -35,8 +41,8 @@
 struct GroupNeighbours
 {
     GroupNeighbours() = delete;
-    GroupNeighbours(Game& game, std::vector<uint8_t>& neighbours, pti group_id,
-                    pti forbidden_point, uint8_t mask, int who);
+    GroupNeighbours(const SimpleGame& sg, std::vector<uint8_t>& neighbours,
+                    pti group_id, pti forbidden_point, uint8_t mask, int who);
     bool isGroupClose(pti group_id) const;
     std::vector<pti> neighbours_list{};
     std::vector<pti> neighbour_groups{};

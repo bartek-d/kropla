@@ -24,17 +24,17 @@
 
 #pragma once
 
-#include "../3rdparty/short_alloc.h"
-#include "board.h"
-#include "dfs.h"
-#include "history.h"
-#include "safety.h"
-
 #include <array>
 #include <cstdint>
 #include <set>
 #include <unordered_map>
 #include <vector>
+
+#include "../3rdparty/short_alloc.h"
+#include "board.h"
+#include "dfs.h"
+#include "history.h"
+#include "safety.h"
 
 namespace krb
 {
@@ -122,6 +122,13 @@ class Connections
 
     void updateCodeAndGroups(pti ind, int who, const SimpleGame& sg);
     void updateGroupsUsingOldCode(pti ind, int who, const SimpleGame& sg);
+    void connectionsRecalculateNeighbAfterPlayingAt(pti ind, int who,
+                                                    const SimpleGame& sg);
+    void connectionsRenameGroup(pti dst, pti src, int who);
+    void reset(pti ind, int who);
+    void findConnections(const SimpleGame& sg);
+
+    bool checkCorrectness(const SimpleGame& sg) const;
 };
 
 struct SimpleGame
@@ -186,10 +193,7 @@ struct SimpleGame
                   uint32_t atari_neighb_code, bool isInBorder_ind_who,
                   bool isInBorder_ind_opp, int& update_soft_safety);
 
-    const std::vector<OneConnection>& getConnects(int ind) const
-    {
-        return connects[ind];
-    }
+    const OneConnection& getConnectsAt(pti ind, int who) const;
 
     void connectionsRecalculateConnect(pti ind, int who);
     void connectionsRecalculatePoint(pti ind, int who);
@@ -201,9 +205,10 @@ struct SimpleGame
     void wormMergeOther(pti dst, pti src);
 
     void findConnections();
+    bool checkConnectionsCorrectness() const;
 
    private:
-    std::vector<OneConnection> connects[2];
+    Connections connects;
 
     void connectionsRecalculateCode(pti ind, int who);
     void connectionsRecalculateNeighb(pti ind, int who);

@@ -1119,7 +1119,6 @@ TEST_P(IsometryFixture, findNumberOfDotsToEncloseBy_emptyPointCloseToBambus)
     EXPECT_EQ(9, count);
 }
 
-
 TEST_P(IsometryFixture, connectionsUpdate)
 {
     const unsigned isometry = GetParam();
@@ -1143,19 +1142,49 @@ TEST_P(IsometryFixture, connectionsUpdate)
     const int playerO = 1;
     const int playerX = 2;
 
-    EXPECT_EQ(4, conns.getConnection(applyIsometry(coord.ind(2, 3), isometry, coord), playerO).count());
-    EXPECT_EQ(1, conns.getConnection(applyIsometry(coord.ind(2, 3), isometry, coord), playerX).count());
-    EXPECT_EQ(1, conns.getConnection(applyIsometry(coord.ind(2, 4), isometry, coord), playerO).count());
-    EXPECT_EQ(1, conns.getConnection(applyIsometry(coord.ind(2, 4), isometry, coord), playerX).count());
+    EXPECT_EQ(
+        4, conns
+               .getConnection(applyIsometry(coord.ind(2, 3), isometry, coord),
+                              playerO)
+               .count());
+    EXPECT_EQ(
+        1, conns
+               .getConnection(applyIsometry(coord.ind(2, 3), isometry, coord),
+                              playerX)
+               .count());
+    EXPECT_EQ(
+        1, conns
+               .getConnection(applyIsometry(coord.ind(2, 4), isometry, coord),
+                              playerO)
+               .count());
+    EXPECT_EQ(
+        1, conns
+               .getConnection(applyIsometry(coord.ind(2, 4), isometry, coord),
+                              playerX)
+               .count());
 
-    EXPECT_EQ(2, conns.getConnection(applyIsometry(coord.ind(3, 6), isometry, coord), playerO).count());
-    EXPECT_EQ(0, conns.getConnection(applyIsometry(coord.ind(3, 6), isometry, coord), playerX).count());
+    EXPECT_EQ(
+        2, conns
+               .getConnection(applyIsometry(coord.ind(3, 6), isometry, coord),
+                              playerO)
+               .count());
+    EXPECT_EQ(
+        0, conns
+               .getConnection(applyIsometry(coord.ind(3, 6), isometry, coord),
+                              playerX)
+               .count());
 
-    EXPECT_EQ(1, conns.getConnection(applyIsometry(coord.ind(5, 2), isometry, coord), playerO).count());
-    EXPECT_EQ(2, conns.getConnection(applyIsometry(coord.ind(5, 2), isometry, coord), playerX).count());
-
+    EXPECT_EQ(
+        1, conns
+               .getConnection(applyIsometry(coord.ind(5, 2), isometry, coord),
+                              playerO)
+               .count());
+    EXPECT_EQ(
+        2, conns
+               .getConnection(applyIsometry(coord.ind(5, 2), isometry, coord),
+                              playerX)
+               .count());
 }
-
 
 INSTANTIATE_TEST_CASE_P(Par, IsometryFixture,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));

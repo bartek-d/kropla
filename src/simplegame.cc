@@ -67,6 +67,7 @@ int OneConnection::getUniqueGroups(std::array<pti, 4> &unique_groups) const
 std::size_t Connections::getIndex(pti ind, int who) const
 {
     assert(ind >= coord.first && ind <= coord.last && who >= 1 && who <= 2);
+    assert(coord.dist[ind] >= 0);
     return ind + offsets[who];
 }
 
@@ -129,6 +130,95 @@ void Connections::updateGroupsUsingOldCode(pti ind, int who,
     }
 }
 
+// Used after placing dot of who at [ind].
+void Connections::connectionsRecalculateNeighbAfterPlayingAt(
+    pti ind, int who, const SimpleGame &sg)
+{
+    for (int i = 0; i < 8; i++)
+    {
+        pti nb = ind + coord.nb8[i];
+        if (sg.whoseDotMarginAt(nb) == 0)
+        {
+            connections[getIndex(nb, who)].code |= (1 << (i ^ 4));
+            updateGroupsUsingOldCode(nb, who, sg);
+        }
+    }
+    updateCodeAndGroups(ind, 1, sg);
+    updateCodeAndGroups(ind, 2, sg);
+}
+
+void Connections::connectionsRenameGroup(pti dst, pti src, int who)
+{
+    const auto start = getIndex(coord.first, who);
+    const auto end = getIndex(coord.last, who);
+    for (auto i = start; i <= end; ++i)
+    {
+        for (int j = 0; j < 4; j++)
+            if (connections[i].groups_id[j] == src)
+                connections[i].groups_id[j] = dst;
+    }
+}
+
+void Connections::reset(pti ind, int who)
+{
+    connections[getIndex(ind, who)] = OneConnection();
+}
+
+void Connections::findConnections(const SimpleGame &sg)
+{
+    for (int x = 0; x < coord.wlkx; x++)
+    {
+        pti ind = coord.ind(x, 0);
+        for (int y = 0; y < coord.wlky; y++)
+        {
+            updateCodeAndGroups(ind, 1, sg);
+            updateCodeAndGroups(ind, 2, sg);
+            ind += coord.S;
+        }
+    }
+}
+
+bool Connections::checkCorrectness(const SimpleGame &sg) const
+{
+    Connections newc;
+    newc.init();
+    newc.findConnections(sg);
+    for (int who = 1; who <= 2; ++who)
+        for (pti ind = coord.first; ind <= coord.last; ++ind)
+            if (coord.dist[ind] >= 0)
+            {
+                if (newc.getConnection(ind, who).code !=
+                    connections[getIndex(ind, who)].code)
+                {
+                    std::cerr
+                        << "Wrong code at " << coord.showPt(ind)
+                        << " for player " << who
+                        << ", expected: " << newc.getConnection(ind, who).code
+                        << ", actual: " << connections[getIndex(ind, who)].code
+                        << std::endl;
+                    std::cerr << coord.showColouredBoard(sg.worm) << std::endl;
+                    return false;
+                }
+                for (int i = 0; i < 4; ++i)
+                {
+                    if (newc.getConnection(ind, who).groups_id[i] !=
+                        connections[getIndex(ind, who)].groups_id[i])
+                    {
+                        std::cerr
+                            << "Wrong groups_id[" << i << "] at "
+                            << coord.showPt(ind) << " for player " << who
+                            << ", expected: "
+                            << newc.getConnection(ind, who).groups_id[i]
+                            << ", actual: "
+                            << connections[getIndex(ind, who)].groups_id[i]
+                            << std::endl;
+                        return false;
+                    }
+                }
+            }
+    return true;
+}
+
 // ******************************************************
 
 void SimpleGame::initWorm()
@@ -147,11 +237,7 @@ void SimpleGame::reserveMemory()
     lastWormNo[0] = 1;
     lastWormNo[1] = 2;
     nowMoves = 1;
-    for (int i = 0; i < 2; ++i)
-    {
-        connects[i].clear();
-        connects[i].resize(coord.getSize(), OneConnection{});
-    }
+    connects.init();
     initWorm();
     safety_soft.init(this);
 }
@@ -196,7 +282,7 @@ bool SimpleGame::placeDot(int x, int y, int who, bool notInTerrOrEncl,
     // if (mustSurround) { ... place the dot, do the necessary surrounds }
 
     // how many groups our new dot connects? (could be the same group connected again)
-    const auto our_groups_touched = connects[who - 1][ind].count();
+    const auto our_groups_touched = connects.getConnection(ind, who).count();
 
     pti numb[4];
     int count = 0;
@@ -397,15 +483,21 @@ bool SimpleGame::placeDot(int x, int y, int who, bool notInTerrOrEncl,
                 if (d.second.group_id == cm[top - 1])
                     d.second.group_id = our_group_id;
             }
+
             connectionsRenameGroup(our_group_id, cm[top - 1]);
             top--;
         }
     }
 
-    connectionsRecalculateNeighb(ind, who);
+    connects.connectionsRecalculateNeighbAfterPlayingAt(ind, who, *this);
     if (our_groups_touched > 0) rectangle[who - 1].update(*this, ind, who);
 
     return update_safety_dame;
+}
+
+const OneConnection &SimpleGame::getConnectsAt(pti ind, int who) const
+{
+    return connects.getConnection(ind, who);
 }
 
 void SimpleGame::wormMergeAny(pti dst, pti src)
@@ -511,10 +603,10 @@ void SimpleGame::wormMerge_common(pti dst, pti src)
 bool SimpleGame::haveConnection(pti p1, pti p2, int who) const
 {
     std::array<pti, 4> unique_groups1 = {0, 0, 0, 0};
-    int ug1 = connects[who - 1][p1].getUniqueGroups(unique_groups1);
+    int ug1 = connects.getConnection(p1, who).getUniqueGroups(unique_groups1);
     if (ug1 == 0) return false;
     std::array<pti, 4> unique_groups2 = {0, 0, 0, 0};
-    int ug2 = connects[who - 1][p2].getUniqueGroups(unique_groups2);
+    int ug2 = connects.getConnection(p2, who).getUniqueGroups(unique_groups2);
     if (ug2 == 0) return false;
     for (int i = 0; i < ug1; i++)
     {
@@ -524,97 +616,31 @@ bool SimpleGame::haveConnection(pti p1, pti p2, int who) const
     return false;
 }
 
-void SimpleGame::connectionsRenameGroup(pti dst, pti src)
-{
-    int g = (dst & MASK_DOT) - 1;
-    assert(g == 0 || g == 1);
-    for (auto &p : connects[g])
-    {
-        for (int j = 0; j < 4; j++)
-            if (p.groups_id[j] == src) p.groups_id[j] = dst;
-    }
-}
-
-void SimpleGame::connectionsRecalculateCode(pti ind, int who)
-{
-    // TODO: we could use pattern3 and delete codes completely
-    if (!isDotAt(ind))
-    {
-        int code = 0;  // the codes for the neighbourhood for player who
-        for (int i = 7; i >= 0; i--)
-        {
-            pti nb = ind + coord.nb8[i];
-            if (whoseDotMarginAt(nb) == who)
-            {
-                code |= 1;
-            }
-            code <<= 1;
-        }
-        code >>= 1;
-        connects[who - 1][ind].code = code;
-    }
-    else
-    {
-        connects[who - 1][ind].code = 0;
-    }
-}
-
 void SimpleGame::connectionsRecalculateConnect(pti ind, int who)
 {
-    int g = who - 1;
-    auto new_connections = coord.connections_tab_simple[connects[g][ind].code];
-    for (int j = 0; j < 4; j++)
-    {
-        if (new_connections[j] >= 0)
-        {
-            pti pt = ind + coord.nb8[new_connections[j]];
-            connects[g][ind].groups_id[j] = descr.at(worm[pt]).group_id;
-        }
-        else
-        {
-            connects[g][ind].groups_id[j] = 0;
-        }
-    }
+    connects.updateGroupsUsingOldCode(ind, who, *this);
 }
 
 void SimpleGame::connectionsRecalculatePoint(pti ind, int who)
 {
-    connectionsRecalculateCode(ind, who);
-    connectionsRecalculateConnect(ind, who);
+    connects.updateCodeAndGroups(ind, who, *this);
 }
 
-// Used after placing dot of who at [ind].
-void SimpleGame::connectionsRecalculateNeighb(pti ind, int who)
+void SimpleGame::connectionsRenameGroup(pti dst, pti src)
 {
-    for (int i = 0; i < 8; i++)
-    {
-        pti nb = ind + coord.nb8[i];
-        if (whoseDotMarginAt(nb) == 0)
-        {
-            connects[who - 1][nb].code |= (1 << (i ^ 4));
-            // connectionsRecalculatePoint(nb, who);
-            connectionsRecalculateConnect(nb, who);
-        }
-    }
-    connectionsRecalculatePoint(ind, 1);
-    connectionsRecalculatePoint(ind, 2);
+    int who = (dst & MASK_DOT);
+    assert(who == 1 || who == 2);
+    connects.connectionsRenameGroup(dst, src, who);
 }
 
 void SimpleGame::connectionsReset(pti ind, int who)
 {
-    connects[who - 1][ind] = OneConnection();
+    connects.reset(ind, who);
 }
 
-void SimpleGame::findConnections()
+void SimpleGame::findConnections() { connects.findConnections(*this); }
+
+bool SimpleGame::checkConnectionsCorrectness() const
 {
-    for (int x = 0; x < coord.wlkx; x++)
-    {
-        pti ind = coord.ind(x, 0);
-        for (int y = 0; y < coord.wlky; y++)
-        {
-            connectionsRecalculatePoint(ind, 1);
-            connectionsRecalculatePoint(ind, 2);
-            ind += coord.S;
-        }
-    }
+    return connects.checkCorrectness(*this);
 }

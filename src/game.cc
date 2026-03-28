@@ -1040,12 +1040,12 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
         }
     }
     // find groups in the neighbourhood
-    std::array<pti, 4> groups = sg.getConnects(who - 1)[ind].groups_id;
-    int top = sg.getConnects(who - 1)[ind].count();
+    int top = sg.getConnectsAt(ind, who).count();
     if (top == 0)
     {  // isolated dot cannot pose any threats
         return possible_threats;
     }
+    const auto &groups = sg.getConnectsAt(ind, who).groups_id;
     // if inside TERR, then we want to know whether we make a new connection
     // between the border, so that the TERR splits into 2 or more smaller
     if (smallest_terr)
@@ -1168,12 +1168,13 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
         auto debug_time = std::chrono::high_resolution_clock::now();
 
         std::array<pti, 4> unique_groups = {0, 0, 0, 0};
-        int ug = sg.getConnects(who - 1)[ind].getUniqueGroups(unique_groups);
+        int ug = sg.getConnectsAt(ind, who).getUniqueGroups(unique_groups);
         if (ug >= 2)
         {
             for (int i = coord.first; i <= coord.last; i++)
             {
-                if (sg.getConnects(who - 1)[i].groups_id[1] !=
+                if (coord.dist[i] >= 0 and
+                    sg.getConnectsAt(i, who).groups_id[1] !=
                         0  // this point connects at least 2 groups
                     and !coord.isInNeighbourhood(
                             i, ind))  // and does not touch [ind]
@@ -1183,7 +1184,7 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
                     for (int k = 0; k < ug; k++)
                     {
                         for (int j = 0; j < 4; j++)
-                            if (sg.getConnects(who - 1)[i].groups_id[j] ==
+                            if (sg.getConnectsAt(i, who).groups_id[j] ==
                                 unique_groups[k])
                             {
                                 count++;
@@ -1227,7 +1228,7 @@ std::vector<pti> Game::findThreats_preDot(pti ind, int who)
     for (int i = 0; i < 8; i++)
     {
         pti nb = ind + coord.nb8[i];
-        if (sg.getConnects(who - 1)[nb].groups_id[0] != 0)
+        if (coord.dist[nb] >= 0 && sg.getConnectsAt(nb, who).groups_id[0] != 0)
         {               // there is some dot of who, and we're inside the board
             int w = 0;  // find the code for the neighbourhood
             for (int j = 7; j >= 0; j--)
@@ -1421,9 +1422,9 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
     if (not threats[who - 1].isActiveThreats2m()) return {};
     std::vector<pti> possible_threats;
     // find groups in the neighbourhood
-    std::array<pti, 4> groups = sg.getConnects(who - 1)[ind].groups_id;
-    int top = sg.getConnects(who - 1)[ind].count();
+    int top = sg.getConnectsAt(ind, who).count();
     if (top == 4) return possible_threats;
+    const auto &groups = sg.getConnectsAt(ind, who).groups_id;
     SmallMultiset<pti, 4> connected_groups;
     if (top >= 1)
     {
@@ -1448,7 +1449,7 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                 int count = 0;
                 for (int c = 0; c < 4; c++)
                 {
-                    auto g = sg.getConnects(who - 1)[nb].groups_id[c];
+                    auto g = sg.getConnectsAt(nb, who).groups_id[c];
                     if (g == 0) break;
                     if (!connected_groups.contains(g))
                     {
@@ -1476,7 +1477,7 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                             for (int c = 0; c < 4; c++)
                             {
                                 auto g =
-                                    sg.getConnects(who - 1)[nb2].groups_id[c];
+                                    sg.getConnectsAt(nb2, who).groups_id[c];
                                 if (g == 0) break;
                                 // we found place nb2, which has group g as a
                                 // neighbour, check if g is in other_groups
@@ -1574,7 +1575,7 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
             }
             for (int gn = 0; gn < 4; gn++)
             {
-                pti g = sg.getConnects(who - 1)[nb].groups_id[gn];
+                pti g = sg.getConnectsAt(nb, who).groups_id[gn];
                 if (g == 0) break;
                 if (connected_groups.contains(g))
                 {
@@ -1706,7 +1707,8 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
         int mask = 1;
         for (pti gid : unique_connected_groups)
         {
-            group_neighb.emplace_back(*this, neighbours, gid, ind, mask, who);
+            group_neighb.emplace_back(getSimpleGame(), neighbours, gid, ind,
+                                      mask, who);
             mask <<= 1;
         }
         // the first part, case a.
@@ -1725,8 +1727,8 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                 for (auto point_close_to_1 :
                      group_neighb[first].neighbours_list)
                 {
-                    if (not sg.getConnects(who - 1)[point_close_to_1].contains(
-                            second_gr_id))
+                    if (not sg.getConnectsAt(point_close_to_1, who)
+                                .contains(second_gr_id))
                         continue;
                     auto number_of_neighb =
                         pairs_pointCloseToInd_groupIdThatItTouches
@@ -1791,7 +1793,7 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                     for (auto point_close_to_1 :
                          group_neighb[first].neighbours_list)
                     {
-                        if (not sg.getConnects(who - 1)[point_close_to_1]
+                        if (not sg.getConnectsAt(point_close_to_1, who)
                                     .contains(other_gr_id))
                             continue;
                         if (neighbours[point_close_to_1] & mask_second)
@@ -1799,7 +1801,7 @@ std::vector<pti> Game::findThreats2moves_preDot(pti ind, int who)
                         for (auto point_close_to_2 :
                              group_neighb[second].neighbours_list)
                         {
-                            if (not sg.getConnects(who - 1)[point_close_to_2]
+                            if (not sg.getConnectsAt(point_close_to_2, who)
                                         .contains(other_gr_id))
                                 continue;
                             if (neighbours[point_close_to_2] & mask_first)
@@ -1829,10 +1831,10 @@ SmallMultimap<7, 7> Game::getEmptyPointsCloseToIndTouchingSomeOtherGroup(
     {
         pti nb = ind + coord.nb8[i];
         if (whoseDotMarginAt(nb) != 0 ||
-            sg.getConnects(who - 1)[nb].groups_id[0] == 0)
+            sg.getConnectsAt(nb, who).groups_id[0] == 0)
             continue;
         std::array<pti, 4> unique_groups = {0, 0, 0, 0};
-        int ug = sg.getConnects(who - 1)[nb].getUniqueGroups(unique_groups);
+        int ug = sg.getConnectsAt(nb, who).getUniqueGroups(unique_groups);
         for (int j = 0; j < ug; j++)
             if (not connected_groups.contains(unique_groups[j]))
             {
@@ -4070,14 +4072,6 @@ void Game::showSvg(const std::string &filename,
     fs.close();
 }
 
-void Game::showConnections()
-{
-    std::cerr << "Player 1" << std::endl;
-    std::cerr << coord.showBoard(getConnects(0));
-    std::cerr << "Player 2" << std::endl;
-    std::cerr << coord.showBoard(getConnects(1));
-}
-
 void Game::showGroupsId()
 {
     for (auto &d : sg.descr)
@@ -5058,9 +5052,17 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
         for (int i = 0; i < 8; i += 2)
         {  // +=2, to visit only diagonal neighb.
             pti nb = p + coord.nb8[i];
+            if (nb == coord.ind(18, 16))
+            {
+                std::cout << "Being at (18,16), stack[nb]==" << stack[nb]
+                          << std::endl;
+            }
             if (stack[nb] == 0)
             {
                 sg.connectionsRecalculatePoint(nb, 3 - who);
+                sg.connectionsRecalculatePoint(
+                    nb, who);  // TODO: needed to make connects.code correct,
+                // but probably this correctness is not needed for anything - consider removing
             }
         }
     }
@@ -5068,16 +5070,20 @@ void Game::makeEnclosure(const Enclosure &encl, bool remove_it_from_threats)
     {
         for (int ind = coord.first; ind <= coord.last; ind++)
         {
-            for (int j = 0; j < 4; j++)
+            if (coord.dist[ind] >= 0)
             {
-                if (sg.getConnects(2 - who)[ind].groups_id[j] == 0) break;
-                if (std::find(gids_to_delete.begin(), gids_to_delete.end(),
-                              sg.getConnects(2 - who)[ind].groups_id[j]) !=
-                    gids_to_delete.end())
+                for (int j = 0; j < 4; j++)
                 {
-                    sg.connectionsRecalculateConnect(ind, 3 - who);
-                    // sg.connectionsRecalculatePoint(ind, 3-who);
-                    break;
+                    if (sg.getConnectsAt(ind, 3 - who).groups_id[j] == 0) break;
+                    if (std::find(
+                            gids_to_delete.begin(), gids_to_delete.end(),
+                            sg.getConnectsAt(ind, 3 - who).groups_id[j]) !=
+                        gids_to_delete.end())
+                    {
+                        sg.connectionsRecalculateConnect(ind, 3 - who);
+                        // sg.connectionsRecalculatePoint(ind, 3-who);
+                        break;
+                    }
                 }
             }
         }
@@ -6027,7 +6033,7 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
             {
                 int min_terr_size =
                     threats[2 - who].getMinAreaOfThreatEnclosingPoint(i);
-                if (sg.getConnects(who - 1)[i].groups_id[0] == 0)
+                if (sg.getConnectsAt(i, who).groups_id[0] == 0)
                 {
                     // dot does not touch any our dot
                     const int loss =
@@ -6087,12 +6093,12 @@ DebugInfo Game::generateListOfMoves(TreenodeAllocator &alloc, Treenode *parent,
                             priors += lostSimulations(25);
                             if (is_root) out << "notborder=-25 ";
 
-                            if (sg.getConnects(who - 1)[i].groups_id[0] == 0)
+                            if (sg.getConnectsAt(i, who).groups_id[0] == 0)
                             {  // does not touch our dots
                                 priors += lostSimulations(30);
                                 if (is_root) out << "andiso=-30 ";
                             }
-                            if (sg.getConnects(2 - who)[i].groups_id[0] == 0)
+                            if (sg.getConnectsAt(i, 3 - who).groups_id[0] == 0)
                             {  // does not touch opp's dots
                                 priors += lostSimulations(30);
                                 if (is_root) out << " andiso2=-30 ";
@@ -6825,7 +6831,7 @@ Move Game::chooseAnyMove(int who, pti forbidden_place)
     {
         if (whoseDotMarginAt(i) == 0)
         {
-            if (((sg.getConnects(who - 1)[i].groups_id[0] == 0) and
+            if (((sg.getConnectsAt(i, who).groups_id[0] == 0) and
                  (isInTerr(i, who) > 0 || isInTerr(i, 3 - who) > 0)) or
                 i == forbidden_place)
             {
@@ -6863,9 +6869,9 @@ std::vector<pti> Game::getGoodTerrMoves(int who) const
          i < possible_moves.lists[PossibleMovesConsts::LIST_TERRM].size(); ++i)
     {
         auto p = possible_moves.lists[PossibleMovesConsts::LIST_TERRM][i];
-        if ((sg.getConnects(who - 1)[p].groups_id[0] == 0 and
+        if ((sg.getConnectsAt(p, who).groups_id[0] == 0 and
              (isInTerr(p, 3 - who) > 0 || isInEncl(p, 3 - who) > 0)) ||
-            (sg.getConnects(2 - who)[p].groups_id[0] == 0 and
+            (sg.getConnectsAt(p, 3 - who).groups_id[0] == 0 and
              (isInTerr(p, who) > 0 || isInEncl(p, who) > 0)))
         {
             continue;
@@ -8526,49 +8532,7 @@ bool Game::checkThreat2movesCorrectness()
 
 bool Game::checkConnectionsCorrectness()
 {
-    std::vector<OneConnection> tmp[2]{sg.getConnects(0), sg.getConnects(1)};
-    sg.findConnections();
-    for (int ind = 0; ind < coord.getSize(); ind++)
-    {
-        if (sg.getConnects(0)[ind] != tmp[0][ind] ||
-            sg.getConnects(1)[ind] != tmp[1][ind])
-        {
-            std::cerr << "Zla tablica connections, indeks " << ind << " = ("
-                      << int(coord.x[ind]) << ", " << int(coord.y[ind]) << ")."
-                      << std::endl;
-            show();
-            std::cerr << "Stara tab 1" << std::endl;
-            std::cerr << coord.showBoard(tmp[0]);
-            std::cerr << "Stara tab 2" << std::endl;
-            std::cerr << coord.showBoard(tmp[1]);
-            showConnections();
-            //
-            showGroupsId();
-            for (int g = 0; g <= 1; g++)
-            {
-                for (int j = 0; j < 4; j++)
-                    std::cerr << int(tmp[g][ind].groups_id[j]) << " ";
-                if (g == 0)
-                    std::cerr << ",";
-                else
-                    std::cerr << std::endl;
-            }
-            std::cerr << "Nowe conn: ";
-            for (int g = 0; g <= 1; g++)
-            {
-                for (int j = 0; j < 4; j++)
-                    std::cerr << int(sg.getConnects(g)[ind].groups_id[j])
-                              << " ";
-                if (g == 0)
-                    std::cerr << ",";
-                else
-                    std::cerr << std::endl;
-            }
-
-            return false;
-        }
-    }
-    return true;
+    return sg.checkConnectionsCorrectness();
 }
 
 bool Game::checkPattern3valuesCorrectness() const

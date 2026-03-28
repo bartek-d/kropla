@@ -24,17 +24,19 @@
 
 #include "group_neighbours.h"
 
-#include "game.h"
+#include <algorithm>
 
-GroupNeighbours::GroupNeighbours(Game& game, std::vector<uint8_t>& neighbours,
-                                 pti group_id, pti forbidden_point,
-                                 uint8_t mask, int who)
+#include "simplegame.h"
+
+GroupNeighbours::GroupNeighbours(const SimpleGame& sg,
+                                 std::vector<uint8_t>& neighbours, pti group_id,
+                                 pti forbidden_point, uint8_t mask, int who)
 {
     for (int i = coord.first; i <= coord.last; ++i)
-        if (game.whoseDotMarginAt(i) == 0 and
+        if (sg.whoseDotMarginAt(i) == 0 and
             not coord.isInNeighbourhood(i, forbidden_point))
         {
-            std::array<pti, 4> groups = game.getConnects(who - 1)[i].groups_id;
+            const auto& groups = sg.getConnectsAt(i, who).groups_id;
             addPointIfItIsNeighbour(groups, group_id, neighbours, mask, i);
         }
 }

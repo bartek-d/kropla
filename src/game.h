@@ -284,9 +284,9 @@ class Game
     {
         return sg.haveConnection(p1, p2, who);
     }
-    const std::vector<OneConnection>& getConnects(int ind) const
+    const OneConnection& getConnectsAt(int ind, int who) const
     {
-        return sg.getConnects(ind);
+        return sg.getConnectsAt(ind, who);
     }
 
     std::vector<pti> findThreats2moves_preDot(pti ind, int who);
@@ -459,7 +459,6 @@ class Game
     void show(const std::vector<pti>& moves) const;
     void showSvg(const std::string& filename,
                  const std::vector<pti>& tab) const;
-    void showConnections();
     void showGroupsId();
     void showThreats2m();
 
