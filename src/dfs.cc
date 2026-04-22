@@ -558,6 +558,34 @@ void OnePlayerDfs::adjustDiscoveryAndAPs(std::size_t previousAPs)
     }
 }
 
+void OnePlayerDfs::markTerritories(const SimpleGame& game,
+                                   std::span<pti> in_terr,
+                                   pti left_top,
+                                   pti bottom_right) const
+{
+    if (isRectangleTooSmall(left_top, bottom_right)) return;
+    // note: AP has to be called first
+    auto ourDotAt = [&](pti u)
+    {
+        auto what = game.whoseDotMarginAt(u);
+        return what == player;
+    };
+
+    const auto height = coord.y[bottom_right] - coord.y[left_top];
+    for (auto top_row = left_top; top_row < bottom_right; top_row += coord.E)
+        for (pti y = 0; y <= height; ++y)
+        {
+            pti ind = top_row + y;
+            if (discovery[ind] < 0 && !ourDotAt(ind))
+            {
+                in_terr[ind] = 1;
+            }
+            else {
+                in_terr[ind] = 0;
+            }
+        }
+}
+
 void OnePlayerDfs::findTerritoriesAndEnclosuresInside(const SimpleGame& game,
                                                       pti left_top,
                                                       pti bottom_right)
@@ -852,4 +880,35 @@ bool OnePlayerDfs::checkInvariants(const SimpleGame& game, pti left_top,
     }
     if (seq[0] != 0) return false;
     return true;
+}
+
+
+void DfsThreats::init(const SimpleGame& game, int who)
+{
+    dfs.player = who;
+    dfs.AP(game, game.rectangle[who - 1].getLeftTop(), game.rectangle[who - 1].getBottomRight());
+    in_terr.clear();
+    in_terr.resize(coord.getSize(), 0);
+    dfs.markTerritories(game,
+                        std::span<pti>(in_terr.begin(), in_terr.end()),
+                        game.rectangle[who - 1].getLeftTop(),
+                        game.rectangle[who - 1].getBottomRight());
+    const auto encl = dfs.findAllEnclosures();
+    in_encl.clear();
+    in_encl.resize(coord.getSize(), 0);
+    in_border.clear();
+    in_border.resize(coord.getSize(), 0);
+    
+    for (const auto &en : encl)
+    {
+        for (const auto p : en.border)
+            ++in_border[p];
+        for (const auto p : en.interior)
+            ++in_encl[p];
+    }
+}
+
+void DfsThreats::placeDot(pti ind, int who)
+{
+
 }

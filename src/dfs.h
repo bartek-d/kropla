@@ -22,10 +22,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
 #pragma once
-#include <vector>
-
 #include "board.h"
 #include "enclosure.h"
+
+#include <span>
+#include <vector>
 
 struct SimpleGame;
 
@@ -79,6 +80,10 @@ struct OnePlayerDfs
 
     void AP(const SimpleGame& game, pti left_top, pti bottom_right);
     std::vector<pti> findBorder(const APInfo& ap);
+    void markTerritories(const SimpleGame& game,
+                                   std::span<pti> in_terr,
+                                   pti left_top,
+                                   pti bottom_right) const;
     void findTerritoriesAndEnclosuresInside(const SimpleGame& game,
                                             pti left_top, pti bottom_right);
 
@@ -93,4 +98,14 @@ struct OnePlayerDfs
                          pti root);
     void adjustDiscoveryAndAPs(std::size_t previousAPs);
     bool isRectangleTooSmall(pti left_top, pti bottom_right) const;
+};
+
+struct DfsThreats
+{
+  OnePlayerDfs dfs{};
+  std::vector<pti> in_terr;
+  std::vector<pti> in_encl;
+  std::vector<pti> in_border;
+  void init(const SimpleGame& game, int who);
+  void placeDot(pti ind, int who);
 };
