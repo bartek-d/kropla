@@ -22,11 +22,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************************************************/
 #pragma once
-#include "board.h"
-#include "enclosure.h"
-
 #include <span>
 #include <vector>
+
+#include "board.h"
+#include "enclosure.h"
 
 struct SimpleGame;
 
@@ -37,10 +37,13 @@ class ImportantRectangle
     pti bottom_right{-1};
 
    public:
+    ImportantRectangle();
+    explicit ImportantRectangle(pti ind);
     void initialise(const SimpleGame& sg, pti player);
     void update(const SimpleGame& sg, pti point, pti player);
     pti getLeftTop() const;
     pti getBottomRight() const;
+    bool contains(pti ind) const noexcept;
     bool operator<=(ImportantRectangle other) const noexcept;
 };
 
@@ -49,6 +52,15 @@ struct APInfo
     pti where;
     pti seq0;
     pti seq1;
+};
+
+struct AnnotatedEncl
+{
+    Enclosure encl;
+    pti terr;
+    pti dots;
+    pti where;
+    pti interior_near_where;
 };
 
 struct OnePlayerDfs
@@ -80,14 +92,13 @@ struct OnePlayerDfs
 
     void AP(const SimpleGame& game, pti left_top, pti bottom_right);
     std::vector<pti> findBorder(const APInfo& ap);
-    void markTerritories(const SimpleGame& game,
-                                   std::span<pti> in_terr,
-                                   pti left_top,
-                                   pti bottom_right) const;
+    void markTerritories(const SimpleGame& game, std::span<pti> in_terr,
+                         pti left_top, pti bottom_right) const;
     void findTerritoriesAndEnclosuresInside(const SimpleGame& game,
                                             pti left_top, pti bottom_right);
 
     std::vector<Enclosure> findAllEnclosures();
+    std::vector<AnnotatedEncl> findAllAnnotatedEncl();
 
     bool checkInvariants(const SimpleGame& game, pti left_top,
                          pti bottom_right) const;
@@ -98,14 +109,21 @@ struct OnePlayerDfs
                          pti root);
     void adjustDiscoveryAndAPs(std::size_t previousAPs);
     bool isRectangleTooSmall(pti left_top, pti bottom_right) const;
+    template <typename EnclType>
+    std::vector<EnclType> findAllEnclosuresT();
 };
 
 struct DfsThreats
 {
-  OnePlayerDfs dfs{};
-  std::vector<pti> in_terr;
-  std::vector<pti> in_encl;
-  std::vector<pti> in_border;
-  void init(const SimpleGame& game, int who);
-  void placeDot(pti ind, int who);
+    OnePlayerDfs dfs{};
+    std::vector<pti> in_terr;
+    std::vector<pti> in_encl;
+    std::vector<pti> in_border;
+    std::vector<AnnotatedEncl> aencls;
+    void init(const SimpleGame& game, int who);
+    void placeDot(const SimpleGame& game, pti ind, int who);
+
+   private:
+    bool ourNewDotMayChangeEncls(const SimpleGame& game, pti ind,
+                                 int who) const;
 };

@@ -52,6 +52,19 @@ bool ImportantRectangle::checkIfEssential(const SimpleGame& sg, pti ind,
     return true;
 }
 
+ImportantRectangle::ImportantRectangle() = default;
+ImportantRectangle::ImportantRectangle(pti ind)
+{
+    left_top = ind;
+    bottom_right = ind;
+}
+
+bool ImportantRectangle::contains(pti ind) const noexcept
+{
+    ImportantRectangle just_ind{ind};
+    return just_ind <= *this;
+}
+
 void ImportantRectangle::initialise(const SimpleGame& sg, pti player)
 {
     pti x0 = coord.wlkx;
@@ -559,8 +572,7 @@ void OnePlayerDfs::adjustDiscoveryAndAPs(std::size_t previousAPs)
 }
 
 void OnePlayerDfs::markTerritories(const SimpleGame& game,
-                                   std::span<pti> in_terr,
-                                   pti left_top,
+                                   std::span<pti> in_terr, pti left_top,
                                    pti bottom_right) const
 {
     if (isRectangleTooSmall(left_top, bottom_right)) return;
@@ -580,7 +592,8 @@ void OnePlayerDfs::markTerritories(const SimpleGame& game,
             {
                 in_terr[ind] = 1;
             }
-            else {
+            else
+            {
                 in_terr[ind] = 0;
             }
         }
@@ -690,20 +703,13 @@ void OnePlayerDfs::findTerritoriesAndEnclosuresInside(const SimpleGame& game,
         }
 }
 
-std::vector<Enclosure> OnePlayerDfs::findAllEnclosures()
+template <typename EnclType>
+std::vector<EnclType> OnePlayerDfs::findAllEnclosuresT()
 {
     if (aps.empty()) return {};
-    std::vector<Enclosure> encls;
+    std::vector<EnclType> encls;
     encls.reserve(aps.size());
     auto& marks = low;
-    std::cerr << __FUNCTION__ << ":" << __LINE__ << '\n';
-    int numb = 0;
-    for (const auto& ap : aps)
-    {
-        std::cout << numb++ << ": " << ap.seq0 << " -- " << ap.seq1
-                  << ", seq_where: " << discovery[ap.where]
-                  << ", where-pt: " << coord.showPt(ap.where) << std::endl;
-    }
 
     for (const auto& ap : aps)
     {
@@ -711,11 +717,8 @@ std::vector<Enclosure> OnePlayerDfs::findAllEnclosures()
         std::vector<pti> interior(seq.begin() + ap.seq0, seq.begin() + ap.seq1);
         if (interior.size() > 6)
         {
-            // std::cout << coord.showColouredBoard(marks) << std::endl;
             for (auto el : border) marks[el] = -1;
             for (auto el : interior) marks[el] = -1;
-            //		std::cout << coord.showColouredBoard(marks) <<
-            // std::endl;
 
             for (std::size_t i = 0; i < interior.size(); ++i)
             {
@@ -755,9 +758,28 @@ std::vector<Enclosure> OnePlayerDfs::findAllEnclosures()
             for (auto p : interior) marks[p] = 0;
         }
         // add enclosure
-        encls.emplace_back(std::move(interior), std::move(border));
+        if constexpr (std::is_same_v<EnclType, Enclosure>)
+        {
+            encls.emplace_back(std::move(interior), std::move(border));
+        }
+        else if constexpr (std::is_same_v<EnclType, AnnotatedEncl>)
+        {
+            encls.emplace_back(
+                Enclosure{std::move(interior), std::move(border)}, -1, -1,
+                ap.where, seq[ap.seq0]);
+        }
     }
     return encls;
+}
+
+std::vector<Enclosure> OnePlayerDfs::findAllEnclosures()
+{
+    return findAllEnclosuresT<Enclosure>();
+}
+
+std::vector<AnnotatedEncl> OnePlayerDfs::findAllAnnotatedEncl()
+{
+    return findAllEnclosuresT<AnnotatedEncl>();
 }
 
 bool OnePlayerDfs::checkInvariants(const SimpleGame& game, pti left_top,
@@ -882,33 +904,63 @@ bool OnePlayerDfs::checkInvariants(const SimpleGame& game, pti left_top,
     return true;
 }
 
-
 void DfsThreats::init(const SimpleGame& game, int who)
 {
     dfs.player = who;
-    dfs.AP(game, game.rectangle[who - 1].getLeftTop(), game.rectangle[who - 1].getBottomRight());
+    dfs.AP(game, game.rectangle[who - 1].getLeftTop(),
+           game.rectangle[who - 1].getBottomRight());
     in_terr.clear();
     in_terr.resize(coord.getSize(), 0);
-    dfs.markTerritories(game,
-                        std::span<pti>(in_terr.begin(), in_terr.end()),
+    dfs.markTerritories(game, std::span<pti>(in_terr.begin(), in_terr.end()),
                         game.rectangle[who - 1].getLeftTop(),
                         game.rectangle[who - 1].getBottomRight());
-    const auto encl = dfs.findAllEnclosures();
+    aencls = dfs.findAllAnnotatedEncl();
     in_encl.clear();
     in_encl.resize(coord.getSize(), 0);
     in_border.clear();
     in_border.resize(coord.getSize(), 0);
-    
-    for (const auto &en : encl)
+
+    for (const auto& en : aencls)
     {
-        for (const auto p : en.border)
-            ++in_border[p];
-        for (const auto p : en.interior)
-            ++in_encl[p];
+        for (const auto p : en.encl.border) ++in_border[p];
+        for (const auto p : en.encl.interior) ++in_encl[p];
     }
 }
 
-void DfsThreats::placeDot(pti ind, int who)
+bool DfsThreats::ourNewDotMayChangeEncls(const SimpleGame& game, pti ind,
+                                         int who) const
 {
+    if (!game.rectangle[who - 1].contains(ind)) return false;
+    if (in_border[ind]) return true;
 
+    return true;
+}
+
+void DfsThreats::placeDot(const SimpleGame& game, pti ind, int who)
+{
+    if (who != dfs.player)
+    {
+        dfs.aps.erase(std::remove_if(dfs.aps.begin(), dfs.aps.end(),
+                                     [ind, this](const auto& ap)
+                                     { return (ap.where == ind); }),
+                      dfs.aps.end());
+        aencls.erase(std::remove_if(aencls.begin(), aencls.end(),
+                                    [ind, this](const auto& aencl)
+                                    {
+                                        if (aencl.where != ind) return false;
+                                        for (const auto p : aencl.encl.interior)
+                                        {
+                                            --in_encl[p];
+                                        }
+                                        for (const auto p : aencl.encl.border)
+                                        {
+                                            --in_border[p];
+                                        }
+                                        return true;
+                                    }),
+                     aencls.end());
+        return;
+    }
+    // our new dot...
+    if (!ourNewDotMayChangeEncls(game, ind, who)) return;
 }
