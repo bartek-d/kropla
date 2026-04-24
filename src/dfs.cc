@@ -32,6 +32,7 @@
 #include <set>
 #include <span>
 
+#include "enclosure.h"
 #include "simplegame.h"
 
 bool ImportantRectangle::checkIfEssential(const SimpleGame& sg, pti ind,
@@ -150,6 +151,14 @@ bool ImportantRectangle::operator<=(ImportantRectangle other) const noexcept
     return (coord.x[other.left_top] <= x0 &&
             x1 <= coord.x[other.bottom_right] &&
             coord.y[other.left_top] <= y0 && y1 <= coord.y[other.bottom_right]);
+}
+
+bool AnnotatedEncl::isEnclSame(pti other_where, pti other_interior_near_where,
+                               pti other_seq_length) const
+{
+    return where == other_where &&
+           interior_near_where == other_interior_near_where &&
+           seq_length == other_seq_length;
 }
 
 std::vector<pti> OnePlayerDfs::findBorder(const APInfo& ap)
@@ -705,70 +714,81 @@ void OnePlayerDfs::findTerritoriesAndEnclosuresInside(const SimpleGame& game,
         }
 }
 
+Enclosure OnePlayerDfs::findEnclosure(const APInfo& ap)
+{
+    auto border = findBorder(ap);
+    std::vector<pti> interior(seq.begin() + ap.seq0, seq.begin() + ap.seq1);
+    if (interior.size() > 6)
+    {
+        auto& marks = low;
+
+        for (auto el : border) marks[el] = -1;
+        for (auto el : interior) marks[el] = -1;
+
+        for (std::size_t i = 0; i < interior.size(); ++i)
+        {
+            for (auto nind : coord.nb4)
+            {
+                pti n = interior[i] + nind;
+                try
+                {
+                    if (marks.at(n) >= 0)
+                    {
+                        marks[n] = -1;
+                        interior.push_back(n);
+                    }
+                }
+                catch (...)
+                {
+                    std::cout << coord.showColouredBoard(discovery)
+                              << std::endl;
+                    std::cout << coord.showColouredBoard(marks) << std::endl;
+                    std::cout << "AP: " << coord.showPt(ap.where)
+                              << " seq: " << ap.seq0 << " - " << ap.seq1
+                              << std::endl;
+                    std::cout << "Wnetrze: ";
+                    for (auto el : interior)
+                        std::cout << " " << coord.showPt(el);
+                    std::cout << "\nBrzeg: ";
+                    for (auto el : border) std::cout << " " << coord.showPt(el);
+                    std::cout << std::endl;
+                    throw;
+                };
+            }
+        }
+        // cleanup
+        for (auto p : border) marks[p] = 0;
+        for (auto p : interior) marks[p] = 0;
+    }
+    return Enclosure{std::move(interior), std::move(border)};
+}
+
+AnnotatedEncl OnePlayerDfs::findAnnotatedEnclosure(const APInfo& ap)
+{
+    auto encl = findEnclosure(ap);
+    return AnnotatedEncl{.encl = std::move(encl),
+                         .terr = -1,
+                         .dots = -1,
+                         .where = ap.where,
+                         .interior_near_where = seq[ap.seq0],
+                         .seq_length = static_cast<pti>(ap.seq1 - ap.seq0)};
+}
+
 template <typename EnclType>
 std::vector<EnclType> OnePlayerDfs::findAllEnclosuresT()
 {
     if (aps.empty()) return {};
     std::vector<EnclType> encls;
     encls.reserve(aps.size());
-    auto& marks = low;
-
     for (const auto& ap : aps)
     {
-        auto border = findBorder(ap);
-        std::vector<pti> interior(seq.begin() + ap.seq0, seq.begin() + ap.seq1);
-        if (interior.size() > 6)
-        {
-            for (auto el : border) marks[el] = -1;
-            for (auto el : interior) marks[el] = -1;
-
-            for (std::size_t i = 0; i < interior.size(); ++i)
-            {
-                for (auto nind : coord.nb4)
-                {
-                    pti n = interior[i] + nind;
-                    try
-                    {
-                        if (marks.at(n) >= 0)
-                        {
-                            marks[n] = -1;
-                            interior.push_back(n);
-                        }
-                    }
-                    catch (...)
-                    {
-                        std::cout << coord.showColouredBoard(discovery)
-                                  << std::endl;
-                        std::cout << coord.showColouredBoard(marks)
-                                  << std::endl;
-                        std::cout << "AP: " << coord.showPt(ap.where)
-                                  << " seq: " << ap.seq0 << " - " << ap.seq1
-                                  << std::endl;
-                        std::cout << "Wnetrze: ";
-                        for (auto el : interior)
-                            std::cout << " " << coord.showPt(el);
-                        std::cout << "\nBrzeg: ";
-                        for (auto el : border)
-                            std::cout << " " << coord.showPt(el);
-                        std::cout << std::endl;
-                        throw;
-                    };
-                }
-            }
-            // cleanup
-            for (auto p : border) marks[p] = 0;
-            for (auto p : interior) marks[p] = 0;
-        }
-        // add enclosure
         if constexpr (std::is_same_v<EnclType, Enclosure>)
         {
-            encls.emplace_back(std::move(interior), std::move(border));
+            encls.push_back(findEnclosure(ap));
         }
         else if constexpr (std::is_same_v<EnclType, AnnotatedEncl>)
         {
-            encls.emplace_back(
-                Enclosure{std::move(interior), std::move(border)}, -1, -1,
-                ap.where, seq[ap.seq0], ap.seq1 - ap.seq0);
+            encls.push_back(findAnnotatedEnclosure(ap));
         }
     }
     return encls;
@@ -966,5 +986,38 @@ void DfsThreats::placeDot(const SimpleGame& game, pti ind, int who)
     }
     // our new dot...
     if (!ourNewDotMayChangeEncls(game, ind, who)) return;
-
+    // recreate dfs
+    dfs.AP(game, game.rectangle[who - 1].getLeftTop(),
+           game.rectangle[who - 1].getBottomRight());
+    auto cache = std::move(aencls);
+    aencls.clear();
+    constexpr pti invalid_where = -4;
+    for (const auto& ap : dfs.aps)
+    {
+        auto it = std::ranges::find_if(cache,
+                                       [&](const auto& ann) {
+                                           return ann.isEnclSame(
+                                               ap.where, dfs.seq[ap.seq0],
+                                               ap.seq1 - ap.seq0);
+                                       });
+        if (it != cache.end())
+        {
+            aencls.push_back(std::move(*it));
+            it->where = invalid_where;
+        }
+        else
+        {
+            auto aencl = dfs.findAnnotatedEnclosure(ap);
+            for (const auto p : aencl.encl.border) ++in_border[p];
+            for (const auto p : aencl.encl.interior) ++in_encl[p];
+            aencls.push_back(std::move(aencl));
+        }
+    }
+    // remove remaining (invalidated) encls from cache
+    for (const auto& ae : cache)
+    {
+        if (ae.where == invalid_where) continue;
+        for (const auto p : ae.encl.border) --in_border[p];
+        for (const auto p : ae.encl.interior) --in_encl[p];
+    }
 }

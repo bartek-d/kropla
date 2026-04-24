@@ -62,6 +62,8 @@ struct AnnotatedEncl
     pti where;
     pti interior_near_where;
     pti seq_length;
+    bool isEnclSame(pti other_where, pti other_interior_near_where,
+                    pti other_seq_length) const;
 };
 
 struct OnePlayerDfs
@@ -98,6 +100,8 @@ struct OnePlayerDfs
     void findTerritoriesAndEnclosuresInside(const SimpleGame& game,
                                             pti left_top, pti bottom_right);
 
+    Enclosure findEnclosure(const APInfo& ap);
+    AnnotatedEncl findAnnotatedEnclosure(const APInfo& ap);
     std::vector<Enclosure> findAllEnclosures();
     std::vector<AnnotatedEncl> findAllAnnotatedEncl();
 
