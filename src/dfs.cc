@@ -331,11 +331,13 @@ bool OnePlayerDfs::isRectangleTooSmall(pti left_top, pti bottom_right) const
 
 void OnePlayerDfs::AP(const SimpleGame& game, pti left_top, pti bottom_right)
 {
-    if (isRectangleTooSmall(left_top, bottom_right)) return;
-    low = std::vector<pti>(coord.getSize());
-    discovery = std::vector<pti>(coord.getSize());
-    seq.clear();
     aps.clear();
+    if (isRectangleTooSmall(left_top, bottom_right)) return;
+    low.clear();
+    discovery.clear();
+    low.resize(coord.getSize(), 0);
+    discovery.resize(coord.getSize(), 0);
+    seq.clear();
     pti current_bottom = coord.ind(coord.x[left_top], coord.y[bottom_right]);
     const pti delta = left_top + coord.NE - current_bottom + 2;
     const pti offset = -128;
@@ -766,7 +768,7 @@ std::vector<EnclType> OnePlayerDfs::findAllEnclosuresT()
         {
             encls.emplace_back(
                 Enclosure{std::move(interior), std::move(border)}, -1, -1,
-                ap.where, seq[ap.seq0]);
+                ap.where, seq[ap.seq0], ap.seq1 - ap.seq0);
         }
     }
     return encls;
@@ -785,6 +787,7 @@ std::vector<AnnotatedEncl> OnePlayerDfs::findAllAnnotatedEncl()
 bool OnePlayerDfs::checkInvariants(const SimpleGame& game, pti left_top,
                                    pti bottom_right) const
 {
+    if (isRectangleTooSmall(left_top, bottom_right)) return aps.empty();
     const auto x1 = coord.x[left_top];
     const auto y1 = coord.y[left_top];
     const auto x2 = coord.x[bottom_right];
@@ -963,4 +966,5 @@ void DfsThreats::placeDot(const SimpleGame& game, pti ind, int who)
     }
     // our new dot...
     if (!ourNewDotMayChangeEncls(game, ind, who)) return;
+
 }

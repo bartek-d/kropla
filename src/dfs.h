@@ -61,6 +61,7 @@ struct AnnotatedEncl
     pti dots;
     pti where;
     pti interior_near_where;
+    pti seq_length;
 };
 
 struct OnePlayerDfs
