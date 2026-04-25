@@ -5466,14 +5466,38 @@ std::pair<Move, std::vector<std::string>> Game::extractSgfMove(std::string m,
 void Game::makeSgfMove(const std::string &m, int who)
 {
     auto [move, points_to_enclose] = extractSgfMove(m, who);
+#ifndef NDEBUG
+    DfsThreats dfsthr[2];
+    dfsthr[0].init(sg, 1);
+    dfsthr[1].init(sg, 2);
+#endif
+
     if (points_to_enclose.empty())
     {
         makeMove(move);
+#ifndef NDEBUG
+        if (move.enclosures.empty())
+        {
+            dfsthr[0].placeDot(sg, move.ind, who);
+            dfsthr[1].placeDot(sg, move.ind, who);
+        }
+#endif
     }
     else
     {
         makeMoveWithPointsToEnclose(move, points_to_enclose);
     }
+
+#ifndef NDEBUG
+    if (move.enclosures.empty())
+    {
+        DfsThreats expected_dfsthr[2];
+        expected_dfsthr[0].init(sg, 1);
+        expected_dfsthr[1].init(sg, 2);
+        assert(dfsthr[0] == expected_dfsthr[0]);
+        assert(dfsthr[1] == expected_dfsthr[1]);
+    }
+#endif
 
     assert(checkThreatCorrectness());
     assert(checkThreatWithDfs());

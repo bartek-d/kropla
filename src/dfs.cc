@@ -989,6 +989,11 @@ void DfsThreats::placeDot(const SimpleGame& game, pti ind, int who)
     // recreate dfs
     dfs.AP(game, game.rectangle[who - 1].getLeftTop(),
            game.rectangle[who - 1].getBottomRight());
+    in_terr.clear();
+    in_terr.resize(coord.getSize(), 0);
+    dfs.markTerritories(game, std::span<pti>(in_terr.begin(), in_terr.end()),
+                        game.rectangle[who - 1].getLeftTop(),
+                        game.rectangle[who - 1].getBottomRight());
     auto cache = std::move(aencls);
     aencls.clear();
     constexpr pti invalid_where = -4;
@@ -1024,11 +1029,35 @@ void DfsThreats::placeDot(const SimpleGame& game, pti ind, int who)
 
 bool DfsThreats::operator==(const DfsThreats& other) const
 {
-    if (dfs.player != other.dfs.player) return false;
-    if (aencls.size() != other.aencls.size()) return false;
-    if (!std::ranges::equal(in_terr, other.in_terr)) return false;
-    if (!std::ranges::equal(in_encl, other.in_encl)) return false;
-    if (!std::ranges::equal(in_border, other.in_border)) return false;
+    if (dfs.player != other.dfs.player)
+    {
+        std::cout << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        return false;
+    }
+    if (aencls.size() != other.aencls.size())
+    {
+        std::cout << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        return false;
+    }
+
+    if (!std::ranges::equal(in_terr, other.in_terr))
+    {
+        std::cout << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        return false;
+    }
+
+    if (!std::ranges::equal(in_encl, other.in_encl))
+    {
+        std::cout << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        return false;
+    }
+
+    if (!std::ranges::equal(in_border, other.in_border))
+    {
+        std::cout << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        return false;
+    }
+
     for (const auto& ae : other.aencls)
     {
         const auto it = std::ranges::find_if(
@@ -1047,7 +1076,11 @@ bool DfsThreats::operator==(const DfsThreats& other) const
                            std::set<pti>(ae.encl.border.begin(),
                                          ae.encl.border.end());
             });
-        if (it == aencls.end()) return false;
+        if (it == aencls.end())
+        {
+            std::cout << __FUNCTION__ << ":" << __LINE__ << std::endl;
+            return false;
+        }
     }
     return true;
 }
