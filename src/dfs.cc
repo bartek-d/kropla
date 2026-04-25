@@ -996,6 +996,7 @@ void DfsThreats::placeDot(const SimpleGame& game, pti ind, int who)
                         game.rectangle[who - 1].getBottomRight());
     auto cache = std::move(aencls);
     aencls.clear();
+    aencls.reserve(dfs.aps.size());
     constexpr pti invalid_where = -4;
     for (const auto& ap : dfs.aps)
     {
