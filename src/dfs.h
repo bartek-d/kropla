@@ -132,4 +132,5 @@ struct DfsThreats
    private:
     bool ourNewDotMayChangeEncls(const SimpleGame& game, pti ind,
                                  int who) const;
+    void makeEnclosure(const SimpleGame& game, const Enclosure& encl, int who);
 };

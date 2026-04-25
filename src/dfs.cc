@@ -959,6 +959,61 @@ bool DfsThreats::ourNewDotMayChangeEncls(const SimpleGame& game, pti ind,
     return true;
 }
 
+void DfsThreats::makeEnclosure(const SimpleGame& game, const Enclosure& encl,
+                               int who)
+{
+    if (who != dfs.player)
+    {
+        // temporarily mark interior
+        constexpr pti term = 14000;
+        for (const auto p : encl.interior) in_terr[p] += term;
+        constexpr pti invalid_where = -4;
+        aencls.erase(
+            std::remove_if(
+                aencls.begin(), aencls.end(),
+                [&encl, this](const auto& aencl)
+                {
+                    auto isInInterior = [&](pti p)
+                    {
+                        constexpr pti threshold = 7000;
+                        return in_terr[p] > threshold;
+                    };
+
+                    if (std::ranges::none_of(aencl.encl.border, isInInterior))
+                        return false;
+                    for (const auto p : aencl.encl.interior)
+                    {
+                        --in_encl[p];
+                    }
+                    for (const auto p : aencl.encl.border)
+                    {
+                        --in_border[p];
+                    }
+                    // remove corresponding AP
+                    for (auto& ap : dfs.aps)
+                    {
+                        if (aencl.isEnclSame(ap.where, dfs.seq[ap.seq0],
+                                             ap.seq1 - ap.seq0))
+                        {
+                            ap.where = invalid_where;
+                            break;
+                        }
+                    }
+                    return true;
+                }),
+            aencls.end());
+        // unmark interior
+        for (const auto p : encl.interior) in_terr[p] -= term;
+        // remove aps corresponding to removed aencls
+        dfs.aps.erase(std::remove_if(dfs.aps.begin(), dfs.aps.end(),
+                                     [invalid_where](const auto& ap)
+                                     { return (ap.where == invalid_where); }),
+                      dfs.aps.end());
+        return;
+    }
+    // our new dot...
+}
+
 void DfsThreats::placeDot(const SimpleGame& game, pti ind, int who)
 {
     if (who != dfs.player)
