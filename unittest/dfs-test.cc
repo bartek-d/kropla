@@ -583,6 +583,62 @@ TEST(Dfs, importantRectangleZagram158271)
     EXPECT_EQ(coord.ind(0, 3), sg.rectangle[1].getLeftTop());
 }
 
+TEST_P(DfsIsometryFixture, DfsThreats_placeDot_isolated)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "......."
+        "..o.o.."
+        ".oxx.o."
+        ".o.xxo."
+        "..o.oo."
+        "...o..."
+        ".......");
+    Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const int playerO = 1;
+    DfsThreats dthr{};
+    dthr.init(game.getSimpleGame(), playerO);
+    DfsThreats expected_dthr{};
+    expected_dthr.init(game.getSimpleGame(), playerO);
+    pti isolated = applyIsometry(coord.ind(1, 6), isometry, coord);
+    game.placeDot(coord.x[isolated], coord.y[isolated], playerO);
+    dthr.placeDot(game.getSimpleGame(), isolated, playerO);
+    EXPECT_EQ(expected_dthr.in_terr, dthr.in_terr);
+    EXPECT_EQ(expected_dthr.in_encl, dthr.in_encl);
+    EXPECT_EQ(expected_dthr.in_border, dthr.in_border);
+    EXPECT_EQ(expected_dthr.aencls.size(), dthr.aencls.size());
+}
+
+TEST_P(DfsIsometryFixture, DfsThreats_placeDot_newThreats)
+{
+    const unsigned isometry = GetParam();
+    auto sgf = constructSgfFromGameBoard(
+        "......."
+        "..o.o.."
+        ".oxx.o."
+        ".o.xxo."
+        "..o.oo."
+        "...o..."
+        ".......");
+    Game game = constructGameFromSgfWithIsometry(sgf, isometry);
+    const int playerO = 1;
+    DfsThreats dthr{};
+    dthr.init(game.getSimpleGame(), playerO);
+    EXPECT_EQ(0, dthr.in_terr[applyIsometry(coord.ind(1, 4), isometry, coord)]);
+    EXPECT_EQ(0, dthr.in_terr[applyIsometry(coord.ind(2, 5), isometry, coord)]);
+    EXPECT_EQ(0, dthr.in_encl[applyIsometry(coord.ind(1, 4), isometry, coord)]);
+    EXPECT_EQ(0, dthr.in_encl[applyIsometry(coord.ind(2, 5), isometry, coord)]);
+    const auto initial_aencls_count = dthr.aencls.size();
+    pti close = applyIsometry(coord.ind(1, 5), isometry, coord);
+    game.placeDot(coord.x[close], coord.y[close], playerO);
+    dthr.placeDot(game.getSimpleGame(), close, playerO);
+    EXPECT_EQ(0, dthr.in_terr[applyIsometry(coord.ind(1, 4), isometry, coord)]);
+    EXPECT_EQ(0, dthr.in_terr[applyIsometry(coord.ind(2, 5), isometry, coord)]);
+    EXPECT_EQ(1, dthr.in_encl[applyIsometry(coord.ind(1, 4), isometry, coord)]);
+    EXPECT_EQ(1, dthr.in_encl[applyIsometry(coord.ind(2, 5), isometry, coord)]);
+    EXPECT_EQ(initial_aencls_count + 2, dthr.aencls.size());
+}
+
 INSTANTIATE_TEST_CASE_P(Par, DfsIsometryFixture,
                         ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7));
 
