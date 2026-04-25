@@ -127,6 +127,7 @@ struct DfsThreats
     std::vector<AnnotatedEncl> aencls;
     void init(const SimpleGame& game, int who);
     void placeDot(const SimpleGame& game, pti ind, int who);
+    bool operator==(const DfsThreats& other) const;
 
    private:
     bool ourNewDotMayChangeEncls(const SimpleGame& game, pti ind,

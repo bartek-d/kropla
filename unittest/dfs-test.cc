@@ -607,6 +607,7 @@ TEST_P(DfsIsometryFixture, DfsThreats_placeDot_isolated)
     EXPECT_EQ(expected_dthr.in_encl, dthr.in_encl);
     EXPECT_EQ(expected_dthr.in_border, dthr.in_border);
     EXPECT_EQ(expected_dthr.aencls.size(), dthr.aencls.size());
+    EXPECT_EQ(expected_dthr, dthr);
 }
 
 TEST_P(DfsIsometryFixture, DfsThreats_placeDot_newThreats)
@@ -637,6 +638,10 @@ TEST_P(DfsIsometryFixture, DfsThreats_placeDot_newThreats)
     EXPECT_EQ(1, dthr.in_encl[applyIsometry(coord.ind(1, 4), isometry, coord)]);
     EXPECT_EQ(1, dthr.in_encl[applyIsometry(coord.ind(2, 5), isometry, coord)]);
     EXPECT_EQ(initial_aencls_count + 2, dthr.aencls.size());
+
+    DfsThreats expected_dthr{};
+    expected_dthr.init(game.getSimpleGame(), playerO);
+    EXPECT_EQ(expected_dthr, dthr);
 }
 
 INSTANTIATE_TEST_CASE_P(Par, DfsIsometryFixture,

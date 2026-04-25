@@ -1021,3 +1021,33 @@ void DfsThreats::placeDot(const SimpleGame& game, pti ind, int who)
         for (const auto p : ae.encl.interior) --in_encl[p];
     }
 }
+
+bool DfsThreats::operator==(const DfsThreats& other) const
+{
+    if (dfs.player != other.dfs.player) return false;
+    if (aencls.size() != other.aencls.size()) return false;
+    if (!std::ranges::equal(in_terr, other.in_terr)) return false;
+    if (!std::ranges::equal(in_encl, other.in_encl)) return false;
+    if (!std::ranges::equal(in_border, other.in_border)) return false;
+    for (const auto& ae : other.aencls)
+    {
+        const auto it = std::ranges::find_if(
+            aencls,
+            [&](const auto& a)
+            {
+                return a.where == ae.where &&
+                       a.interior_near_where == ae.interior_near_where &&
+                       a.seq_length == ae.seq_length &&
+                       std::set<pti>(a.encl.interior.begin(),
+                                     a.encl.interior.end()) ==
+                           std::set<pti>(ae.encl.interior.begin(),
+                                         ae.encl.interior.end()) &&
+                       std::set<pti>(a.encl.border.begin(),
+                                     a.encl.border.end()) ==
+                           std::set<pti>(ae.encl.border.begin(),
+                                         ae.encl.border.end());
+            });
+        if (it == aencls.end()) return false;
+    }
+    return true;
+}
