@@ -959,9 +959,12 @@ bool DfsThreats::ourNewDotMayChangeEncls(const SimpleGame& game, pti ind,
     return true;
 }
 
-void DfsThreats::makeEnclosure(const SimpleGame& game, const Enclosure& encl,
-                               int who)
+void DfsThreats::makeEnclosure(const Enclosure& encl, int who)
 {
+    std::cout << "Making encl at " << coord.showPt(encl.border[0]) << " for "
+              << who << std::endl;
+    std::cout << __LINE__ << ": Sizes of aencls: " << aencls.size()
+              << " aps: " << dfs.aps.size() << std::endl;
     if (who != dfs.player)
     {
         // temporarily mark interior
@@ -981,6 +984,16 @@ void DfsThreats::makeEnclosure(const SimpleGame& game, const Enclosure& encl,
 
                     if (std::ranges::none_of(aencl.encl.border, isInInterior))
                         return false;
+                    for (auto p : aencl.encl.border)
+                    {
+                        if (isInInterior(p))
+                        {
+                            std::cout << "Encl at " << coord.showPt(aencl.where)
+                                      << " has a border point inside "
+                                      << coord.showPt(p) << std::endl;
+                            break;
+                        }
+                    }
                     for (const auto p : aencl.encl.interior)
                     {
                         --in_encl[p];
@@ -1009,9 +1022,26 @@ void DfsThreats::makeEnclosure(const SimpleGame& game, const Enclosure& encl,
                                      [invalid_where](const auto& ap)
                                      { return (ap.where == invalid_where); }),
                       dfs.aps.end());
+        if (std::ranges::all_of(encl.border,
+                                [&](pti p) { return in_terr[p] != 0; }))
+        {
+            for (const auto p : encl.interior)
+            {
+                in_terr[p] = 1;
+            }
+        }
+        std::cout << __LINE__ << ": Sizes of aencls: " << aencls.size()
+                  << " aps: " << dfs.aps.size() << std::endl;
         return;
     }
     // our new dot...
+    /*
+    if (in_terr[encl.border[0]] == 0)
+    {
+        // enclosure is not inside our territory, so its inside is not our territory either
+        for (const auto p : encl.interior) in_terr[p] = 0;
+    }
+    */
 }
 
 void DfsThreats::placeDot(const SimpleGame& game, pti ind, int who)
@@ -1083,6 +1113,15 @@ void DfsThreats::placeDot(const SimpleGame& game, pti ind, int who)
     }
 }
 
+void DfsThreats::makeMove(const SimpleGame& game, const Move& move)
+{
+    placeDot(game, move.ind, move.who);
+    for (const auto& encl : move.enclosures)
+    {
+        makeEnclosure(*encl, move.who);
+    }
+}
+
 bool DfsThreats::operator==(const DfsThreats& other) const
 {
     if (dfs.player != other.dfs.player)
@@ -1099,6 +1138,16 @@ bool DfsThreats::operator==(const DfsThreats& other) const
     if (!std::ranges::equal(in_terr, other.in_terr))
     {
         std::cout << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        for (std::size_t i = 0; i < in_terr.size(); ++i)
+        {
+            if (in_terr[i] != other.in_terr[i])
+            {
+                std::cout << __FUNCTION__ << ":" << __LINE__
+                          << " at point: " << coord.showPt(i) << " -- "
+                          << "this in_terr: " << in_terr[i]
+                          << ", other in_terr: " << other.in_terr[i] << '\n';
+            }
+        }
         return false;
     }
 
@@ -1122,7 +1171,7 @@ bool DfsThreats::operator==(const DfsThreats& other) const
             {
                 return a.where == ae.where &&
                        a.interior_near_where == ae.interior_near_where &&
-                       a.seq_length == ae.seq_length &&
+                       //a.seq_length == ae.seq_length &&
                        std::set<pti>(a.encl.interior.begin(),
                                      a.encl.interior.end()) ==
                            std::set<pti>(ae.encl.interior.begin(),
@@ -1135,6 +1184,11 @@ bool DfsThreats::operator==(const DfsThreats& other) const
         if (it == aencls.end())
         {
             std::cout << __FUNCTION__ << ":" << __LINE__ << std::endl;
+            std::cout << "Could not find aencl with where = "
+                      << coord.showPt(ae.where) << " interior_near_where = "
+                      << coord.showPt(ae.interior_near_where)
+                      << " seq_length = " << ae.seq_length << std::endl;
+            std::cout << coord.showColouredBoard(ae.encl.border) << std::endl;
             return false;
         }
     }

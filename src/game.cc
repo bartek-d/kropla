@@ -5476,11 +5476,8 @@ void Game::makeSgfMove(const std::string &m, int who)
     {
         makeMove(move);
 #ifndef NDEBUG
-        if (move.enclosures.empty())
-        {
-            dfsthr[0].placeDot(sg, move.ind, who);
-            dfsthr[1].placeDot(sg, move.ind, who);
-        }
+        dfsthr[0].makeMove(sg, move);
+        dfsthr[1].makeMove(sg, move);
 #endif
     }
     else
@@ -5489,7 +5486,6 @@ void Game::makeSgfMove(const std::string &m, int who)
     }
 
 #ifndef NDEBUG
-    if (move.enclosures.empty())
     {
         DfsThreats expected_dfsthr[2];
         expected_dfsthr[0].init(sg, 1);

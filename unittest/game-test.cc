@@ -605,6 +605,7 @@ TEST_P(IsometryFixture, inconsistencyInThreats2m_shouldBeRestrictedToInsideTerr)
     // it would be maybe better if threats2m were more consistent, but at least
     // they should be outside territories
     const unsigned isometry = GetParam();
+    // https://zagram.org/eidokropki/#2026_4_26_IMvQqc
     const std::string sgf_start{
         "(;SZ[20]PB[kropla:7000]PW[kropla_c1db66445b6:7000];B[kl];W[ki];B[lj]"
         ";W[mh];B[il];W[kj];B[kk];W[mj];B[li];W[lh];B[lk];W[mi];B[kh];W[ii]"
